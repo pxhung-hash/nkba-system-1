@@ -11,11 +11,12 @@ export default function MemberProfilePage() {
   
   const [isSaving, setIsSaving] = useState(false);
   const [isOptIn, setIsOptIn] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
 
   const [form, setForm] = useState({
     full_name: '', title: '', phone: '', email: '', 
     skills: '', experience_years: 0, expected_salary: '', bio: '',
-    linkedin_url: '',
+    linkedin_url: '', avatar_url: '', // Thêm trường avatar_url
     experiences: [] as { company: '', role: '', period: '', description: '' }[],
     education: [] as { school: '', degree: '', year: '' }[],
     certificates: [] as { name: '', organization: '', year: '' }[],
@@ -27,19 +28,15 @@ export default function MemberProfilePage() {
       const { data: { user }, error: authError } = await supabase.auth.getUser();
       if (authError || !user) return;
 
-      // 🛑 SỬA Ở ĐÂY: Xóa bỏ "corporates(name)" để truy vấn chạy an toàn tuyệt đối giống layout.tsx
       const { data: profile, error: profileError } = await supabase
         .from('individuals')
         .select(`id, full_name, email, phone, individual_tiers!individuals_tier_id_fkey(name, code)`) 
         .eq('user_auth_id', user.id)
         .maybeSingle();
 
-      if (profileError) {
-        console.error("LỖI SUPABASE:", profileError);
-      }
+      if (profileError) console.error("LỖI SUPABASE:", profileError);
 
       if (profile) {
-        // Đã tìm thấy Hội viên chuẩn!
         setCurrentUser({ ...profile, corporates: { name: 'Thành viên Độc lập' }, is_admin: false });
 
         const { data: talent } = await supabase.from('talents').select('*').eq('individual_id', profile.id).maybeSingle();
@@ -50,7 +47,7 @@ export default function MemberProfilePage() {
             full_name: talent.full_name || '', title: talent.title || '', phone: talent.phone || '', email: talent.email || '',
             skills: talent.skills || '', experience_years: talent.experience_years || 0, 
             expected_salary: talent.expected_salary || '', bio: talent.bio || '',
-            linkedin_url: talent.linkedin_url || '',
+            linkedin_url: talent.linkedin_url || '', avatar_url: talent.avatar_url || '', // Lấy ảnh nếu có
             experiences: talent.experiences || [], education: talent.education || [], certificates: talent.certificates || [], languages: talent.languages || []
           });
         } else {
@@ -60,23 +57,48 @@ export default function MemberProfilePage() {
           }));
         }
       } else {
-        // NẾU KHÔNG PHẢI HỘI VIÊN -> TÌM TRONG BẢNG NHÂN VIÊN
         const { data: empData } = await supabase.from('employees').select('name, email').eq('email', user.email).maybeSingle();
-        
         if (empData) {
           setCurrentUser({
-            id: user.id, 
-            full_name: empData.name, email: user.email,
+            id: user.id, full_name: empData.name, email: user.email,
             corporates: { name: 'Ban Điều Hành NKBA', tax_code: 'N/A' },
             individual_tiers: { name: 'Super Admin' }, is_admin: true
           });
         } else {
-          setIsOrphan(true); // Trạng thái mồ côi
+          setIsOrphan(true); 
         }
       }
     };
     fetchData();
   }, [supabase]);
+
+  // --- XỬ LÝ UPLOAD ẢNH ---
+  const handleUploadAvatar = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    try {
+      const file = e.target.files?.[0];
+      if (!file) return;
+
+      setIsUploading(true);
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${currentUser.id}-${Math.random()}.${fileExt}`;
+      const filePath = `${fileName}`; // Lưu thẳng vào bucket avatars
+
+      const { error: uploadError } = await supabase.storage.from('avatars').upload(filePath, file);
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage.from('avatars').getPublicUrl(filePath);
+      setForm({ ...form, avatar_url: publicUrl }); // Cập nhật ngay lên giao diện
+    } catch (error: any) {
+      alert("Lỗi upload: " + error.message);
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  // --- HÀM MỞ GIAO DIỆN IN PDF ---
+  const handleExportPDF = () => {
+    window.print();
+  };
 
   // HÀM XỬ LÝ MẢNG ĐỘNG
   const addExperience = () => setForm({ ...form, experiences: [...form.experiences, { company: '', role: '', period: '', description: '' }] });
@@ -100,7 +122,6 @@ export default function MemberProfilePage() {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return setIsSaving(false), alert('Lỗi xác thực: Vui lòng đăng nhập lại!');
 
-    // LẤY ID CHUẨN XÁC TỪ DATABASE 
     const { data: profileCheck, error: checkError } = await supabase.from('individuals').select('id').eq('user_auth_id', user.id).maybeSingle();
     
     if (checkError) console.error("Lỗi check ID trước khi lưu:", checkError);
@@ -114,7 +135,7 @@ export default function MemberProfilePage() {
       individual_id: profileCheck.id, 
       full_name: form.full_name, title: form.title, phone: form.phone, email: form.email,
       skills: form.skills, experience_years: form.experience_years, expected_salary: form.expected_salary, bio: form.bio,
-      linkedin_url: form.linkedin_url,
+      linkedin_url: form.linkedin_url, avatar_url: form.avatar_url, // Gửi link ảnh lên server
       experiences: form.experiences, education: form.education, certificates: form.certificates, languages: form.languages, 
       status: 'PENDING' 
     };
@@ -151,44 +172,62 @@ export default function MemberProfilePage() {
   );
 
   return (
-    <div className="space-y-8 animate-in fade-in p-6 md:p-10 max-w-7xl mx-auto pb-24">
-      <div className="border-b border-slate-200 pb-6 flex flex-col md:flex-row justify-between md:items-end gap-4">
+    <div className="space-y-8 animate-in fade-in p-6 md:p-10 max-w-7xl mx-auto pb-24 print:p-0">
+      
+      {/* HEADER KHÔNG HIỂN THỊ KHI IN PDF */}
+      <div className="border-b border-slate-200 pb-6 flex flex-col md:flex-row justify-between md:items-end gap-4 print:hidden">
         <div>
-          <h1 className="text-3xl font-black text-slate-900 tracking-tight">Hồ sơ Của Tôi 12345</h1>
+          <h1 className="text-3xl font-black text-slate-900 tracking-tight">Hồ sơ Của Tôi</h1>
           <p className="text-sm font-medium text-slate-500 mt-2">Quản lý định danh cá nhân và xây dựng thương hiệu chuyên gia trong hệ sinh thái.</p>
         </div>
         
-        <label className="flex items-center gap-4 bg-white p-3 pr-5 rounded-2xl border border-slate-200 shadow-sm cursor-pointer hover:border-indigo-300 transition-colors">
-          <div className="relative">
-            <input type="checkbox" className="sr-only" checked={isOptIn} onChange={() => setIsOptIn(!isOptIn)} />
-            <div className={`block w-14 h-8 rounded-full transition-colors ${isOptIn ? 'bg-indigo-600' : 'bg-slate-300'}`}></div>
-            <div className={`dot absolute left-1 top-1 bg-white w-6 h-6 rounded-full transition-transform shadow-md ${isOptIn ? 'transform translate-x-6' : ''}`}></div>
-          </div>
-          <div>
-            <div className={`text-sm font-black uppercase tracking-widest ${isOptIn ? 'text-indigo-600' : 'text-slate-500'}`}>
-              {isOptIn ? 'ĐANG BẬT TÌM KIẾM CƠ HỘI' : 'CHẾ ĐỘ ẨN DANH'}
+        <div className="flex items-center gap-6">
+          {/* NÚT XUẤT CV */}
+          <button onClick={handleExportPDF} className="h-10 px-5 bg-slate-800 text-white rounded-xl text-xs font-bold hover:bg-black transition-colors flex items-center gap-2">
+            <i className="ph-bold ph-file-pdf text-lg"></i> XUẤT CV (PDF)
+          </button>
+
+          <label className="flex items-center gap-4 bg-white p-3 pr-5 rounded-2xl border border-slate-200 shadow-sm cursor-pointer hover:border-indigo-300 transition-colors">
+            <div className="relative">
+              <input type="checkbox" className="sr-only" checked={isOptIn} onChange={() => setIsOptIn(!isOptIn)} />
+              <div className={`block w-14 h-8 rounded-full transition-colors ${isOptIn ? 'bg-indigo-600' : 'bg-slate-300'}`}></div>
+              <div className={`dot absolute left-1 top-1 bg-white w-6 h-6 rounded-full transition-transform shadow-md ${isOptIn ? 'transform translate-x-6' : ''}`}></div>
             </div>
-            <div className="text-[10px] font-bold text-slate-400">Trạng thái Talent Hub</div>
-          </div>
-        </label>
+            <div>
+              <div className={`text-sm font-black uppercase tracking-widest ${isOptIn ? 'text-indigo-600' : 'text-slate-500'}`}>
+                {isOptIn ? 'ĐANG BẬT TÌM KIẾM CƠ HỘI' : 'CHẾ ĐỘ ẨN DANH'}
+              </div>
+              <div className="text-[10px] font-bold text-slate-400">Trạng thái Talent Hub</div>
+            </div>
+          </label>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
         
-        {/* CỘT TRÁI: THẺ TÓM TẮT */}
-        <div className="lg:col-span-1 space-y-6 relative">
+        {/* CỘT TRÁI: THẺ TÓM TẮT (Ẩn khi in PDF) */}
+        <div className="lg:col-span-1 space-y-6 relative print:hidden">
           <div className="bg-white border border-slate-200 rounded-[2rem] p-6 shadow-sm sticky top-28 overflow-hidden">
             {currentUser.is_admin && <div className="absolute top-0 right-0 w-32 h-32 bg-rose-500/10 rounded-full blur-2xl"></div>}
             
             <div className="flex flex-col items-center text-center pb-6 border-b border-slate-100 relative z-10">
+              
+              {/* KHU VỰC AVATAR CÓ NÚT UPLOAD */}
               <div className="relative mb-4 group cursor-pointer">
-                <div className={`w-24 h-24 rounded-full flex items-center justify-center text-3xl font-black shadow-xl border-4 border-white text-white ${currentUser.is_admin ? 'bg-rose-600' : 'bg-[#002D62]'}`}>
-                  {currentUser.full_name?.charAt(0) || 'N'}
+                <div className={`w-28 h-28 rounded-full flex items-center justify-center text-3xl font-black shadow-xl border-4 border-white text-white overflow-hidden ${currentUser.is_admin ? 'bg-rose-600' : 'bg-[#002D62]'}`}>
+                  {form.avatar_url ? (
+                    <img src={form.avatar_url} alt="Avatar" className="w-full h-full object-cover" />
+                  ) : (
+                    currentUser.full_name?.charAt(0) || 'N'
+                  )}
                 </div>
-                <div className="absolute bottom-0 right-0 w-8 h-8 bg-white rounded-full flex items-center justify-center text-slate-600 shadow-md border border-slate-100 group-hover:text-blue-600 group-hover:scale-110 transition-transform">
-                  <i className="ph-fill ph-camera text-sm"></i>
-                </div>
+                {/* Nút Upload */}
+                <label className="absolute bottom-0 right-0 w-9 h-9 bg-indigo-600 rounded-full flex items-center justify-center text-white cursor-pointer shadow-lg hover:scale-110 transition-transform">
+                  {isUploading ? <i className="ph-bold ph-spinner animate-spin"></i> : <i className="ph-fill ph-camera text-sm"></i>}
+                  <input type="file" className="sr-only" onChange={handleUploadAvatar} accept="image/*" disabled={isUploading} />
+                </label>
               </div>
+
               <h3 className="text-xl font-black text-slate-900">{currentUser.full_name}</h3>
               <p className="text-sm font-bold text-slate-500 mt-1">{form.title || 'Chưa cập nhật chức danh'}</p>
               
@@ -208,8 +247,8 @@ export default function MemberProfilePage() {
           </div>
         </div>
 
-        {/* CỘT PHẢI: FORM */}
-        <div className="lg:col-span-3">
+        {/* CỘT PHẢI: FORM CHỈNH SỬA (Ẩn khi in PDF) */}
+        <div className="lg:col-span-3 print:hidden">
           {!isOptIn ? (
             <div className="bg-white border border-slate-200 rounded-[2rem] py-20 px-8 text-center flex flex-col items-center shadow-sm">
               <div className="w-32 h-32 bg-slate-50 rounded-full flex items-center justify-center mb-6 border-4 border-slate-100 shadow-inner">
@@ -408,7 +447,128 @@ export default function MemberProfilePage() {
             </div>
           )}
         </div>
+
+        {/* --- KHU VỰC ẨN: GIAO DIỆN CV ĐỂ IN PDF --- */}
+        <div className="hidden print:block fixed inset-0 w-full h-full bg-white z-[9999] p-12 text-black" id="cv-print">
+          <div className="max-w-4xl mx-auto">
+            {/* Header CV */}
+            <div className="flex justify-between items-end border-b-2 border-slate-800 pb-6 mb-8">
+              <div>
+                <h1 className="text-4xl font-black uppercase text-slate-900">{form.full_name || 'Tên của bạn'}</h1>
+                <p className="text-xl font-bold text-indigo-700 mt-1">{form.title || 'Chức danh / Định vị chuyên môn'}</p>
+                <div className="flex gap-4 mt-3 text-sm text-slate-600 font-medium">
+                  {form.email && <span>📧 {form.email}</span>}
+                  {form.phone && <span>📞 {form.phone}</span>}
+                  {form.linkedin_url && <span>💼 LinkedIn</span>}
+                </div>
+              </div>
+              {form.avatar_url && (
+                <div className="w-28 h-28 shrink-0 rounded-full border-2 border-slate-200 overflow-hidden">
+                  <img src={form.avatar_url} alt="Avatar" className="w-full h-full object-cover" />
+                </div>
+              )}
+            </div>
+
+            {/* Nội dung CV chia 2 cột */}
+            <div className="grid grid-cols-3 gap-10">
+              
+              {/* Cột trái (Chiếm 2 phần) */}
+              <div className="col-span-2 space-y-8">
+                {form.bio && (
+                  <section>
+                    <h2 className="text-lg font-black uppercase tracking-wider text-slate-800 mb-3">Tóm tắt chuyên môn</h2>
+                    <p className="text-sm text-slate-700 leading-relaxed text-justify">{form.bio}</p>
+                  </section>
+                )}
+
+                {form.experiences.length > 0 && (
+                  <section>
+                    <h2 className="text-lg font-black uppercase tracking-wider text-slate-800 mb-4">Kinh nghiệm làm việc</h2>
+                    <div className="space-y-5">
+                      {form.experiences.map((exp, idx) => (
+                        <div key={idx}>
+                          <div className="flex justify-between items-baseline mb-1">
+                            <h3 className="font-bold text-slate-900">{exp.role}</h3>
+                            <span className="text-xs font-medium text-slate-500">{exp.period}</span>
+                          </div>
+                          <p className="text-sm font-bold text-indigo-700 mb-2">{exp.company}</p>
+                          <p className="text-sm text-slate-600 whitespace-pre-wrap">{exp.description}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </section>
+                )}
+              </div>
+
+              {/* Cột phải (Chiếm 1 phần) */}
+              <div className="col-span-1 space-y-8">
+                {form.skills && (
+                  <section>
+                    <h2 className="text-lg font-black uppercase tracking-wider text-slate-800 mb-3">Kỹ năng</h2>
+                    <div className="flex flex-col gap-1.5">
+                      {form.skills.split(',').map((skill, idx) => (
+                        <span key={idx} className="text-sm text-slate-700 border-b border-slate-100 pb-1">{skill.trim()}</span>
+                      ))}
+                    </div>
+                  </section>
+                )}
+
+                {form.education.length > 0 && (
+                  <section>
+                    <h2 className="text-lg font-black uppercase tracking-wider text-slate-800 mb-3">Học vấn</h2>
+                    <div className="space-y-4">
+                      {form.education.map((edu, idx) => (
+                        <div key={idx}>
+                          <p className="text-sm font-bold text-slate-900">{edu.degree}</p>
+                          <p className="text-xs text-slate-600 mt-0.5">{edu.school}</p>
+                          <p className="text-xs text-slate-500 italic mt-0.5">{edu.year}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </section>
+                )}
+
+                {form.languages.length > 0 && (
+                  <section>
+                    <h2 className="text-lg font-black uppercase tracking-wider text-slate-800 mb-3">Ngoại ngữ</h2>
+                    <div className="space-y-2">
+                      {form.languages.map((lang, idx) => (
+                        <div key={idx} className="flex justify-between text-sm">
+                          <span className="font-medium text-slate-800">{lang.language}</span>
+                          <span className="text-slate-500">{lang.proficiency}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </section>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
+      
+      {/* KHAI BÁO CSS CHO BẢN IN PDF */}
+      <style jsx global>{`
+        @media print {
+          /* Ẩn mọi thứ lộn xộn trên web */
+          body * {
+            visibility: hidden;
+          }
+          /* Chỉ hiện thẻ #cv-print và các con của nó */
+          #cv-print, #cv-print * {
+            visibility: visible;
+          }
+          #cv-print {
+            position: absolute;
+            left: 0;
+            top: 0;
+            margin: 0;
+            padding: 0;
+            width: 100%;
+          }
+        }
+      `}</style>
+
     </div>
   );
 }
