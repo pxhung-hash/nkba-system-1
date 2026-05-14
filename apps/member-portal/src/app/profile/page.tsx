@@ -16,7 +16,7 @@ export default function MemberProfilePage() {
   const [form, setForm] = useState({
     full_name: '', title: '', phone: '', email: '', 
     skills: '', experience_years: 0, expected_salary: '', bio: '',
-    linkedin_url: '', avatar_url: '', // Thêm trường avatar_url
+    linkedin_url: '', avatar_url: '', 
     experiences: [] as { company: '', role: '', period: '', description: '' }[],
     education: [] as { school: '', degree: '', year: '' }[],
     certificates: [] as { name: '', organization: '', year: '' }[],
@@ -34,7 +34,9 @@ export default function MemberProfilePage() {
         .eq('user_auth_id', user.id)
         .maybeSingle();
 
-      if (profileError) console.error("LỖI SUPABASE:", profileError);
+      if (profileError) {
+        console.error("LỖI SUPABASE:", profileError);
+      }
 
       if (profile) {
         setCurrentUser({ ...profile, corporates: { name: 'Thành viên Độc lập' }, is_admin: false });
@@ -47,7 +49,7 @@ export default function MemberProfilePage() {
             full_name: talent.full_name || '', title: talent.title || '', phone: talent.phone || '', email: talent.email || '',
             skills: talent.skills || '', experience_years: talent.experience_years || 0, 
             expected_salary: talent.expected_salary || '', bio: talent.bio || '',
-            linkedin_url: talent.linkedin_url || '', avatar_url: talent.avatar_url || '', // Lấy ảnh nếu có
+            linkedin_url: talent.linkedin_url || '', avatar_url: talent.avatar_url || '',
             experiences: talent.experiences || [], education: talent.education || [], certificates: talent.certificates || [], languages: talent.languages || []
           });
         } else {
@@ -81,13 +83,13 @@ export default function MemberProfilePage() {
       setIsUploading(true);
       const fileExt = file.name.split('.').pop();
       const fileName = `${currentUser.id}-${Math.random()}.${fileExt}`;
-      const filePath = `${fileName}`; // Lưu thẳng vào bucket avatars
+      const filePath = `${fileName}`; 
 
       const { error: uploadError } = await supabase.storage.from('avatars').upload(filePath, file);
       if (uploadError) throw uploadError;
 
       const { data: { publicUrl } } = supabase.storage.from('avatars').getPublicUrl(filePath);
-      setForm({ ...form, avatar_url: publicUrl }); // Cập nhật ngay lên giao diện
+      setForm({ ...form, avatar_url: publicUrl }); 
     } catch (error: any) {
       alert("Lỗi upload: " + error.message);
     } finally {
@@ -135,7 +137,7 @@ export default function MemberProfilePage() {
       individual_id: profileCheck.id, 
       full_name: form.full_name, title: form.title, phone: form.phone, email: form.email,
       skills: form.skills, experience_years: form.experience_years, expected_salary: form.expected_salary, bio: form.bio,
-      linkedin_url: form.linkedin_url, avatar_url: form.avatar_url, // Gửi link ảnh lên server
+      linkedin_url: form.linkedin_url, avatar_url: form.avatar_url, 
       experiences: form.experiences, education: form.education, certificates: form.certificates, languages: form.languages, 
       status: 'PENDING' 
     };
@@ -182,7 +184,6 @@ export default function MemberProfilePage() {
         </div>
         
         <div className="flex items-center gap-6">
-          {/* NÚT XUẤT CV */}
           <button onClick={handleExportPDF} className="h-10 px-5 bg-slate-800 text-white rounded-xl text-xs font-bold hover:bg-black transition-colors flex items-center gap-2">
             <i className="ph-bold ph-file-pdf text-lg"></i> XUẤT CV (PDF)
           </button>
@@ -221,7 +222,6 @@ export default function MemberProfilePage() {
                     currentUser.full_name?.charAt(0) || 'N'
                   )}
                 </div>
-                {/* Nút Upload */}
                 <label className="absolute bottom-0 right-0 w-9 h-9 bg-indigo-600 rounded-full flex items-center justify-center text-white cursor-pointer shadow-lg hover:scale-110 transition-transform">
                   {isUploading ? <i className="ph-bold ph-spinner animate-spin"></i> : <i className="ph-fill ph-camera text-sm"></i>}
                   <input type="file" className="sr-only" onChange={handleUploadAvatar} accept="image/*" disabled={isUploading} />
@@ -448,101 +448,137 @@ export default function MemberProfilePage() {
           )}
         </div>
 
-        {/* --- KHU VỰC ẨN: GIAO DIỆN CV ĐỂ IN PDF --- */}
-        <div className="hidden print:block fixed inset-0 w-full h-full bg-white z-[9999] p-12 text-black" id="cv-print">
-          <div className="max-w-4xl mx-auto">
-            {/* Header CV */}
-            <div className="flex justify-between items-end border-b-2 border-slate-800 pb-6 mb-8">
-              <div>
-                <h1 className="text-4xl font-black uppercase text-slate-900">{form.full_name || 'Tên của bạn'}</h1>
-                <p className="text-xl font-bold text-indigo-700 mt-1">{form.title || 'Chức danh / Định vị chuyên môn'}</p>
-                <div className="flex gap-4 mt-3 text-sm text-slate-600 font-medium">
-                  {form.email && <span>📧 {form.email}</span>}
-                  {form.phone && <span>📞 {form.phone}</span>}
-                  {form.linkedin_url && <span>💼 LinkedIn</span>}
-                </div>
-              </div>
-              {form.avatar_url && (
-                <div className="w-28 h-28 shrink-0 rounded-full border-2 border-slate-200 overflow-hidden">
+        {/* ========================================================================= */}
+        {/* KHU VỰC ẨN: GIAO DIỆN CV PREMIUM MỚI (CHỈ HIỆN KHI BẤM NÚT IN) */}
+        {/* ========================================================================= */}
+        <div className="hidden print:flex fixed inset-0 w-full min-h-screen bg-white z-[9999] text-slate-800" id="cv-print">
+          
+          {/* CỘT TRÁI (NỀN ĐẬM) - CHIẾM 1/3 */}
+          <div className="w-1/3 bg-slate-900 text-white p-10 flex flex-col h-full border-r-8 border-indigo-600">
+            
+            {/* AVATAR */}
+            <div className="flex justify-center mb-8">
+              <div className="w-40 h-40 rounded-full border-4 border-white/20 overflow-hidden shadow-2xl bg-slate-800 flex items-center justify-center">
+                {form.avatar_url ? (
                   <img src={form.avatar_url} alt="Avatar" className="w-full h-full object-cover" />
+                ) : (
+                  <span className="text-6xl font-black text-slate-600">{form.full_name?.charAt(0) || 'N'}</span>
+                )}
+              </div>
+            </div>
+
+            {/* THÔNG TIN LIÊN HỆ */}
+            <div className="mb-10 space-y-4 text-sm font-medium text-slate-300">
+              <h3 className="text-white font-black tracking-widest uppercase border-b border-slate-700 pb-2 mb-4">Liên hệ</h3>
+              {form.phone && <div className="flex items-center gap-3"><i className="ph-fill ph-phone text-indigo-400 text-lg"></i> {form.phone}</div>}
+              {form.email && <div className="flex items-center gap-3"><i className="ph-fill ph-envelope-simple text-indigo-400 text-lg"></i> <span className="break-all">{form.email}</span></div>}
+              {form.linkedin_url && <div className="flex items-center gap-3"><i className="ph-fill ph-linkedin-logo text-indigo-400 text-lg"></i> <span className="break-all">{form.linkedin_url.replace('https://www.', '')}</span></div>}
+            </div>
+
+            {/* HỌC VẤN */}
+            {form.education.length > 0 && (
+              <div className="mb-10">
+                <h3 className="text-white font-black tracking-widest uppercase border-b border-slate-700 pb-2 mb-4">Học vấn</h3>
+                <div className="space-y-5">
+                  {form.education.map((edu, idx) => (
+                    <div key={idx} className="relative pl-4 border-l-2 border-slate-700">
+                      <div className="absolute -left-[5px] top-1.5 w-2 h-2 rounded-full bg-indigo-500"></div>
+                      <p className="font-bold text-white leading-tight">{edu.degree}</p>
+                      <p className="text-xs text-indigo-300 mt-1 font-medium">{edu.school}</p>
+                      <p className="text-[10px] text-slate-400 mt-0.5">{edu.year}</p>
+                    </div>
+                  ))}
                 </div>
-              )}
+              </div>
+            )}
+
+            {/* KỸ NĂNG */}
+            {form.skills && (
+              <div className="mb-10">
+                <h3 className="text-white font-black tracking-widest uppercase border-b border-slate-700 pb-2 mb-4">Kỹ năng</h3>
+                <div className="flex flex-wrap gap-2">
+                  {form.skills.split(',').map((skill, idx) => (
+                    <span key={idx} className="px-3 py-1.5 bg-slate-800 text-slate-200 rounded-lg text-xs font-bold border border-slate-700">{skill.trim()}</span>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* NGOẠI NGỮ */}
+            {form.languages.length > 0 && (
+              <div>
+                <h3 className="text-white font-black tracking-widest uppercase border-b border-slate-700 pb-2 mb-4">Ngoại ngữ</h3>
+                <div className="space-y-3">
+                  {form.languages.map((lang, idx) => (
+                    <div key={idx} className="flex justify-between items-center text-sm">
+                      <span className="font-bold text-slate-200">{lang.language}</span>
+                      <span className="text-xs bg-slate-800 px-2 py-1 rounded text-indigo-300 font-bold">{lang.proficiency}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* CỘT PHẢI (NỀN SÁNG) - CHIẾM 2/3 */}
+          <div className="w-2/3 bg-white p-12 flex flex-col h-full">
+            
+            {/* HEADER TÊN & CHỨC DANH */}
+            <div className="mb-12">
+              <h1 className="text-5xl font-black text-slate-900 uppercase tracking-tight mb-2 leading-none">{form.full_name || 'TÊN CỦA BẠN'}</h1>
+              <h2 className="text-2xl font-black text-indigo-600 tracking-wide">{form.title || 'Chức Danh Chuyên Môn'}</h2>
             </div>
 
-            {/* Nội dung CV chia 2 cột */}
-            <div className="grid grid-cols-3 gap-10">
-              
-              {/* Cột trái (Chiếm 2 phần) */}
-              <div className="col-span-2 space-y-8">
-                {form.bio && (
-                  <section>
-                    <h2 className="text-lg font-black uppercase tracking-wider text-slate-800 mb-3">Tóm tắt chuyên môn</h2>
-                    <p className="text-sm text-slate-700 leading-relaxed text-justify">{form.bio}</p>
-                  </section>
-                )}
-
-                {form.experiences.length > 0 && (
-                  <section>
-                    <h2 className="text-lg font-black uppercase tracking-wider text-slate-800 mb-4">Kinh nghiệm làm việc</h2>
-                    <div className="space-y-5">
-                      {form.experiences.map((exp, idx) => (
-                        <div key={idx}>
-                          <div className="flex justify-between items-baseline mb-1">
-                            <h3 className="font-bold text-slate-900">{exp.role}</h3>
-                            <span className="text-xs font-medium text-slate-500">{exp.period}</span>
-                          </div>
-                          <p className="text-sm font-bold text-indigo-700 mb-2">{exp.company}</p>
-                          <p className="text-sm text-slate-600 whitespace-pre-wrap">{exp.description}</p>
-                        </div>
-                      ))}
-                    </div>
-                  </section>
-                )}
+            {/* TÓM LƯỢC (BIO) */}
+            {form.bio && (
+              <div className="mb-10">
+                <h3 className="text-xl font-black text-slate-900 uppercase tracking-widest border-b-2 border-slate-200 pb-2 mb-4 flex items-center gap-2">
+                  <i className="ph-fill ph-user-circle text-indigo-600"></i> Hồ sơ chuyên gia
+                </h3>
+                <p className="text-slate-600 leading-relaxed text-justify font-medium">{form.bio}</p>
               </div>
+            )}
 
-              {/* Cột phải (Chiếm 1 phần) */}
-              <div className="col-span-1 space-y-8">
-                {form.skills && (
-                  <section>
-                    <h2 className="text-lg font-black uppercase tracking-wider text-slate-800 mb-3">Kỹ năng</h2>
-                    <div className="flex flex-col gap-1.5">
-                      {form.skills.split(',').map((skill, idx) => (
-                        <span key={idx} className="text-sm text-slate-700 border-b border-slate-100 pb-1">{skill.trim()}</span>
-                      ))}
+            {/* KINH NGHIỆM LÀM VIỆC */}
+            {form.experiences.length > 0 && (
+              <div className="mb-10">
+                <h3 className="text-xl font-black text-slate-900 uppercase tracking-widest border-b-2 border-slate-200 pb-2 mb-6 flex items-center gap-2">
+                  <i className="ph-fill ph-briefcase-metal text-indigo-600"></i> Kinh nghiệm làm việc
+                </h3>
+                <div className="space-y-8">
+                  {form.experiences.map((exp, idx) => (
+                    <div key={idx} className="relative pl-6 border-l-2 border-slate-200">
+                      <div className="absolute -left-[9px] top-1.5 w-4 h-4 rounded-full bg-white border-4 border-indigo-600"></div>
+                      <div className="flex justify-between items-baseline mb-1">
+                        <h4 className="text-lg font-black text-slate-900">{exp.role}</h4>
+                        <span className="text-xs font-bold text-indigo-600 bg-indigo-50 px-3 py-1 rounded-full">{exp.period}</span>
+                      </div>
+                      <p className="text-sm font-bold text-slate-500 mb-3">{exp.company}</p>
+                      <p className="text-sm text-slate-600 whitespace-pre-wrap leading-relaxed">{exp.description}</p>
                     </div>
-                  </section>
-                )}
-
-                {form.education.length > 0 && (
-                  <section>
-                    <h2 className="text-lg font-black uppercase tracking-wider text-slate-800 mb-3">Học vấn</h2>
-                    <div className="space-y-4">
-                      {form.education.map((edu, idx) => (
-                        <div key={idx}>
-                          <p className="text-sm font-bold text-slate-900">{edu.degree}</p>
-                          <p className="text-xs text-slate-600 mt-0.5">{edu.school}</p>
-                          <p className="text-xs text-slate-500 italic mt-0.5">{edu.year}</p>
-                        </div>
-                      ))}
-                    </div>
-                  </section>
-                )}
-
-                {form.languages.length > 0 && (
-                  <section>
-                    <h2 className="text-lg font-black uppercase tracking-wider text-slate-800 mb-3">Ngoại ngữ</h2>
-                    <div className="space-y-2">
-                      {form.languages.map((lang, idx) => (
-                        <div key={idx} className="flex justify-between text-sm">
-                          <span className="font-medium text-slate-800">{lang.language}</span>
-                          <span className="text-slate-500">{lang.proficiency}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </section>
-                )}
+                  ))}
+                </div>
               </div>
-            </div>
+            )}
+
+            {/* CHỨNG CHỈ */}
+            {form.certificates.length > 0 && (
+              <div>
+                <h3 className="text-xl font-black text-slate-900 uppercase tracking-widest border-b-2 border-slate-200 pb-2 mb-6 flex items-center gap-2">
+                  <i className="ph-fill ph-certificate text-indigo-600"></i> Chứng chỉ & Giải thưởng
+                </h3>
+                <div className="grid grid-cols-2 gap-6">
+                  {form.certificates.map((cert, idx) => (
+                    <div key={idx} className="bg-slate-50 p-4 rounded-xl border border-slate-100">
+                      <h4 className="font-black text-slate-900 leading-tight mb-1">{cert.name}</h4>
+                      <p className="text-xs font-bold text-slate-500">{cert.organization}</p>
+                      <p className="text-[10px] font-black text-indigo-600 mt-2">{cert.year}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
           </div>
         </div>
       </div>
@@ -550,11 +586,9 @@ export default function MemberProfilePage() {
       {/* KHAI BÁO CSS CHO BẢN IN PDF */}
       <style jsx global>{`
         @media print {
-          /* Ẩn mọi thứ lộn xộn trên web */
           body * {
             visibility: hidden;
           }
-          /* Chỉ hiện thẻ #cv-print và các con của nó */
           #cv-print, #cv-print * {
             visibility: visible;
           }
@@ -564,7 +598,16 @@ export default function MemberProfilePage() {
             top: 0;
             margin: 0;
             padding: 0;
-            width: 100%;
+            width: 100vw;
+            height: 100vh;
+            /* Thiết lập in không có margin thừa */
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+          }
+          /* Bỏ header, footer mặc định của trình duyệt */
+          @page {
+            margin: 0;
+            size: A4;
           }
         }
       `}</style>
