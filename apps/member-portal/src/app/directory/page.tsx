@@ -11,13 +11,14 @@ export default function MemberDirectoryPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
 
+  const UPGRADE_URL = "https://nkba.vn/upgrade"; // ĐƯỜNG DẪN NÂNG CẤP
+
   useEffect(() => {
     const fetchDirectory = async () => {
       setLoading(true);
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      // 1. Lấy thông tin user hiện tại để check quyền
       const { data: profile } = await supabase
         .from('individuals')
         .select('id, individual_tiers!individuals_tier_id_fkey(name, code)')
@@ -30,11 +31,9 @@ export default function MemberDirectoryPage() {
           : (profile.individual_tiers as any)?.code;
         setCurrentUser({ ...profile, tier_code: tierCode });
       } else {
-        // Fallback cho Admin
         setCurrentUser({ tier_code: 'VIP', is_admin: true });
       }
 
-      // 2. Lấy danh sách toàn bộ hội viên đang ACTIVE
       const { data: directoryData } = await supabase
         .from('individuals')
         .select(`
@@ -45,7 +44,6 @@ export default function MemberDirectoryPage() {
         .eq('status', 'ACTIVE');
 
       if (directoryData) {
-        // Ưu tiên đưa các thành viên VIP/TITANIUM/GOLD lên đầu
         const sortedData = directoryData.sort((a, b) => {
           const tierA = Array.isArray(a.individual_tiers) ? a.individual_tiers[0]?.code : (a.individual_tiers as any)?.code;
           const tierB = Array.isArray(b.individual_tiers) ? b.individual_tiers[0]?.code : (b.individual_tiers as any)?.code;
@@ -60,7 +58,6 @@ export default function MemberDirectoryPage() {
     fetchDirectory();
   }, [supabase]);
 
-  // Logic lọc tìm kiếm
   const filteredMembers = members.filter(m => 
     m.full_name.toLowerCase().includes(searchQuery.toLowerCase()) || 
     (m.corporates?.name || '').toLowerCase().includes(searchQuery.toLowerCase())
@@ -143,7 +140,7 @@ export default function MemberDirectoryPage() {
                         <i className="ph-fill ph-lock-key text-xl"></i>
                         <span className="text-[10px] font-bold uppercase tracking-widest">Ẩn Liên Hệ</span>
                       </div>
-                      <button className="text-[10px] font-black text-amber-600 bg-amber-50 px-3 py-1.5 rounded-lg hover:bg-amber-100 transition-colors uppercase">Nâng cấp</button>
+                      <Link href={UPGRADE_URL} className="text-[10px] font-black text-amber-600 bg-amber-50 px-3 py-1.5 rounded-lg hover:bg-amber-100 transition-colors uppercase inline-block">Nâng cấp</Link>
                     </div>
                   )}
                 </div>

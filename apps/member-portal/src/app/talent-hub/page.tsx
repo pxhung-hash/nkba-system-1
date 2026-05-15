@@ -16,6 +16,8 @@ export default function MemberTalentHubPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [jobForm, setJobForm] = useState({ title: '', requirements: '', salary_range: '' });
 
+  const UPGRADE_URL = "https://nkba.vn/upgrade"; // ĐƯỜNG DẪN ĐẾN TRANG NÂNG CẤP
+
   useEffect(() => {
     const fetchUserAndData = async () => {
       const { data: { user } } = await supabase.auth.getUser();
@@ -32,16 +34,11 @@ export default function MemberTalentHubPage() {
           ? profile.individual_tiers[0]?.code 
           : (profile.individual_tiers as any)?.code;
 
-        // =========================================================
-        // ĐIỂM MẤU CHỐT 1: LẤY CHÙM CHÌA KHÓA TÍNH NĂNG TỪ DATABASE
-        // =========================================================
         let allowedFeatures: string[] = [];
         
         if (tierCode === 'VIP') {
-          // VIP mặc định có tất cả quyền
           allowedFeatures = ['VIEW_MARKET_BUDGET', 'VIEW_MARKET_CONTACT', 'POST_PROJECT', 'VIEW_TALENT_CONTACT', 'POST_JOB', 'REQUEST_CUSTOM_DATA'];
         } else {
-          // Quét bảng tier_features để xem Admin cho phép tính năng nào
           const { data: features } = await supabase
             .from('tier_features')
             .select('feature_code')
@@ -53,7 +50,6 @@ export default function MemberTalentHubPage() {
           }
         }
 
-        // Lưu mảng quyền vào currentUser
         setCurrentUser({ ...profile, tier_code: tierCode, allowedFeatures });
         
         const { data: tals } = await supabase.from('talents').select('*').eq('status', 'VERIFIED').order('created_at', { ascending: false });
@@ -92,9 +88,6 @@ export default function MemberTalentHubPage() {
 
   if (!currentUser) return <div className="flex h-[60vh] items-center justify-center text-slate-400 font-bold"><i className="ph-bold ph-spinner animate-spin text-3xl mr-3 text-[#002D62]"></i> Đang kết nối Talent Hub...</div>;
 
-  // =========================================================
-  // ĐIỂM MẤU CHỐT 2: KIỂM TRA QUYỀN ĐỘNG (DYNAMIC FEATURE FLAGS)
-  // =========================================================
   const canViewTalentContact = currentUser?.allowedFeatures?.includes('VIEW_TALENT_CONTACT');
   const canPostJob = currentUser?.allowedFeatures?.includes('POST_JOB');
 
@@ -122,7 +115,6 @@ export default function MemberTalentHubPage() {
       {/* TAB 1: TALENT POOL */}
       {activeTab === 'talent-pool' && (
         <div className="space-y-8 animate-in slide-in-from-bottom-4 duration-500">
-          {/* BANNER GIỚI THIỆU */}
           <div className="bg-gradient-to-r from-indigo-600 to-violet-700 p-8 rounded-3xl text-white shadow-xl relative overflow-hidden">
             <div className="absolute right-0 bottom-0 opacity-10"><i className="ph-fill ph-identification-card text-[200px] translate-y-10 translate-x-10"></i></div>
             <div className="relative z-10 max-w-2xl">
@@ -133,7 +125,7 @@ export default function MemberTalentHubPage() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {talents.map(talent => (
-              <div key={talent.id} className="bg-white border border-slate-200 rounded-[2.5rem] p-8 shadow-sm hover:shadow-xl hover:border-indigo-200 transition-all group relative">
+              <div key={talent.id} className="bg-white border border-slate-200 rounded-[2.5rem] p-8 shadow-sm hover:shadow-xl hover:border-indigo-200 transition-all group relative flex flex-col">
                 <div className="flex items-center gap-5 mb-6">
                   <div className="w-16 h-16 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center text-xl font-black shadow-inner group-hover:scale-110 transition-transform">
                     {talent.full_name.charAt(0)}
@@ -144,7 +136,7 @@ export default function MemberTalentHubPage() {
                   </div>
                 </div>
 
-                <div className="space-y-3 mb-8">
+                <div className="space-y-3 mb-8 flex-1">
                   <div className="flex items-center gap-3 text-sm text-slate-600 font-medium">
                     <div className="w-8 h-8 rounded-lg bg-slate-50 flex items-center justify-center text-slate-400"><i className="ph-fill ph-briefcase"></i></div>
                     Kinh nghiệm: <span className="text-slate-900 font-bold">{talent.experience_years} năm</span>
@@ -155,17 +147,17 @@ export default function MemberTalentHubPage() {
                   </div>
                 </div>
 
-                {/* SỬ DỤNG QUYỀN VỪA KIỂM TRA ĐỂ ẨN/HIỆN THÔNG TIN */}
                 {canViewTalentContact ? (
-                  <div className="pt-6 border-t border-slate-100 space-y-2">
+                  <div className="pt-6 border-t border-slate-100 space-y-2 mt-auto">
                     <p className="text-sm font-bold text-slate-700 flex items-center gap-2"><i className="ph-bold ph-envelope text-indigo-500"></i> {talent.email}</p>
                     <p className="text-sm font-bold text-slate-700 flex items-center gap-2"><i className="ph-bold ph-phone text-emerald-500"></i> {talent.phone}</p>
                   </div>
                 ) : (
-                  <div className="pt-6 border-t border-slate-100">
+                  <div className="pt-6 border-t border-slate-100 mt-auto">
                     <div className="bg-slate-50 p-4 rounded-2xl text-center border border-slate-100">
                       <i className="ph-fill ph-lock-key text-slate-300 text-xl mb-1"></i>
-                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">Nâng cấp thẻ để xem Liên Hệ</p>
+                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter mb-2">Nâng cấp thẻ để xem Liên Hệ</p>
+                      <Link href={UPGRADE_URL} className="px-4 py-2 bg-amber-500 text-white rounded-lg font-black text-[10px] uppercase hover:bg-amber-600 transition-colors inline-block">Nâng cấp ngay</Link>
                     </div>
                   </div>
                 )}
@@ -178,8 +170,6 @@ export default function MemberTalentHubPage() {
       {/* TAB 2: MY JOBS */}
       {activeTab === 'my-jobs' && (
         <div className="space-y-8 animate-in slide-in-from-bottom-4 duration-500">
-          
-          {/* NẾU CÓ QUYỀN ĐĂNG TIN THÌ HIỆN GIAO DIỆN BÌNH THƯỜNG */}
           {canPostJob ? (
             <>
               <div className="flex flex-col md:flex-row justify-between items-center bg-gradient-to-r from-slate-900 to-[#002D62] p-8 rounded-3xl shadow-xl text-white">
@@ -229,7 +219,6 @@ export default function MemberTalentHubPage() {
               </div>
             </>
           ) : (
-            /* NẾU KHÔNG CÓ QUYỀN -> HIỆN BANNER KHÓA ĐÒI NÂNG CẤP */
             <div className="bg-gradient-to-br from-amber-50 to-white border border-amber-200 rounded-[3rem] p-12 md:p-20 text-center flex flex-col items-center shadow-lg relative overflow-hidden group">
               <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10"></div>
               
@@ -242,12 +231,11 @@ export default function MemberTalentHubPage() {
                 Bạn đang sử dụng gói hội viên <strong className="text-slate-900">{currentUser.tier_code}</strong>. <br/>Vui lòng nâng cấp hạng thẻ để mở khóa tính năng Đăng tin tuyển dụng và tìm kiếm nhân sự cấp cao.
               </p>
               
-              <button className="px-10 py-4 bg-gradient-to-r from-amber-500 to-amber-600 text-white rounded-2xl font-black shadow-lg hover:shadow-amber-500/30 hover:-translate-y-1 transition-all relative z-10 flex items-center gap-2">
+              <Link href={UPGRADE_URL} className="px-10 py-4 bg-gradient-to-r from-amber-500 to-amber-600 text-white rounded-2xl font-black shadow-lg hover:shadow-amber-500/30 hover:-translate-y-1 transition-all relative z-10 flex items-center gap-2">
                 XEM QUYỀN LỢI THẺ CAO CẤP <i className="ph-bold ph-arrow-right"></i>
-              </button>
+              </Link>
             </div>
           )}
-
         </div>
       )}
     </div>

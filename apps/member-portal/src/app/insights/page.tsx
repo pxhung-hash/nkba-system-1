@@ -12,12 +12,13 @@ export default function MemberInsightsPage() {
   const [reports, setReports] = useState<any[]>([]);
   const [myRequests, setMyRequests] = useState<any[]>([]);
   
-  // STATE MỚI: Lưu trữ Level sức mạnh của các hạng thẻ
   const [tierLevels, setTierLevels] = useState<Record<string, number>>({});
   
   const [showForm, setShowForm] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [reqForm, setReqForm] = useState({ title: '', content: '' });
+
+  const UPGRADE_URL = "https://nkba.vn/upgrade"; // ĐƯỜNG DẪN NÂNG CẤP
 
   useEffect(() => {
     const fetchUserAndData = async () => {
@@ -35,7 +36,6 @@ export default function MemberInsightsPage() {
           ? profile.individual_tiers[0]?.code 
           : (profile.individual_tiers as any)?.code;
 
-        // 1. LẤY CHÙM CHÌA KHÓA TÍNH NĂNG TỪ DATABASE
         let allowedFeatures: string[] = [];
         if (tierCode === 'VIP') {
           allowedFeatures = ['VIEW_MARKET_BUDGET', 'VIEW_MARKET_CONTACT', 'POST_PROJECT', 'VIEW_TALENT_CONTACT', 'POST_JOB', 'REQUEST_CUSTOM_DATA'];
@@ -50,24 +50,20 @@ export default function MemberInsightsPage() {
         }
         setCurrentUser({ ...profile, tier_code: tierCode, allowedFeatures });
         
-        // =========================================================
-        // ĐIỂM NÂNG CẤP: TẠO MA TRẬN SỨC MẠNH DỰA TRÊN GIÁ TIỀN (ANNUAL_FEE)
-        // =========================================================
         const { data: tiersData } = await supabase
           .from('individual_tiers')
           .select('code, annual_fee')
-          .order('annual_fee', { ascending: true }); // Xếp từ rẻ đến đắt
+          .order('annual_fee', { ascending: true });
 
-        const levels: Record<string, number> = { 'PUBLIC': 0 }; // Đại chúng luôn là bét bảng
+        const levels: Record<string, number> = { 'PUBLIC': 0 };
         if (tiersData) {
           tiersData.forEach((t, index) => {
-            levels[t.code] = index + 1; // Càng đắt tiền, level càng cao
+            levels[t.code] = index + 1;
           });
         }
-        levels['VIP'] = 999; // Boss cuối luôn mạnh nhất
+        levels['VIP'] = 999;
         setTierLevels(levels);
 
-        // 3. Tải báo cáo và yêu cầu
         const { data: reps } = await supabase.from('reports').select('*').eq('is_active', true).order('created_at', { ascending: false });
         if (reps) setReports(reps);
 
@@ -101,16 +97,14 @@ export default function MemberInsightsPage() {
     setIsSubmitting(false);
   };
 
-  // HÀM CHECK QUYỀN ĐÃ ĐƯỢC TỰ ĐỘNG HÓA 100%
   const canAccess = (reportTier: string, userTierCode: string) => {
     const repLvl = tierLevels[reportTier] || 0;
     const usrLvl = tierLevels[userTierCode] || 0;
-    return usrLvl >= repLvl; // Level user lớn hơn hoặc bằng level báo cáo thì được xem
+    return usrLvl >= repLvl; 
   };
 
   if (!currentUser) return <div className="flex h-[60vh] items-center justify-center text-slate-400 font-bold"><i className="ph-bold ph-spinner animate-spin text-3xl mr-3 text-teal-600"></i> Đang nạp Insights...</div>;
 
-  // KIỂM TRA QUYỀN ĐỘNG TỪ DATABASE CHO TAB YÊU CẦU
   const canRequestData = currentUser?.allowedFeatures?.includes('REQUEST_CUSTOM_DATA');
 
   return (
@@ -149,7 +143,7 @@ export default function MemberInsightsPage() {
                       <div className="w-14 h-14 bg-white/20 rounded-full flex items-center justify-center mb-4 border border-white/30 backdrop-blur-xl"><i className="ph-fill ph-lock-key text-2xl"></i></div>
                       <h4 className="font-black text-lg mb-1">Dành cho {rep.access_tier}</h4>
                       <p className="text-[10px] font-bold text-blue-200 uppercase tracking-widest mb-6">Nâng cấp để mở khóa</p>
-                      <button className="px-5 py-2 bg-amber-500 text-[#002D62] rounded-lg font-black text-[10px] uppercase hover:bg-amber-400 transition-colors">Nâng cấp ngay</button>
+                      <Link href={UPGRADE_URL} className="px-5 py-2 bg-amber-500 text-[#002D62] rounded-lg font-black text-[10px] uppercase hover:bg-amber-400 transition-colors inline-block">Nâng cấp ngay</Link>
                     </div>
                   )}
 
@@ -239,8 +233,6 @@ export default function MemberInsightsPage() {
               </div>
             </>
           ) : (
-            
-            /* NẾU KHÔNG CÓ QUYỀN -> HIỆN BANNER KHÓA ĐÒI NÂNG CẤP */
             <div className="bg-gradient-to-br from-amber-50 to-white border border-amber-200 rounded-[3rem] p-12 md:p-20 text-center flex flex-col items-center shadow-lg relative overflow-hidden group">
               <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10"></div>
               <div className="w-24 h-24 bg-white rounded-full flex items-center justify-center mb-8 shadow-xl border border-amber-100 relative z-10 group-hover:scale-110 transition-transform duration-500">
@@ -250,11 +242,10 @@ export default function MemberInsightsPage() {
               <p className="text-base text-slate-600 max-w-lg leading-relaxed relative z-10 mb-8">
                 Bạn đang sử dụng hạng thẻ <strong className="text-slate-900">{currentUser.tier_code}</strong>. <br/>Vui lòng nâng cấp lên để mở khóa quyền yêu cầu Ban nghiên cứu NKBA thu thập dữ liệu thị trường theo tiêu chí riêng của doanh nghiệp.
               </p>
-              <button className="px-10 py-4 bg-gradient-to-r from-amber-500 to-amber-600 text-white rounded-2xl font-black shadow-lg hover:shadow-amber-500/30 hover:-translate-y-1 transition-all relative z-10 flex items-center gap-2">
+              <Link href={UPGRADE_URL} className="px-10 py-4 bg-gradient-to-r from-amber-500 to-amber-600 text-white rounded-2xl font-black shadow-lg hover:shadow-amber-500/30 hover:-translate-y-1 transition-all relative z-10 flex items-center gap-2 inline-block">
                 NÂNG CẤP THẺ CAO CẤP <i className="ph-bold ph-arrow-right"></i>
-              </button>
+              </Link>
             </div>
-
           )}
         </div>
       )}
