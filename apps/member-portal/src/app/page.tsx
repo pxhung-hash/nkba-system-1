@@ -11,6 +11,9 @@ export default function MemberDashboard() {
   const [loading, setLoading] = useState(true);
   const [memberInfo, setMemberInfo] = useState<any>(null);
 
+  // ĐƯỜNG DẪN ĐẾN TRANG NÂNG CẤP BÊN PUBLIC SITE
+  const UPGRADE_URL = "https://nkba.vn/upgrade";
+
   useEffect(() => {
     const fetchMemberData = async () => {
       setLoading(true);
@@ -129,27 +132,41 @@ export default function MemberDashboard() {
           </div>
         </div>
 
-        {/* TIẾN TRÌNH HỒ SƠ (GAMIFICATION) */}
-        <div className="bg-[#002D62] text-white p-6 md:p-8 rounded-3xl shadow-xl relative overflow-hidden">
+        {/* TIẾN TRÌNH HỒ SƠ & HẠNG THẺ */}
+        <div className="bg-[#002D62] text-white p-6 md:p-8 rounded-3xl shadow-xl relative overflow-hidden flex flex-col justify-between">
           <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/20 rounded-full blur-2xl"></div>
-          <div className="relative z-10">
-            <div className="flex justify-between items-end mb-4">
+          
+          <div className="relative z-10 mb-6">
+            <div className="flex justify-between items-start mb-2">
               <div>
-                <p className="text-blue-200 text-xs font-bold uppercase tracking-widest mb-1">Độ tin cậy hồ sơ</p>
-                <h3 className="text-3xl font-black">45%</h3>
+                <p className="text-blue-200 text-[10px] font-bold uppercase tracking-widest mb-1">Cấp bậc hiện tại</p>
+                <h3 className="text-2xl font-black">
+                  {Array.isArray(memberInfo.individual_tiers) ? memberInfo.individual_tiers[0]?.name : memberInfo.individual_tiers?.name || 'HỘI VIÊN TIÊU CHUẨN'}
+                </h3>
               </div>
-              <div className="w-12 h-12 rounded-xl bg-white/10 flex items-center justify-center backdrop-blur-sm border border-white/20 text-amber-400 text-2xl">
-                <i className="ph-fill ph-medal"></i>
+              <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center backdrop-blur-sm border border-white/20 text-amber-400 text-xl shrink-0">
+                <i className="ph-fill ph-crown"></i>
               </div>
             </div>
             
-            <div className="w-full bg-slate-900/50 rounded-full h-3 mb-4 overflow-hidden border border-white/10">
-              <div className="bg-gradient-to-r from-blue-400 to-emerald-400 h-3 rounded-full relative" style={{ width: '45%' }}></div>
+            {/* Nút nâng cấp nếu chưa phải Premium */}
+            {!isPremium && (
+              <Link href={UPGRADE_URL} className="inline-block mt-2 px-4 py-1.5 bg-gradient-to-r from-amber-400 to-amber-600 text-white text-[10px] font-black uppercase tracking-wider rounded-lg shadow-md hover:scale-105 transition-transform">
+                Nâng cấp thẻ ngay <i className="ph-bold ph-caret-right"></i>
+              </Link>
+            )}
+          </div>
+          
+          <div className="relative z-10 mt-auto pt-4 border-t border-white/10">
+            <div className="flex justify-between items-end mb-2">
+              <p className="text-blue-200 text-xs font-bold uppercase tracking-widest">Độ tin cậy hồ sơ</p>
+              <h3 className="text-lg font-black text-emerald-400">45%</h3>
             </div>
-            
-            <p className="text-sm text-blue-100/80 mb-4">Nâng cấp hồ sơ lên 80% để nhận huy hiệu <strong>Verified Trust</strong> từ NKBA.</p>
-            <Link href="/profile" className="block text-center w-full py-3 bg-white text-[#002D62] font-black rounded-xl text-sm hover:bg-slate-100 transition-colors shadow-lg">
-              Bổ sung Hồ sơ ngay
+            <div className="w-full bg-slate-900/50 rounded-full h-2 mb-3 overflow-hidden border border-white/10">
+              <div className="bg-gradient-to-r from-blue-400 to-emerald-400 h-2 rounded-full relative" style={{ width: '45%' }}></div>
+            </div>
+            <Link href="/profile" className="block text-center w-full py-2 bg-white/10 hover:bg-white/20 text-white font-bold rounded-xl text-xs transition-colors border border-white/20 backdrop-blur-md">
+              Bổ sung Hồ sơ
             </Link>
           </div>
         </div>
@@ -193,7 +210,8 @@ export default function MemberDashboard() {
                       <p className="text-xs font-medium text-amber-800 flex items-center gap-2">
                         <i className="ph-fill ph-lock-key text-amber-500 text-lg"></i> Nâng cấp thẻ để xem Ngân sách & Liên hệ.
                       </p>
-                      <button className="px-4 py-2 bg-amber-500 text-white font-bold text-xs rounded-lg hover:bg-amber-600">Nâng cấp</button>
+                      {/* ĐÃ CHUYỂN THÀNH LINK */}
+                      <Link href={UPGRADE_URL} className="px-4 py-2 bg-amber-500 text-white font-bold text-xs rounded-lg hover:bg-amber-600 transition-colors inline-block">Nâng cấp</Link>
                     </div>
                   )}
                 </div>
@@ -237,7 +255,16 @@ export default function MemberDashboard() {
                 </div>
               ))}
             </div>
-            <Link href="/insights" className="block text-center w-full mt-6 py-2.5 border-2 border-slate-100 text-slate-600 font-bold rounded-xl text-sm hover:bg-slate-50 transition-colors relative z-10">
+
+            {/* Thêm Upsell nhẹ cho Insights */}
+            {!isPremium && (
+              <div className="mt-5 p-3 bg-slate-50 rounded-xl border border-slate-100 flex justify-between items-center relative z-10">
+                <span className="text-[11px] font-medium text-slate-500"><i className="ph-fill ph-lock-key"></i> Tính năng tải bị giới hạn</span>
+                <Link href={UPGRADE_URL} className="text-[10px] font-black uppercase text-amber-600 hover:underline">Mở khóa</Link>
+              </div>
+            )}
+
+            <Link href="/insights" className="block text-center w-full mt-4 py-2.5 border-2 border-slate-100 text-slate-600 font-bold rounded-xl text-sm hover:bg-slate-50 transition-colors relative z-10">
               Vào Thư Viện Báo Cáo
             </Link>
           </div>
