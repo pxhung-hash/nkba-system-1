@@ -127,9 +127,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               <div className="max-w-7xl mx-auto px-4 md:px-6 h-20 flex items-center justify-between">
                 
                 <div className="flex items-center gap-10">
-                  <Link href="/" className="flex items-center gap-2 group" onClick={() => setShowMobileMenu(false)}>
-                    <div className="w-10 h-10 bg-[#002D62] rounded-xl flex items-center justify-center text-white font-black text-xl tracking-tighter shadow-md group-hover:bg-blue-800 transition-colors">NK</div>
-                    <span className="font-black text-xl text-[#002D62] tracking-tight hidden md:block">PORTAL</span>
+                  <Link href="/" className="flex items-center group" onClick={() => setShowMobileMenu(false)}>
+                    <img 
+                      src="/logo_ngang_vi.svg" 
+                      alt="NKBA Logo" 
+                      className="h-10 md:h-12 w-auto object-contain transition-transform group-hover:scale-105" 
+                    />
                   </Link>
                   
                   <nav className="hidden lg:flex items-center gap-2">

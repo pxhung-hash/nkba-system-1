@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg id="OBJECTS" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 195.82 60.51">
+  <defs>
+    <style>
+      .cls-1 {
+        letter-spacing: 0em;
+      }
+
+      .cls-2 {
+        letter-spacing: 0em;
+      }
+
+      .cls-3 {
+        font-family: Roboto-CondensedRegular, Roboto;
+        font-size: 8.29px;
+        font-variation-settings: 'wght' 400, 'wdth' 75;
+      }
+
+      .cls-3, .cls-4, .cls-5, .cls-6 {
+        fill: #1b2552;
+      }
+
+      .cls-7 {
+        letter-spacing: 0em;
+      }
+
+      .cls-8 {
+        fill: #df1f2c;
+      }
+
+      .cls-4 {
+        font-family: Roboto-CondensedExtraBold, Roboto;
+        font-size: 7.53px;
+        font-variation-settings: 'wght' 800, 'wdth' 75;
+      }
+
+      .cls-4, .cls-6 {
+        font-weight: 700;
+      }
+
+      .cls-9 {
+        letter-spacing: 0em;
+      }
+
+      .cls-10 {
+        letter-spacing: 0em;
+      }
+
+      .cls-11 {
+        letter-spacing: 0em;
+      }
+
+      .cls-6 {
+        font-family: MontserratRoman-ExtraBold, Montserrat;
+        font-size: 43.89px;
+        font-variation-settings: 'wght' 800;
+      }
+    </style>
+  </defs>
+  <g>
+    <g>
+      <g>
+        <path class="cls-8" d="M27.11,40.89h2.62v9.67c-.29,2.49-.57,4.98-.86,7.47h-7.87c2.04-5.71,4.07-11.42,6.11-17.14Z"/>
+        <path class="cls-8" d="M31.39,50.66c-.28,2.46-.56,4.91-.84,7.37h6.41c3.11-3.3,6.22-6.59,9.33-9.89v-29.23h-6.97c0,2.61.01,5.21.02,7.82-1.7-1.93-3.4-3.85-5.09-5.78-.23.63-.45,1.26-.68,1.89,1.92,2.2,3.83,4.4,5.75,6.6.04,5.37.08,10.73.12,16.1-1.79,1.71-3.57,3.43-5.36,5.14-.9,0-1.8-.01-2.69-.02Z"/>
+        <path class="cls-8" d="M39.31,17.5h7.03v-1.68h-7.03v1.68Z"/>
+        <path class="cls-8" d="M36.58,14.42h9.76v-7.43h-7.1c-.89,2.48-1.77,4.95-2.66,7.43Z"/>
+      </g>
+      <path class="cls-5" d="M25.09,36.64l10.61-29.65h-6.39l-.46,1.24-10.65,6.99c-3.74-2.46-7.49-4.92-11.23-7.38-.11-.28-.21-.57-.32-.85H0l18.68,48.69,5.73-17.08-6.73-2.22-2-5.31,2.46-11.79c.87,3.79,1.73,7.58,2.6,11.37-.49,1.36-.99,2.72-1.48,4.08l5.83,1.9ZM7.8,10.06c2.31,1.52,4.61,3.03,6.92,4.55-1.84-.28-3.69-.57-5.53-.85-.46-1.23-.92-2.46-1.39-3.69ZM9.69,15.11c2.37.39,4.74.78,7.1,1.18-1.49,1.96-2.97,3.91-4.46,5.87-.88-2.35-1.76-4.7-2.64-7.05ZM14.82,28.76c-.64-1.71-1.28-3.42-1.93-5.13,1.42-1.89,2.84-3.78,4.26-5.67-.78,3.6-1.55,7.2-2.33,10.8ZM28.14,10.22c-.44,1.21-.87,2.41-1.31,3.62-1.8.26-3.59.51-5.39.77,2.23-1.46,4.46-2.92,6.69-4.39ZM26.4,15.01c-.84,2.32-1.68,4.64-2.51,6.96-1.39-1.86-2.78-3.71-4.17-5.57,2.23-.47,4.45-.93,6.68-1.4ZM19.25,18.1c1.38,1.75,2.76,3.49,4.14,5.24-.63,1.75-1.26,3.49-1.9,5.24-.75-3.49-1.49-6.99-2.24-10.48Z"/>
+      <path class="cls-5" d="M0,9.82c6.09,16.07,12.19,32.14,18.28,48.21h-1.62C11.1,43.38,5.55,28.73,0,14.08v-4.26Z"/>
+    </g>
+    <text class="cls-6" transform="translate(58.56 37.31)"><tspan x="0" y="0">NKBA</tspan></text>
+  </g>
+  <text class="cls-4" transform="translate(61.6 49.12)"><tspan x="0" y="0">NICHI</tspan><tspan class="cls-11" x="17.65" y="0">E</tspan><tspan class="cls-10" x="21.41" y="0">T</tspan><tspan x="25.49" y="0">SU KENS</tspan><tspan class="cls-1" x="52.23" y="0">E</tspan><tspan class="cls-10" x="55.99" y="0">T</tspan><tspan class="cls-7" x="60.06" y="0">SU BUSINESS ALL</tspan><tspan class="cls-2" x="114.96" y="0">I</tspan><tspan x="117.1" y="0">ANCE</tspan></text>
+  <text class="cls-3" transform="translate(61.42 58.26)"><tspan x="0" y="0">Liên minh Kinh doanh x</tspan><tspan class="cls-9" x="75.9" y="0">â</tspan><tspan x="79.81" y="0">y dựng Nhật Việt</tspan></text>
+</svg>

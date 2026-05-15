@@ -1,13 +1,13 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { createClient } from '@/utils/supabase/client'; // Dùng chuẩn của Portal
+import { createClient } from '@/utils/supabase/client';
 
 export default function UpgradeMembershipPage() {
   const [supabase] = useState(() => createClient());
   const [tiers, setTiers] = useState<any[]>([]);
   const [selectedTier, setSelectedTier] = useState<any>(null);
-  const [step, setStep] = useState(1); // 1: Chọn gói, 2: Thanh toán, 3: Thành công
+  const [step, setStep] = useState(1); // 1: Chọn gói, 2: Thanh toán/Biên lai, 3: Thành công
   
   // State lưu thông tin người dùng
   const [realIndividualId, setRealIndividualId] = useState<string | null>(null);
@@ -19,7 +19,7 @@ export default function UpgradeMembershipPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
-    // 1. Tải danh sách các gói cước (bỏ gói PUBLIC)
+    // 1. Tải danh sách các gói cước
     const fetchTiers = async () => {
       const { data } = await supabase.from('individual_tiers').select('*').gt('annual_fee', 0).order('annual_fee', { ascending: true });
       if (data) setTiers(data);
@@ -48,14 +48,6 @@ export default function UpgradeMembershipPage() {
     fetchTiers();
     fetchUser();
   }, [supabase]);
-
-  // Hàm tạo link ảnh VietQR tự động
-  const getVietQR = (amount: number, content: string) => {
-    const BANK_ID = "MB"; // Mã ngân hàng
-    const ACCOUNT_NO = "123456789"; // Số TK của NKBA
-    const ACCOUNT_NAME = "HIEP HOI NKBA";
-    return `https://img.vietqr.io/image/${BANK_ID}-${ACCOUNT_NO}-compact2.jpg?amount=${amount}&addInfo=${content}&accountName=${ACCOUNT_NAME}`;
-  };
 
   const handleManualSubmit = async () => {
     if (!receiptUrl) return alert('Vui lòng cung cấp link ảnh biên lai!');
@@ -118,44 +110,49 @@ export default function UpgradeMembershipPage() {
             
             <div className="md:col-span-2 text-center mt-4">
               <button onClick={() => setStep(2)} disabled={!selectedTier} className="px-10 py-4 bg-[#002D62] text-white font-black rounded-full shadow-xl shadow-blue-900/20 disabled:opacity-50 disabled:cursor-not-allowed hover:-translate-y-1 transition-all">
-                TIẾN HÀNH THANH TOÁN
+                TIẾP TỤC
               </button>
             </div>
           </div>
         )}
 
-        {/* BƯỚC 2: THANH TOÁN */}
+        {/* BƯỚC 2: TẢI BIÊN LAI THỦ CÔNG */}
         {step === 2 && selectedTier && (
-          <div className="bg-white p-8 rounded-3xl border border-slate-200 shadow-xl max-w-2xl mx-auto animate-in zoom-in-95">
-            <button onClick={() => setStep(1)} className="text-slate-400 font-bold text-sm mb-6 hover:text-slate-700 flex items-center gap-1">
+          <div className="bg-white p-8 rounded-3xl border border-slate-200 shadow-xl max-w-xl mx-auto animate-in zoom-in-95">
+            <button onClick={() => setStep(1)} className="text-slate-400 font-bold text-sm mb-6 hover:text-slate-700 flex items-center gap-1 transition-colors">
               <i className="ph-bold ph-arrow-left"></i> Quay lại chọn gói
             </button>
             
-            <div className="flex flex-col md:flex-row gap-8 items-center justify-between">
-              <div className="flex-1 space-y-4">
-                <h3 className="text-xl font-black text-slate-800">Thanh toán chuyển khoản</h3>
-                <div className="space-y-2 bg-slate-50 p-4 rounded-xl border border-slate-100">
-                  <p className="text-xs font-bold text-slate-400 uppercase">Số tiền</p>
-                  <p className="text-2xl font-black text-amber-600">{Number(selectedTier.annual_fee).toLocaleString('vi-VN')} VNĐ</p>
-                  
-                  <p className="text-xs font-bold text-slate-400 uppercase mt-3">Nội dung chuyển khoản (Quan trọng)</p>
-                  <p className="text-lg font-black text-blue-600 bg-blue-50 px-3 py-2 rounded-lg font-mono text-center border border-blue-200">
-                    NKBA UP{authUserId?.split('-')[0].toUpperCase()}
-                  </p>
-                </div>
-                <p className="text-xs text-slate-500 font-medium italic">Hệ thống sẽ tự động duyệt trong 1-3 phút nếu bạn chuyển đúng Nội dung và Số tiền.</p>
-              </div>
-
-              <div className="shrink-0 bg-white p-2 rounded-2xl shadow-md border border-slate-100">
-                <img src={getVietQR(selectedTier.annual_fee, `NKBA UP${authUserId?.split('-')[0].toUpperCase()}`)} alt="VietQR" className="w-48 h-48 object-contain" />
+            <div className="text-center mb-8">
+              <h3 className="text-xl font-black text-slate-800 mb-6">Xác nhận thông tin nâng cấp</h3>
+              
+              <div className="bg-slate-50 p-6 rounded-2xl border border-slate-100">
+                <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">Gói cước đã chọn</p>
+                <h4 className="text-2xl font-black text-[#002D62] uppercase">{selectedTier.name}</h4>
+                <p className="text-3xl font-black text-amber-600 mt-2">{Number(selectedTier.annual_fee).toLocaleString('vi-VN')} VNĐ</p>
               </div>
             </div>
 
-            <div className="mt-8 pt-8 border-t border-slate-200 space-y-4">
-              <p className="font-bold text-slate-800">Đã chuyển khoản nhưng hệ thống chưa duyệt?</p>
-              <input type="text" value={receiptUrl} onChange={e => setReceiptUrl(e.target.value)} placeholder="Dán link ảnh chụp màn hình biên lai (Google Drive, Imgur...)" className="w-full h-12 px-4 border border-slate-200 rounded-xl outline-none focus:border-amber-500 focus:ring-4 focus:ring-amber-500/10 font-medium text-sm transition-all" />
-              <button onClick={handleManualSubmit} disabled={isSubmitting} className="w-full h-12 bg-slate-800 text-white font-bold rounded-xl shadow-md hover:bg-black transition-all disabled:opacity-50">
-                {isSubmitting ? 'ĐANG GỬI...' : 'GỬI BIÊN LAI CHỜ NHÂN VIÊN DUYỆT'}
+            <div className="border-t border-slate-100 pt-8 space-y-5">
+              <div className="text-center space-y-1">
+                <p className="font-bold text-slate-800 text-lg">Cập nhật Biên lai thanh toán</p>
+                <p className="text-sm text-slate-500 font-medium">Vui lòng tải lên hình ảnh biên lai thanh toán để chúng tôi xác nhận yêu cầu nâng cấp của bạn.</p>
+              </div>
+              
+              <input 
+                type="text" 
+                value={receiptUrl} 
+                onChange={e => setReceiptUrl(e.target.value)} 
+                placeholder="Dán link ảnh chụp màn hình (Google Drive, Imgur...)" 
+                className="w-full h-14 px-5 border-2 border-slate-200 rounded-xl outline-none focus:border-[#002D62] focus:ring-4 focus:ring-blue-900/10 font-medium text-sm transition-all" 
+              />
+              
+              <button 
+                onClick={handleManualSubmit} 
+                disabled={isSubmitting} 
+                className="w-full h-14 bg-[#002D62] text-white font-black rounded-xl shadow-lg hover:bg-blue-900 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+              >
+                {isSubmitting ? <><i className="ph-bold ph-spinner animate-spin text-lg"></i> ĐANG GỬI...</> : 'GỬI YÊU CẦU NÂNG CẤP'}
               </button>
             </div>
           </div>
@@ -168,9 +165,9 @@ export default function UpgradeMembershipPage() {
               <i className="ph-fill ph-check-circle text-5xl"></i>
             </div>
             <h2 className="text-2xl font-black text-slate-900">Đã tiếp nhận yêu cầu!</h2>
-            <p className="text-slate-500 font-medium leading-relaxed">Chúng tôi đã nhận được biên lai của bạn. Bộ phận vận hành NKBA sẽ kiểm tra và kích hoạt gói <strong className="text-slate-800">{selectedTier?.name}</strong> trong thời gian sớm nhất.</p>
+            <p className="text-slate-500 font-medium leading-relaxed">Chúng tôi đã nhận được thông tin của bạn. Bộ phận vận hành NKBA sẽ kiểm tra và kích hoạt gói <strong className="text-slate-800">{selectedTier?.name}</strong> trong thời gian sớm nhất.</p>
             
-            <button onClick={() => window.location.href = '/'} className="mt-6 px-8 py-3 bg-[#002D62] text-white font-bold rounded-full hover:bg-blue-900 transition-colors">
+            <button onClick={() => window.location.href = '/'} className="mt-6 px-8 py-3 bg-[#002D62] text-white font-bold rounded-full hover:bg-blue-900 transition-colors shadow-lg">
               Quay về Trang chủ
             </button>
           </div>
