@@ -12,7 +12,7 @@ export default function MemberDashboard() {
   const [memberInfo, setMemberInfo] = useState<any>(null);
 
   // ĐƯỜNG DẪN ĐẾN TRANG NÂNG CẤP BÊN PUBLIC SITE
-  const UPGRADE_URL = "https://nkba.vn/upgrade";
+  const UPGRADE_URL = "/upgrade";
 
   useEffect(() => {
     const fetchMemberData = async () => {

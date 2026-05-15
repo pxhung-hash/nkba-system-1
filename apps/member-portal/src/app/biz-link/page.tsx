@@ -17,7 +17,7 @@ export default function MemberBizLinkPage() {
 
   // ĐIỀN ĐƯỜNG DẪN TRANG UPGRADE BÊN PUBLIC-SITE VÀO ĐÂY
   // Ví dụ: Nếu public site của bạn là nkba.vn, điền 'https://nkba.vn/upgrade'
-  const UPGRADE_URL = "https://nkba.vn/upgrade"; 
+  const UPGRADE_URL = "/upgrade"; 
 
   useEffect(() => {
     const fetchUserAndProjects = async () => {

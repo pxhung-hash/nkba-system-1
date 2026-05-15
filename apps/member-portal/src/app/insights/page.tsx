@@ -18,7 +18,7 @@ export default function MemberInsightsPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [reqForm, setReqForm] = useState({ title: '', content: '' });
 
-  const UPGRADE_URL = "https://nkba.vn/upgrade"; // ĐƯỜNG DẪN NÂNG CẤP
+  const UPGRADE_URL = "/upgrade"; // ĐƯỜNG DẪN NÂNG CẤP
 
   useEffect(() => {
     const fetchUserAndData = async () => {

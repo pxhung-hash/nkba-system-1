@@ -190,7 +190,7 @@ export default function LoginPage() {
             {/* ĐÃ SỬA: Đổi link sang /upgrade thay vì /dang-ky bị lỗi 404 */}
             <p className="text-center text-sm font-medium text-slate-500">
               Doanh nghiệp của bạn chưa là hội viên?{' '}
-              <a href="https://nkba.vn/upgrade" className="text-[#002D62] font-bold hover:underline">Đăng ký tham gia liên minh</a>
+              <a href="/upgrade" className="text-[#002D62] font-bold hover:underline">Đăng ký tham gia liên minh</a>
             </p>
 
             {/* BỔ SUNG: Nút tắt dành cho Admin (Trỏ về Admin Workspace) */}

@@ -11,7 +11,7 @@ export default function MemberDirectoryPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
 
-  const UPGRADE_URL = "https://nkba.vn/upgrade"; // ĐƯỜNG DẪN NÂNG CẤP
+  const UPGRADE_URL = "/upgrade"; // ĐƯỜNG DẪN NÂNG CẤP
 
   useEffect(() => {
     const fetchDirectory = async () => {

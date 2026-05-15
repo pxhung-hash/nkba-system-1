@@ -16,7 +16,7 @@ export default function MemberTalentHubPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [jobForm, setJobForm] = useState({ title: '', requirements: '', salary_range: '' });
 
-  const UPGRADE_URL = "https://nkba.vn/upgrade"; // ĐƯỜNG DẪN ĐẾN TRANG NÂNG CẤP
+  const UPGRADE_URL = "/upgrade"; // ĐƯỜNG DẪN ĐẾN TRANG NÂNG CẤP
 
   useEffect(() => {
     const fetchUserAndData = async () => {
