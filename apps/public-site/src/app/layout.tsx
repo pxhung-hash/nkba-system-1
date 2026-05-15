@@ -37,15 +37,13 @@ export default function RootLayout({
         <header className="sticky top-0 z-50 w-full bg-white/80 backdrop-blur-md border-b border-slate-200/60 shadow-sm transition-all">
           <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
             
-            {/* 1. BRAND LOGO */}
-            <Link href="/" className="flex items-center gap-3 group">
-              <div className="w-11 h-11 bg-gradient-to-br from-[#002D62] to-blue-800 rounded-xl flex items-center justify-center text-white font-black text-xl shadow-lg shadow-blue-900/20 group-hover:scale-105 transition-transform">
-                NK
-              </div>
-              <div className="hidden sm:block">
-                <h1 className="font-black text-xl text-[#002D62] tracking-tight leading-none" style={{ fontFamily: 'var(--font-montserrat)' }}>NKBA</h1>
-                <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-0.5">Alliance</p>
-              </div>
+            {/* 1. BRAND LOGO - Đã cập nhật ảnh SVG */}
+            <Link href="/" className="flex items-center group">
+              <img 
+                src="/logo_ngang_vi.svg" 
+                alt="NKBA Logo" 
+                className="h-10 md:h-12 w-auto object-contain transition-transform group-hover:scale-105" 
+              />
             </Link>
 
             {/* 2. MENU ĐIỀU HƯỚNG */}
@@ -113,10 +111,7 @@ export default function RootLayout({
                 <h4 className="text-white font-bold mb-6 uppercase tracking-wider text-sm">Portal</h4>
                 <ul className="space-y-4 text-sm font-medium">
                   <li><a href="https://portal.nkba.vn/login" className="hover:text-blue-400 transition-colors">Đăng nhập thành viên</a></li>
-                  
-                  {/* ĐÃ SỬA: Đổi lại thành /dang-ky */}
                   <li><Link href="/dang-ky" className="hover:text-blue-400 transition-colors">Đăng ký hội viên mới</Link></li>
-                  
                   <li><Link href="/huong-dan" className="hover:text-blue-400 transition-colors">Hướng dẫn sử dụng</Link></li>
                 </ul>
               </div>
