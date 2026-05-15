@@ -15,6 +15,10 @@ export default function MemberBizLinkPage() {
   
   const [myProjects, setMyProjects] = useState<any[]>([]);
 
+  // ĐIỀN ĐƯỜNG DẪN TRANG UPGRADE BÊN PUBLIC-SITE VÀO ĐÂY
+  // Ví dụ: Nếu public site của bạn là nkba.vn, điền 'https://nkba.vn/upgrade'
+  const UPGRADE_URL = "https://nkba.vn/upgrade"; 
+
   useEffect(() => {
     const fetchUserAndProjects = async () => {
       const { data: { user } } = await supabase.auth.getUser();
@@ -132,9 +136,11 @@ export default function MemberBizLinkPage() {
               <p className="text-sm text-slate-600 leading-relaxed relative z-10 mb-8">
                 Không gian giao thương khép kín. Nâng cấp thẻ để tiếp cận danh sách thầu nội bộ, xem dự toán chi tiết và liên hệ Chủ đầu tư.
               </p>
-              <button className="mt-auto px-8 py-3.5 bg-gradient-to-r from-amber-500 to-amber-600 text-white rounded-2xl font-black shadow-lg hover:shadow-amber-500/30 hover:-translate-y-1 transition-all relative z-10 flex items-center gap-2">
+              
+              {/* NÚT ĐÃ ĐƯỢC CHUYỂN THÀNH LINK */}
+              <Link href={UPGRADE_URL} className="mt-auto px-8 py-3.5 bg-gradient-to-r from-amber-500 to-amber-600 text-white rounded-2xl font-black shadow-lg hover:shadow-amber-500/30 hover:-translate-y-1 transition-all relative z-10 flex items-center gap-2">
                 NÂNG CẤP THẺ NGAY <i className="ph-bold ph-arrow-right"></i>
-              </button>
+              </Link>
             </div>
           ) : (
              // NẾU CÓ QUYỀN THÌ HIỆN DANH SÁCH DỰ ÁN PUBLIC TẠI ĐÂY (PHẦN NÀY SAU NÀY MÓC TỪ DATABASE)
@@ -179,7 +185,6 @@ export default function MemberBizLinkPage() {
 
               {showForm && (
                 <div className="bg-white border border-slate-200 p-8 rounded-3xl shadow-sm animate-in zoom-in-95 duration-300">
-                  {/* ... FORM ĐĂNG DỰ ÁN (GIỮ NGUYÊN) ... */}
                   <h3 className="text-xl font-black text-slate-900 mb-6 flex items-center gap-2"><i className="ph-fill ph-pencil-line text-[#002D62]"></i> Khai báo Thông tin Dự án</h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-slate-50 p-6 rounded-2xl border border-slate-100">
                     <div className="col-span-2 md:col-span-2 space-y-2"><label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Tên Dự án (*)</label><input type="text" value={formData.title} onChange={e => setFormData({...formData, title: e.target.value})} className="w-full h-12 px-4 bg-white border border-slate-200 rounded-xl text-sm font-bold outline-none focus:border-blue-400 focus:ring-4 focus:ring-blue-500/10 transition-all" placeholder="VD: Tìm thầu phụ thi công Cơ Điện (MEP)..." /></div>
@@ -233,9 +238,11 @@ export default function MemberBizLinkPage() {
               <p className="text-base text-slate-600 max-w-lg leading-relaxed relative z-10 mb-8">
                 Bạn đang sử dụng hạng thẻ <strong className="text-slate-900">{currentUser.tier_code}</strong>. <br/>Vui lòng nâng cấp để mở khóa quyền đưa dự án lên sàn giao dịch và nhận báo giá từ mạng lưới đối tác NKBA.
               </p>
-              <button className="px-10 py-4 bg-gradient-to-r from-amber-500 to-amber-600 text-white rounded-2xl font-black shadow-lg hover:shadow-amber-500/30 hover:-translate-y-1 transition-all relative z-10 flex items-center gap-2">
+              
+              {/* NÚT ĐÃ ĐƯỢC CHUYỂN THÀNH LINK */}
+              <Link href={UPGRADE_URL} className="px-10 py-4 bg-gradient-to-r from-amber-500 to-amber-600 text-white rounded-2xl font-black shadow-lg hover:shadow-amber-500/30 hover:-translate-y-1 transition-all relative z-10 flex items-center gap-2">
                 NÂNG CẤP THẺ NGAY <i className="ph-bold ph-arrow-right"></i>
-              </button>
+              </Link>
             </div>
 
           )}

@@ -1,31 +1,54 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-// IMPORT CHUẨN DÀNH RIÊNG CHO PUBLIC-SITE
-import { supabase } from 'supabase/client';
+import { createClient } from '@/utils/supabase/client'; // Import CHUẨN
 
 export default function UpgradeMembershipPage() {
-  // KHÔNG CÓ createClient() Ở ĐÂY NỮA NHÉ
+  const [supabase] = useState(() => createClient()); // Khởi tạo Supabase client
   
   const [tiers, setTiers] = useState<any[]>([]);
   const [selectedTier, setSelectedTier] = useState<any>(null);
-  const [step, setStep] = useState(1); // 1: Chọn gói, 2: Thanh toán
+  const [step, setStep] = useState(1); // 1: Chọn gói, 2: Thanh toán, 3: Thành công
   
+  // State lưu thông tin người dùng
+  const [realIndividualId, setRealIndividualId] = useState<string | null>(null);
+  const [authUserId, setAuthUserId] = useState<string | null>(null);
+  const [isLoadingUser, setIsLoadingUser] = useState(true);
+
   // State upload biên lai
   const [receiptUrl, setReceiptUrl] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // GIẢ LẬP: ID của người dùng đang đăng nhập (Lấy từ Auth session)
-  const currentUserId = "12345-abcde"; 
-
   useEffect(() => {
-    // Lấy danh sách các gói có phí
+    // 1. Tải danh sách các gói cước
     const fetchTiers = async () => {
       const { data } = await supabase.from('individual_tiers').select('*').gt('annual_fee', 0);
       if (data) setTiers(data);
     };
+
+    // 2. Tìm ID chuẩn xác của người dùng đang đăng nhập
+    const fetchUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        setAuthUserId(user.id);
+        
+        // Truy tìm ID thật trong bảng individuals
+        const { data: profile } = await supabase
+          .from('individuals')
+          .select('id')
+          .eq('user_auth_id', user.id)
+          .maybeSingle();
+
+        if (profile) {
+          setRealIndividualId(profile.id);
+        }
+      }
+      setIsLoadingUser(false);
+    };
+
     fetchTiers();
-  }, []);
+    fetchUser();
+  }, [supabase]);
 
   // Hàm tạo link ảnh VietQR tự động
   const getVietQR = (amount: number, content: string) => {
@@ -38,22 +61,41 @@ export default function UpgradeMembershipPage() {
   // Nộp biên lai để nhân viên duyệt thủ công
   const handleManualSubmit = async () => {
     if (!receiptUrl) return alert('Vui lòng cung cấp link ảnh biên lai!');
+    if (!realIndividualId) return alert('Lỗi hệ thống: Không tìm thấy hồ sơ Hội viên của bạn!');
+    
     setIsSubmitting(true);
 
-    // Cập nhật Database: Yêu cầu nâng cấp -> Chuyển về PENDING_VERIFICATION
+    // Cập nhật Database: Ép tìm đúng 'id' của bảng individuals
     const { error } = await supabase.from('individuals').update({
       upgrade_tier_id: selectedTier.id,
       payment_receipt_url: receiptUrl,
       status: 'PENDING_VERIFICATION' // Đưa vào trạm xác minh của NV
-    }).eq('id', currentUserId);
+    }).eq('id', realIndividualId);
 
     setIsSubmitting(false);
     if (!error) {
       setStep(3); // Bước thành công
     } else {
-      alert('Lỗi: ' + error.message);
+      alert('Lỗi cập nhật hệ thống: ' + error.message);
     }
   };
+
+  // Nếu đang tải thông tin User
+  if (isLoadingUser) {
+    return <div className="flex h-screen items-center justify-center bg-slate-50"><i className="ph-bold ph-spinner animate-spin text-4xl text-[#002D62]"></i></div>;
+  }
+
+  // Nếu không tìm thấy hồ sơ
+  if (!realIndividualId) {
+    return (
+      <div className="flex h-screen items-center justify-center bg-slate-50">
+        <div className="bg-white p-8 rounded-2xl shadow-xl text-center max-w-md border-l-4 border-rose-500">
+          <p className="text-rose-600 font-black mb-2">Không thể nâng cấp!</p>
+          <p className="text-slate-600 font-medium">Tài khoản này chưa được liên kết với hồ sơ Hội viên (Hoặc bạn đang là Admin).</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-slate-50 py-12 px-4">
@@ -102,9 +144,9 @@ export default function UpgradeMembershipPage() {
                   <p className="text-2xl font-black text-amber-600">{Number(selectedTier.annual_fee).toLocaleString('vi-VN')} VNĐ</p>
                   
                   <p className="text-xs font-bold text-slate-400 uppercase mt-3">Nội dung chuyển khoản (Quan trọng)</p>
-                  {/* Mã chuyển khoản chứa ID để Webhook nhận diện tự động */}
+                  {/* CẮT LẤY 8 KÝ TỰ ĐẦU CỦA AUTH ID ĐỂ LÀM MÃ CHUYỂN KHOẢN (Cho gọn) */}
                   <p className="text-lg font-black text-blue-600 bg-blue-50 px-3 py-2 rounded-lg font-mono text-center border border-blue-200">
-                    NKBA UP{currentUserId.split('-')[0]}
+                    NKBA UP{authUserId?.split('-')[0].toUpperCase()}
                   </p>
                 </div>
                 <p className="text-xs text-slate-500 font-medium italic">Hệ thống sẽ tự động duyệt trong 1-3 phút nếu bạn chuyển đúng Nội dung và Số tiền.</p>
@@ -112,7 +154,7 @@ export default function UpgradeMembershipPage() {
 
               {/* Mã QR Động */}
               <div className="shrink-0 bg-white p-2 rounded-2xl shadow-md border border-slate-100">
-                <img src={getVietQR(selectedTier.annual_fee, `NKBA UP${currentUserId.split('-')[0]}`)} alt="VietQR" className="w-48 h-48 object-contain" />
+                <img src={getVietQR(selectedTier.annual_fee, `NKBA UP${authUserId?.split('-')[0].toUpperCase()}`)} alt="VietQR" className="w-48 h-48 object-contain" />
               </div>
             </div>
 
@@ -135,6 +177,10 @@ export default function UpgradeMembershipPage() {
             </div>
             <h2 className="text-2xl font-black text-slate-900">Đã tiếp nhận yêu cầu!</h2>
             <p className="text-slate-500 font-medium leading-relaxed">Chúng tôi đã nhận được biên lai của bạn. Bộ phận vận hành NKBA sẽ kiểm tra và kích hoạt gói <strong>{selectedTier?.name}</strong> trong thời gian sớm nhất.</p>
+            
+            <button onClick={() => window.location.href = '/'} className="mt-6 px-8 py-3 bg-[#002D62] text-white font-bold rounded-full hover:bg-blue-900 transition-colors">
+              Quay về Trang chủ
+            </button>
           </div>
         )}
 
