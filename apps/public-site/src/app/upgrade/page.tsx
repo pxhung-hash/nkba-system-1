@@ -1,11 +1,10 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { createClient } from '@/utils/supabase/client'; // Import CHUẨN
+// IMPORT CHUẨN DÀNH RIÊNG CHO PUBLIC-SITE (Đã được khôi phục)
+import { supabase } from 'supabase/client';
 
 export default function UpgradeMembershipPage() {
-  const [supabase] = useState(() => createClient()); // Khởi tạo Supabase client
-  
   const [tiers, setTiers] = useState<any[]>([]);
   const [selectedTier, setSelectedTier] = useState<any>(null);
   const [step, setStep] = useState(1); // 1: Chọn gói, 2: Thanh toán, 3: Thành công
@@ -48,7 +47,7 @@ export default function UpgradeMembershipPage() {
 
     fetchTiers();
     fetchUser();
-  }, [supabase]);
+  }, []);
 
   // Hàm tạo link ảnh VietQR tự động
   const getVietQR = (amount: number, content: string) => {
