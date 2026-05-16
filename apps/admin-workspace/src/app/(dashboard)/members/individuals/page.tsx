@@ -47,7 +47,8 @@ export default function IndividualsPage() {
           verifier:employees!individuals_verified_by_fkey(name),
           approver:employees!individuals_approved_by_fkey(name)
         `)
-        .order('created_at', { ascending: false }),
+        // ĐÃ FIX SẮP XẾP THEO JOIN_DATE THAY VÌ CREATED_AT
+        .order('join_date', { ascending: false }),
       supabase.from('corporates').select('*, corporate_tiers(quota_silver, quota_gold, quota_titanium)').eq('status', 'ACTIVE'),
       supabase.from('individual_tiers').select('*')
     ]);
@@ -91,7 +92,7 @@ export default function IndividualsPage() {
       corporate_id: isCorporateSponsored ? formData.corporate_id : null,
       is_corporate_sponsored: isCorporateSponsored,
       expiration_date: formData.expiration_date || null,
-      ...(editingId ? {} : { status: 'ACTIVE' }) // TẠO MỚI TỰ ĐỘNG THÀNH ACTIVE THEO YÊU CẦU
+      ...(editingId ? {} : { status: 'ACTIVE' }) 
     };
 
     if (editingId) {
@@ -290,10 +291,12 @@ export default function IndividualsPage() {
             </thead>
             <tbody>
               {(activeTab === 'list' ? activeInds : activeTab === 'verify' ? verifyInds : approveInds).map(ind => {
+                 const tierName = Array.isArray(ind.individual_tiers) ? ind.individual_tiers[0]?.name : ind.individual_tiers?.name;
+
                  return (
                   <tr key={ind.id} className="border-b border-slate-100 last:border-0 hover:bg-slate-50 transition-colors">
                     <td className="p-4 pl-6">
-                      <div className="font-bold text-slate-900 text-base">{ind.full_name} <span className="text-amber-600 ml-1 text-xs">({ind.individual_tiers?.name || 'Chưa xếp hạng'})</span></div>
+                      <div className="font-bold text-slate-900 text-base">{ind.full_name} <span className="text-amber-600 ml-1 text-xs">({tierName || 'Chưa xếp hạng'})</span></div>
                       <div className="text-xs text-slate-500 mt-1"><i className="ph-fill ph-envelope-simple mr-1"></i>{ind.email || ind.phone || 'Chưa cung cấp'}</div>
                       {ind.status === 'REJECTED' && <div className="text-xs text-rose-700 font-medium mt-2 bg-rose-50 p-2.5 rounded-lg border border-rose-100"><i className="ph-fill ph-warning-circle text-rose-500"></i> Bút phê: "{ind.rejection_reason}"</div>}
                     </td>
@@ -351,7 +354,7 @@ export default function IndividualsPage() {
                 <div>
                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Gói cấp phát</p>
                    <p className="font-bold text-amber-600">
-                     {reviewingInd.individual_tiers?.name || 'CHƯA CHỌN GÓI'}
+                     {Array.isArray(reviewingInd.individual_tiers) ? reviewingInd.individual_tiers[0]?.name : reviewingInd.individual_tiers?.name || 'CHƯA CHỌN GÓI'}
                    </p>
                 </div>
                 
