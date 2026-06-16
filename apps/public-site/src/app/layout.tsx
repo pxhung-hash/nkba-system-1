@@ -5,7 +5,7 @@ import "./globals.css";
 export const metadata: Metadata = {
   title: "NKBA Digital Sales Kit - Hồ Sơ Năng Lực",
   description: "Liên minh Kinh doanh Xây dựng Việt - Nhật. Nền tảng kết nối giao thương chuyên nghiệp.",
-  metadataBase: new URL('https://nkba.vn'), // Thay bằng tên miền public của bạn nếu cần
+  metadataBase: new URL('https://nkba.vn'), 
   openGraph: {
     title: "NKBA Digital Sales Kit - Hồ Sơ Năng Lực",
     description: "Liên minh Kinh doanh Xây dựng Việt - Nhật",
@@ -13,7 +13,7 @@ export const metadata: Metadata = {
     siteName: 'NKBA Alliance',
     images: [
       {
-        url: '/og-image.png', // Đảm bảo bạn có file này trong thư mục public
+        url: '/og-image.png',
         width: 1200,
         height: 630,
         alt: 'NKBA Alliance',
@@ -23,7 +23,7 @@ export const metadata: Metadata = {
     type: 'website',
   },
   icons: {
-    icon: '/icon.png', // Đảm bảo bạn có file icon.png trong thư mục public
+    icon: '/icon.png', 
     apple: '/icon.png',
   },
 };
@@ -38,12 +38,10 @@ export default function RootLayout({
       <head>
         <script src="https://unpkg.com/@phosphor-icons/web" async></script>
         
-        {/* ĐÃ SỬA LỖI BUILD: Nhúng Font trực tiếp từ Google Fonts thay vì dùng next/font */}
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Montserrat:wght@400;700;900&family=Roboto+Slab:wght@400;700;900&display=swap" rel="stylesheet" />
         
-        {/* Định nghĩa các CSS Variables để giữ nguyên thiết kế của Tailwind */}
         <style dangerouslySetInnerHTML={{__html: `
           :root {
             --font-inter: 'Inter', sans-serif;
@@ -55,10 +53,10 @@ export default function RootLayout({
       <body className="bg-white text-slate-800 font-sans antialiased overflow-x-hidden flex flex-col min-h-screen">
         
         {/* HEADER CÔNG CỘNG */}
-        <header className="sticky top-0 z-50 w-full bg-white/80 backdrop-blur-md border-b border-slate-200/60 shadow-sm transition-all">
-          <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
+        <header className="sticky top-0 z-50 w-full bg-white/90 backdrop-blur-md border-b border-slate-200/60 shadow-sm transition-all relative">
+          <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between relative z-50 bg-transparent">
             
-            {/* 1. BRAND LOGO - Thay bằng file PNG */}
+            {/* 1. BRAND LOGO */}
             <Link href="/" className="flex items-center group">
               <img 
                 src="/logo_ngang_vi.png" 
@@ -67,7 +65,7 @@ export default function RootLayout({
               />
             </Link>
 
-            {/* 2. MENU ĐIỀU HƯỚNG */}
+            {/* 2. MENU ĐIỀU HƯỚNG (Chỉ hiện trên Desktop) */}
             <nav className="hidden md:flex items-center gap-8">
               <Link href="/ve-chung-toi" className="text-sm font-bold text-slate-600 hover:text-[#002D62] transition-colors">Về chúng tôi</Link>
               <Link href="/dich-vu" className="text-sm font-bold text-slate-600 hover:text-[#002D62] transition-colors">Hệ sinh thái</Link>
@@ -85,8 +83,42 @@ export default function RootLayout({
                 <span className="hidden sm:inline">Đăng nhập Portal</span>
                 <span className="sm:hidden">Portal</span>
               </a>
+
+              {/* 4. NÚT HAMBURGER MENU (Chỉ hiện trên Mobile) */}
+              <div className="md:hidden flex items-center ml-1">
+                <label htmlFor="mobile-menu-toggle" className="p-2 -mr-2 text-slate-600 hover:text-[#002D62] cursor-pointer transition-colors">
+                  <i className="ph ph-list text-3xl"></i>
+                </label>
+              </div>
             </div>
 
+          </div>
+
+          {/* INPUT ẨN ĐỂ TRIGGER MENU CSS */}
+          <input type="checkbox" id="mobile-menu-toggle" className="hidden peer" />
+
+          {/* 5. DROPDOWN MENU CHO MOBILE */}
+          <div className="absolute top-20 left-0 w-full bg-white border-b border-slate-200 shadow-2xl hidden peer-checked:flex flex-col md:hidden z-40">
+            <nav className="flex flex-col py-6 px-6 gap-6">
+              <Link href="/ve-chung-toi" className="text-base font-bold text-slate-700 hover:text-[#002D62] flex items-center gap-3">
+                <i className="ph ph-info text-xl text-slate-400"></i> Về chúng tôi
+              </Link>
+              <Link href="/dich-vu" className="text-base font-bold text-slate-700 hover:text-[#002D62] flex items-center gap-3">
+                <i className="ph ph-squares-four text-xl text-slate-400"></i> Hệ sinh thái
+              </Link>
+              <Link href="/tin-tuc" className="text-base font-bold text-slate-700 hover:text-[#002D62] flex items-center gap-3">
+                <i className="ph ph-article text-xl text-slate-400"></i> Tin tức
+              </Link>
+              <Link href="/lien-he" className="text-base font-bold text-slate-700 hover:text-[#002D62] flex items-center gap-3">
+                <i className="ph ph-phone text-xl text-slate-400"></i> Liên hệ
+              </Link>
+              
+              <div className="h-px w-full bg-slate-100 my-1"></div>
+              
+              <Link href="/dang-ky" className="text-base font-bold text-[#002D62] flex items-center gap-3">
+                <i className="ph-fill ph-sparkle text-xl text-amber-500"></i> Trở thành hội viên mới
+              </Link>
+            </nav>
           </div>
         </header>
 
@@ -132,10 +164,7 @@ export default function RootLayout({
                 <h4 className="text-white font-bold mb-6 uppercase tracking-wider text-sm">Portal</h4>
                 <ul className="space-y-4 text-sm font-medium">
                   <li><a href="https://portal.nkba.vn/login" className="hover:text-blue-400 transition-colors">Đăng nhập thành viên</a></li>
-                  
-                  {/* ĐÃ SỬA: Đổi lại thành /dang-ky */}
                   <li><Link href="/dang-ky" className="hover:text-blue-400 transition-colors">Đăng ký hội viên mới</Link></li>
-                  
                   <li><Link href="/huong-dan" className="hover:text-blue-400 transition-colors">Hướng dẫn sử dụng</Link></li>
                 </ul>
               </div>
