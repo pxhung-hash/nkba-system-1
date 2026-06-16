@@ -9,6 +9,9 @@ export default function StrategyPlanningPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
 
+  // State cho Modal văn bản A4
+  const [isVisionModalOpen, setIsVisionModalOpen] = useState(false);
+
   const [planData, setPlanData] = useState<any>(null);
   const [budgets, setBudgets] = useState<any[]>([]);
   const [initiatives, setInitiatives] = useState<any[]>([]);
@@ -48,11 +51,15 @@ export default function StrategyPlanningPage() {
       target_gmv: planData.target_gmv, 
       target_members: planData.target_members, 
       target_experts: planData.target_experts,
-      strategic_vision: planData.strategic_vision // Trường mới thêm để lưu văn bản
+      strategic_vision: planData.strategic_vision 
     }, { onConflict: 'year' }).select().single();
     
     if (error) alert('Lỗi khi lưu: ' + error.message);
-    else { alert(`✅ Đã lưu mục tiêu năm ${selectedYear} thành công!`); fetchStrategyData(); }
+    else { 
+      alert(`✅ Đã lưu mục tiêu năm ${selectedYear} thành công!`); 
+      setIsVisionModalOpen(false); // Đóng modal nếu đang mở
+      fetchStrategyData(); 
+    }
     setIsSaving(false);
   };
 
@@ -60,7 +67,7 @@ export default function StrategyPlanningPage() {
   const handleSaveBudget = async () => {
     if (!planData?.id) return alert('Vui lòng ấn LƯU MỤC TIÊU trước!');
     if (!newBudget.name) return alert('Vui lòng chọn đơn vị/phòng ban!');
-    if (newBudget.percent <= 0) return alert('Phần trăm ngân sách phải lớn hơn 0!');
+    if (!newBudget.percent || newBudget.percent <= 0) return alert('Phần trăm ngân sách phải lớn hơn 0!');
 
     if (editingBudgetId) {
       const { error } = await supabase.from('department_budgets').update({ department_name: newBudget.name, allocated_percentage: newBudget.percent }).eq('id', editingBudgetId);
@@ -117,7 +124,7 @@ export default function StrategyPlanningPage() {
   if (isLoading) return <div className="p-20 text-center text-sm font-bold text-slate-400 animate-pulse tracking-widest uppercase">Đang đồng bộ dữ liệu...</div>;
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto pb-20">
+    <div className="space-y-6 max-w-7xl mx-auto pb-20 relative">
       
       {/* 1. HEADER */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center bg-white p-6 md:px-8 rounded-2xl border border-slate-200 shadow-sm relative overflow-hidden">
@@ -136,16 +143,32 @@ export default function StrategyPlanningPage() {
          </div>
       </div>
 
-      {/* 2. KHÔNG GIAN VIẾT VĂN BẢN KẾ HOẠCH TỔNG QUAN */}
-      <div className="bg-white p-6 md:p-8 rounded-2xl border border-slate-200 shadow-sm focus-within:border-blue-400 focus-within:ring-4 focus-within:ring-blue-500/10 transition-all">
-        <h3 className="text-lg font-bold text-slate-900 mb-2">Tầm nhìn & Định hướng Chiến lược</h3>
-        <p className="text-sm text-slate-500 mb-4">Ghi chú bối cảnh, mục tiêu chung và kế hoạch thực thi chi tiết cho năm {selectedYear}</p>
-        <textarea 
-          value={planData?.strategic_vision || ''} 
-          onChange={(e) => setPlanData({...planData, strategic_vision: e.target.value})}
-          className="w-full min-h-[150px] p-4 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-700 outline-none focus:bg-white resize-y"
-          placeholder="Nhập nội dung văn bản chiến lược của NKBA tại đây..."
-        />
+      {/* 2. KHU VỰC PREVIEW VĂN BẢN (Giao diện gọn gàng) */}
+      <div className="bg-white p-6 md:p-8 rounded-2xl border border-slate-200 shadow-sm transition-all group">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 gap-4">
+            <div>
+                <h3 className="text-lg font-bold text-slate-900">Tầm nhìn & Định hướng Chiến lược</h3>
+                <p className="text-sm text-slate-500 mt-1">Bối cảnh, mục tiêu chung và rủi ro năm {selectedYear}</p>
+            </div>
+            <button 
+                onClick={() => setIsVisionModalOpen(true)}
+                className="flex items-center gap-2 px-5 py-2.5 bg-blue-50 hover:bg-[#002D62] text-blue-700 hover:text-white rounded-xl text-sm font-bold transition-colors border border-blue-100 hover:border-[#002D62]"
+            >
+                <svg width="18" height="18" fill="currentColor" viewBox="0 0 256 256"><path d="M216,40H40A16,16,0,0,0,24,56V200a16,16,0,0,0,16,16H216a16,16,0,0,0,16-16V56A16,16,0,0,0,216,40ZM40,56H216V200H40ZM176,104a8,8,0,0,1-8,8H88a8,8,0,0,1,0-16h80A8,8,0,0,1,176,104Zm0,32a8,8,0,0,1-8,8H88a8,8,0,0,1,0-16h80A8,8,0,0,1,176,136Zm-32,32a8,8,0,0,1-8,8H88a8,8,0,0,1,0-16h48A8,8,0,0,1,144,168Z"></path></svg>
+                PHÓNG TO & CHỈNH SỬA
+            </button>
+        </div>
+
+        {/* Khung xem trước mờ dần xuống dưới */}
+        <div className="relative rounded-xl border border-slate-200 overflow-hidden bg-slate-50 cursor-pointer hover:border-blue-300 transition-colors" onClick={() => setIsVisionModalOpen(true)}>
+            <div className="p-5 h-[140px] text-sm text-slate-700 leading-relaxed whitespace-pre-wrap opacity-80">
+                {planData?.strategic_vision ? planData.strategic_vision : <span className="italic text-slate-400">Chưa có nội dung chiến lược. Bấm để thêm mới...</span>}
+            </div>
+            {/* Hiệu ứng gradient mờ ở đáy */}
+            <div className="absolute bottom-0 left-0 right-0 h-20 bg-gradient-to-t from-slate-50 to-transparent flex items-end justify-center pb-2">
+                <span className="text-xs font-bold text-blue-600 bg-white/80 backdrop-blur px-3 py-1 rounded-full shadow-sm border border-blue-100">Bấm để xem toàn văn</span>
+            </div>
+        </div>
       </div>
 
       {/* 3. METRICS GRID */}
@@ -275,6 +298,56 @@ export default function StrategyPlanningPage() {
         </div>
 
       </div>
+
+      {/* 5. MODAL SOẠN THẢO VĂN BẢN (KHỔ A4) */}
+      {isVisionModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-slate-900/60 backdrop-blur-sm">
+            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl h-[90vh] flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+                {/* Modal Header */}
+                <div className="flex justify-between items-center p-6 border-b border-slate-100 bg-slate-50/50">
+                    <div>
+                        <h3 className="text-xl font-bold text-slate-900">Văn bản Chiến lược Tổng thể {selectedYear}</h3>
+                        <p className="text-sm text-slate-500 mt-1">Trình bày tầm nhìn, rủi ro và giải pháp chi tiết</p>
+                    </div>
+                    <button onClick={() => setIsVisionModalOpen(false)} className="text-slate-400 hover:text-slate-700 p-2 rounded-lg hover:bg-slate-100 transition-colors">
+                        <svg width="24" height="24" fill="currentColor" viewBox="0 0 256 256"><path d="M205.66,194.34a8,8,0,0,1-11.32,11.32L128,139.31,61.66,205.66a8,8,0,0,1-11.32-11.32L116.69,128,50.34,61.66A8,8,0,0,1,61.66,50.34L128,116.69l66.34-66.35a8,8,0,0,1,11.32,11.32L139.31,128Z"></path></svg>
+                    </button>
+                </div>
+                
+                {/* Modal Body - Thiết kế giả lập trang giấy A4 */}
+                <div className="flex-1 p-6 bg-slate-200 overflow-y-auto">
+                    <div className="max-w-3xl mx-auto bg-white shadow-md border border-slate-300 min-h-full p-8 sm:p-12">
+                        <textarea
+                            value={planData?.strategic_vision || ''}
+                            onChange={(e) => setPlanData({...planData, strategic_vision: e.target.value})}
+                            className="w-full h-full min-h-[500px] text-[15px] text-slate-800 outline-none resize-none leading-loose whitespace-pre-wrap font-serif"
+                            placeholder="Soạn thảo văn bản chiến lược của bạn tại đây..."
+                            autoFocus
+                        />
+                    </div>
+                </div>
+
+                {/* Modal Footer */}
+                <div className="p-6 border-t border-slate-100 bg-white flex justify-end gap-3 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
+                    <button 
+                        onClick={() => setIsVisionModalOpen(false)} 
+                        className="px-6 py-2.5 rounded-xl text-sm font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 transition-colors"
+                    >
+                        HỦY
+                    </button>
+                    <button 
+                        onClick={handleSavePlan} 
+                        disabled={isSaving}
+                        className="px-6 py-2.5 rounded-xl text-sm font-bold text-white bg-[#002D62] hover:bg-blue-900 shadow-md transition-colors flex items-center gap-2"
+                    >
+                        <svg width="18" height="18" fill="currentColor" viewBox="0 0 256 256"><path d="M224,128a8,8,0,0,1-8,8H136v80a8,8,0,0,1-16,0V136H40a8,8,0,0,1,0-16h80V40a8,8,0,0,1,16,0v80h80A8,8,0,0,1,224,128Z"></path></svg>
+                        {isSaving ? 'ĐANG LƯU...' : 'LƯU VĂN BẢN'}
+                    </button>
+                </div>
+            </div>
+        </div>
+      )}
+
     </div>
   );
 }
