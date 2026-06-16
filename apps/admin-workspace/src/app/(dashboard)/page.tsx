@@ -7,12 +7,20 @@ import { createClient } from '@/utils/supabase/client';
 export default function DashboardHome() {
   const router = useRouter();
   const supabase = createClient();
+  
+  // State quản lý Auth
   const [loading, setLoading] = useState(true);
   const [adminEmail, setAdminEmail] = useState('');
   const [adminRole, setAdminRole] = useState('');
 
+  // State quản lý Data Thống kê
+  const [totalMembers, setTotalMembers] = useState<number>(0);
+  const [pendingKyc, setPendingKyc] = useState<number>(0);
+  const [activeProjects, setActiveProjects] = useState<number>(0);
+  const [totalTalents, setTotalTalents] = useState<number>(0);
+
   useEffect(() => {
-    const checkAuth = async () => {
+    const checkAuthAndFetchData = async () => {
       // 1. Kiểm tra session đăng nhập
       const { data: { user }, error } = await supabase.auth.getUser();
       
@@ -23,9 +31,9 @@ export default function DashboardHome() {
         return;
       }
 
-      // 2. Lấy Role từ bảng users để hiển thị
+      // 2. Lấy Role từ bảng employees để hiển thị
       const { data: userData, error: dbError } = await supabase
-        .from('employees') // Đổi từ 'users' sang 'employees' nếu bảng phân quyền admin là bảng employees
+        .from('employees')
         .select('role')
         .eq('email', user.email)
         .single();
@@ -38,11 +46,41 @@ export default function DashboardHome() {
       if (userData) {
         setAdminRole(userData.role);
       }
+
+      // 3. Lấy dữ liệu thống kê (Sử dụng Promise.all để fetch song song cho nhanh)
+      try {
+        const [
+          { count: membersCount },
+          { count: kycCount },
+          { count: projectsCount },
+          { count: talentsCount }
+        ] = await Promise.all([
+          // TODO: Thay 'members' bằng tên bảng hội viên thực tế của anh
+          supabase.from('members').select('*', { count: 'exact', head: true }),
+          
+          // TODO: Thay 'kyc_applications' và điều kiện 'status' bằng cấu trúc thực tế
+          supabase.from('kyc_applications').select('*', { count: 'exact', head: true }).eq('status', 'pending'),
+          
+          // TODO: Thay 'biz_links' và điều kiện 'status' tương ứng
+          supabase.from('biz_links').select('*', { count: 'exact', head: true }).eq('status', 'open'),
+          
+          // TODO: Thay 'talents' bằng tên bảng chuyên gia thực tế
+          supabase.from('talents').select('*', { count: 'exact', head: true })
+        ]);
+
+        setTotalMembers(membersCount || 0);
+        setPendingKyc(kycCount || 0);
+        setActiveProjects(projectsCount || 0);
+        setTotalTalents(talentsCount || 0);
+
+      } catch (metricsError) {
+        console.error('Lỗi khi tải dữ liệu thống kê:', metricsError);
+      }
       
       setLoading(false);
     };
 
-    checkAuth();
+    checkAuthAndFetchData();
   }, [router, supabase]);
 
   if (loading) {
@@ -58,7 +96,7 @@ export default function DashboardHome() {
 
   // Nếu bằng một cách nào đó lọt qua được nhưng không có email
   if (!adminEmail) {
-      return null; // Không hiển thị gì, useEffect sẽ lo việc đẩy về login
+      return null;
   }
 
   return (
@@ -84,25 +122,25 @@ export default function DashboardHome() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm border-l-4 border-l-blue-600">
           <p className="text-sm font-bold text-slate-500 uppercase">Tổng Hội Viên</p>
-          <h3 className="text-3xl font-black text-slate-900 mt-2">124</h3>
-          <p className="text-sm text-green-600 font-medium mt-2">↑ +12 tháng này</p>
+          <h3 className="text-3xl font-black text-slate-900 mt-2">{totalMembers}</h3>
+          <p className="text-sm text-green-600 font-medium mt-2">Cập nhật lúc này</p>
         </div>
         
         <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm border-l-4 border-l-amber-500">
           <p className="text-sm font-bold text-slate-500 uppercase">Hồ sơ chờ Duyệt (KYC)</p>
-          <h3 className="text-3xl font-black text-slate-900 mt-2">5</h3>
+          <h3 className="text-3xl font-black text-slate-900 mt-2">{pendingKyc}</h3>
           <p className="text-sm text-amber-600 font-medium mt-2">Cần xử lý ngay</p>
         </div>
 
         <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm border-l-4 border-l-indigo-600">
           <p className="text-sm font-bold text-slate-500 uppercase">Dự án Biz-Link</p>
-          <h3 className="text-3xl font-black text-slate-900 mt-2">32</h3>
+          <h3 className="text-3xl font-black text-slate-900 mt-2">{activeProjects}</h3>
           <p className="text-sm text-slate-500 font-medium mt-2">Đang mở thầu</p>
         </div>
 
         <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm border-l-4 border-l-emerald-600">
           <p className="text-sm font-bold text-slate-500 uppercase">Chuyên gia Talent-Hub</p>
-          <h3 className="text-3xl font-black text-slate-900 mt-2">450</h3>
+          <h3 className="text-3xl font-black text-slate-900 mt-2">{totalTalents}</h3>
           <p className="text-sm text-green-600 font-medium mt-2">Sẵn sàng kết nối</p>
         </div>
       </div>
