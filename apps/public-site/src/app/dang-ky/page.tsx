@@ -286,7 +286,7 @@ export default function JoinAlliancePage() {
           </div>
         )}
 
-        {/* STEP 2: KẾT QUẢ & THÔNG TIN CHUYỂN KHOẢN */}
+        {/* STEP 2: KẾT QUẢ & THÔNG TIN CHUYỂN KHOẢN CÓ XÁC THỰC EMAIL */}
         {step === 2 && (
           <div className="bg-white p-12 rounded-[2rem] border-4 border-emerald-200 shadow-2xl animate-in zoom-in-95 text-center max-w-3xl mx-auto">
             <div className="w-24 h-24 bg-emerald-100 text-emerald-500 rounded-full flex items-center justify-center mx-auto mb-8 shadow-inner">
@@ -298,14 +298,32 @@ export default function JoinAlliancePage() {
             
             {isFreeTier ? (
               <div className="mt-10 bg-emerald-50 p-6 rounded-2xl border border-emerald-100 leading-relaxed text-emerald-900 font-medium space-y-4">
-                <p>Vì bạn đăng ký <strong>Gói Khởi đầu (Miễn phí)</strong>, hệ thống đã tự động kích hoạt tài khoản của bạn ngay lập tức.</p>
-                <p>Bạn đã có thể sử dụng Email và Mật khẩu vừa tạo để đăng nhập vào Member Portal để bắt đầu kết nối.</p>
-                <a href="https://portal.nkba.vn/login" className="inline-flex h-12 px-8 mt-4 bg-emerald-600 text-white font-bold rounded-xl items-center gap-2 shadow-md hover:bg-emerald-700 transition-colors">VÀO PORTAL THÀNH VIÊN <i className="ph-bold ph-arrow-right"></i></a>
+                <p>Vì bạn đăng ký <strong>Gói Khởi đầu (Miễn phí)</strong>, hồ sơ của bạn đã được hệ thống tiếp nhận.</p>
+                
+                {/* YÊU CẦU XÁC THỰC EMAIL CHO GÓI FREE */}
+                <div className="bg-white p-4 rounded-xl border border-emerald-200 shadow-sm text-left">
+                  <p className="text-rose-600 font-bold mb-1 flex items-center gap-2"><i className="ph-fill ph-envelope-open text-lg"></i> Yêu cầu xác thực Email</p>
+                  <p className="text-sm text-slate-600">Hệ thống vừa gửi một email kích hoạt đến địa chỉ <strong className="text-slate-800">{formData.email}</strong>. Vui lòng kiểm tra Hộp thư đến (hoặc thư mục Spam) và click vào link xác nhận để có thể đăng nhập.</p>
+                </div>
+
+                <a href="https://portal.nkba.vn/login" className="inline-flex h-12 px-8 mt-4 bg-emerald-600 text-white font-bold rounded-xl items-center gap-2 shadow-md hover:bg-emerald-700 transition-colors">ĐÃ XÁC THỰC? ĐĂNG NHẬP NGAY <i className="ph-bold ph-arrow-right"></i></a>
               </div>
             ) : (
               <div className="mt-10 pt-10 border-t-2 border-slate-100 space-y-6 text-left">
-                <p className="font-bold text-slate-800 text-lg border-l-4 border-amber-400 pl-4">Bước tiếp theo: Kích hoạt Thẻ <strong className="text-amber-600">{selectedTierData?.name}</strong></p>
-                <p className="text-sm text-slate-500 font-medium leading-relaxed">Để hoàn tất quy trình và kích hoạt tài khoản chính thức, quý khách vui lòng thanh toán phí thường niên bằng cách chuyển khoản theo thông tin dưới đây. Hệ thống sẽ <strong className="text-blue-600">tự động duyệt</strong> ngay khi nhận được tiền.</p>
+                
+                {/* THÔNG BÁO XÁC THỰC EMAIL CHO GÓI TRẢ PHÍ */}
+                <div className="bg-rose-50 p-5 rounded-2xl border border-rose-100 shadow-sm flex gap-4 items-start">
+                  <div className="bg-white p-2 rounded-full text-rose-500 shadow-sm shrink-0">
+                    <i className="ph-fill ph-envelope-open text-xl"></i>
+                  </div>
+                  <div>
+                    <p className="font-bold text-rose-700 mb-1">Xác thực tài khoản đăng nhập</p>
+                    <p className="text-sm text-rose-800/80 leading-relaxed">Hệ thống đã gửi email kích hoạt đến <strong>{formData.email}</strong>. Bạn cần kiểm tra hộp thư và bấm vào link xác nhận để tài khoản Portal hợp lệ.</p>
+                  </div>
+                </div>
+
+                <p className="font-bold text-slate-800 text-lg border-l-4 border-amber-400 pl-4 mt-6">Bước tiếp theo: Kích hoạt Thẻ <strong className="text-amber-600">{selectedTierData?.name}</strong></p>
+                <p className="text-sm text-slate-500 font-medium leading-relaxed">Để hoàn tất quy trình và kích hoạt tư cách thành viên chính thức, quý khách vui lòng thanh toán phí thường niên bằng cách chuyển khoản theo thông tin dưới đây. Hệ thống sẽ <strong className="text-blue-600">tự động duyệt</strong> ngay khi nhận được tiền.</p>
                 
                 <div className="flex flex-col md:flex-row gap-8 items-center bg-slate-50/50 p-6 rounded-2xl border border-slate-100 shadow-inner">
                   <div className="shrink-0 bg-white p-3 rounded-2xl shadow-xl border border-slate-100">
@@ -324,7 +342,7 @@ export default function JoinAlliancePage() {
                 
                 <div className="mt-8 bg-blue-50 p-6 rounded-2xl border border-blue-100 leading-relaxed text-blue-900 font-medium flex items-start gap-3">
                   <i className="ph-fill ph-info text-2xl text-blue-500 mt-0.5 shrink-0"></i>
-                  <span>Sau khi chuyển khoản, bạn có thể Đăng nhập ngay vào Portal để nộp ảnh chụp Biên lai (Nếu hệ thống chưa duyệt tự động). Nhân viên NKBA sẽ đối soát nhanh nhất để ACTIVE thẻ của bạn.</span>
+                  <span>Sau khi chuyển khoản và xác thực email, bạn có thể Đăng nhập ngay vào Portal để nộp ảnh chụp Biên lai (Nếu hệ thống chưa duyệt tự động). Nhân viên NKBA sẽ đối soát nhanh nhất để ACTIVE thẻ của bạn.</span>
                 </div>
                 <div className="flex justify-center pt-4">
                   <a href="https://portal.nkba.vn/login" className="inline-flex h-12 px-8 bg-[#002D62] text-white font-bold rounded-xl items-center gap-2 shadow-md hover:bg-blue-900 transition-colors">VÀO PORTAL ĐỂ NỘP BIÊN LAI <i className="ph-bold ph-arrow-right"></i></a>

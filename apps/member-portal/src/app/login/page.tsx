@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/utils/supabase/client';
-import Link from 'next/link'; // BỔ SUNG: Import Link để chuyển trang mượt mà không bị reload
+import Link from 'next/link'; // Sử dụng Link của Next.js để điều hướng mượt mà
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -150,7 +150,6 @@ export default function LoginPage() {
               <div className="flex justify-between items-center">
                 <label className="block text-sm font-bold text-slate-700">Mật khẩu</label>
                 
-                {/* ĐÃ CẬP NHẬT: Thay đổi thẻ <a> rỗng thành Link dẫn tới trang quên mật khẩu */}
                 <Link 
                   href="/forgot-password" 
                   className="text-sm font-bold text-blue-600 hover:text-blue-800 transition-colors"
@@ -195,13 +194,15 @@ export default function LoginPage() {
           {/* KHU VỰC CÁC ĐƯỜNG LINK ĐIỀU HƯỚNG PHỤ */}
           <div className="mt-10 pt-6 border-t border-slate-100 flex flex-col items-center gap-6">
             
-            {/* ĐÃ SỬA: Đổi link sang /upgrade thay vì /dang-ky bị lỗi 404 */}
             <p className="text-center text-sm font-medium text-slate-500">
               Doanh nghiệp của bạn chưa là hội viên?{' '}
-              <a href="/upgrade" className="text-[#002D62] font-bold hover:underline">Đăng ký tham gia liên minh</a>
+              {/* Đã sửa thẻ <a> thành thẻ <Link> của Next.js để điều hướng mượt */}
+              <Link href="/upgrade" className="text-[#002D62] font-bold hover:underline">
+                Đăng ký tham gia liên minh
+              </Link>
             </p>
 
-            {/* BỔ SUNG: Nút tắt dành cho Admin (Trỏ về Admin Workspace) */}
+            {/* Nút tắt dành cho Admin (Trỏ về Admin Workspace) */}
             <a 
               href="https://admin.nkba.vn/login" 
               className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-slate-200 bg-slate-50 text-xs font-bold text-slate-400 hover:text-rose-600 hover:border-rose-200 hover:bg-rose-50 transition-all"
