@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/utils/supabase/client';
+import Link from 'next/link'; // BỔ SUNG: Import Link để chuyển trang mượt mà không bị reload
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -49,7 +50,7 @@ export default function LoginPage() {
         }
         
         if (profile.status === 'PENDING_VERIFICATION' || profile.status === 'PENDING_APPROVAL') {
-          await supabase.auth.signOut(); // Đăng xuất ra ngay lập tức
+          await supabase.auth.signOut();
           throw new Error('Hồ sơ đang trong quá trình xét duyệt. Chúng tôi sẽ thông báo khi thẻ được cấp phép!');
         }
 
@@ -148,7 +149,14 @@ export default function LoginPage() {
             <div className="space-y-1.5">
               <div className="flex justify-between items-center">
                 <label className="block text-sm font-bold text-slate-700">Mật khẩu</label>
-                <a href="#" className="text-sm font-bold text-blue-600 hover:text-blue-800 transition-colors">Quên mật khẩu?</a>
+                
+                {/* ĐÃ CẬP NHẬT: Thay đổi thẻ <a> rỗng thành Link dẫn tới trang quên mật khẩu */}
+                <Link 
+                  href="/forgot-password" 
+                  className="text-sm font-bold text-blue-600 hover:text-blue-800 transition-colors"
+                >
+                  Quên mật khẩu?
+                </Link>
               </div>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400">
@@ -202,7 +210,6 @@ export default function LoginPage() {
               <i className="ph-fill ph-shield-star text-base"></i>
               DÀNH CHO BAN QUẢN TRỊ
             </a>
-
           </div>
 
         </div>
