@@ -197,7 +197,7 @@ export default function LoginPage() {
             <p className="text-center text-sm font-medium text-slate-500">
               Doanh nghiệp của bạn chưa là hội viên?{' '}
               {/* Đã sửa thẻ <a> thành thẻ <Link> của Next.js để điều hướng mượt */}
-              <Link href="/dang-ky" className="text-[#002D62] font-bold hover:underline">
+              <Link href="https://nkba.vn/dang-ky" className="text-[#002D62] font-bold hover:underline">
                 Đăng ký tham gia liên minh
               </Link>
             </p>
