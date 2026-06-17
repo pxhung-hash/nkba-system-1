@@ -1,11 +1,17 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation'; // Tích hợp thêm useSearchParams vào đây
 import { createBrowserClient } from '@supabase/ssr';
+import Link from 'next/link';
 
 export default function ResetPasswordPage() {
   const router = useRouter();
+  
+  // ĐỌC THAM SỐ LỖI TỪ URL (Ví dụ: khi link đổi mật khẩu hết hạn hoặc đã dùng)
+  const searchParams = useSearchParams();
+  const errorDescription = searchParams.get('error_description');
+
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -37,8 +43,6 @@ export default function ResetPasswordPage() {
     setIsLoading(true);
 
     // 2. Gọi API Supabase để cập nhật mật khẩu mới
-    // Lưu ý: Hàm này chỉ chạy thành công nếu user đang có một session hợp lệ 
-    // (được tạo tự động khi họ click vào link trong email)
     const { error } = await supabase.auth.updateUser({
       password: password,
     });
@@ -51,14 +55,37 @@ export default function ResetPasswordPage() {
       setMessage('Đổi mật khẩu thành công! Đang chuyển hướng về trang đăng nhập...');
       // Đợi 2 giây rồi đẩy user về trang login
       setTimeout(() => {
-        router.push('/login'); // Hoặc trang login của bạn
+        router.push('/login'); 
       }, 2000);
     }
   };
 
+  // =========================================================================
+  // TRƯỜNG HỢP 1: NẾU LINK HẾT HẠN HOẶC BỊ LỖI -> HIỂN THỊ THÔNG BÁO LỖI
+  // =========================================================================
+  if (errorDescription) {
+    return (
+      <div className="min-h-[70vh] flex items-center justify-center bg-slate-50 px-6">
+        <div className="w-full max-w-md bg-white p-8 rounded-2xl shadow-lg border-t-4 border-rose-500 text-center animate-in fade-in zoom-in-95 duration-300">
+          <div className="w-16 h-16 bg-rose-100 text-rose-500 rounded-full flex items-center justify-center mx-auto mb-4">
+            <i className="ph-fill ph-warning-circle text-3xl"></i>
+          </div>
+          <h2 className="text-xl font-bold text-slate-800 mb-2">Đường link không hợp lệ</h2>
+          <p className="text-sm text-slate-500 mb-6">Đường link đổi mật khẩu này đã được sử dụng hoặc đã hết hạn. Vui lòng yêu cầu một đường link mới.</p>
+          <Link href="/forgot-password" className="inline-block px-6 py-3 bg-[#002D62] text-white rounded-xl font-bold hover:bg-blue-900 transition-colors">
+            Gửi lại yêu cầu
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  // =========================================================================
+  // TRƯỜNG HỢP 2: ĐƯỜNG LINK HỢP LỆ -> HIỂN THỊ FORM ĐỔI MẬT KHẨU NHƯ BÌNH THƯỜNG
+  // =========================================================================
   return (
     <div className="min-h-[70vh] flex items-center justify-center bg-slate-50 px-6">
-      <div className="w-full max-w-md bg-white p-8 rounded-2xl shadow-lg border border-slate-100">
+      <div className="w-full max-w-md bg-white p-8 rounded-2xl shadow-lg border border-slate-100 animate-in fade-in duration-300">
         <h1 className="text-2xl font-black text-[#002D62] text-center mb-2">Đặt lại mật khẩu</h1>
         <p className="text-sm text-slate-500 text-center mb-8">Vui lòng nhập mật khẩu mới cho tài khoản của bạn.</p>
 
@@ -88,13 +115,13 @@ export default function ResetPasswordPage() {
           </div>
 
           {error && (
-            <div className="p-3 bg-red-50 text-red-600 text-sm font-medium rounded-lg">
+            <div className="p-3 bg-red-50 text-red-600 text-sm font-medium rounded-lg animate-in fade-in duration-200">
               {error}
             </div>
           )}
 
           {message && (
-            <div className="p-3 bg-green-50 text-green-600 text-sm font-medium rounded-lg">
+            <div className="p-3 bg-green-50 text-green-600 text-sm font-medium rounded-lg animate-in fade-in duration-200">
               {message}
             </div>
           )}
