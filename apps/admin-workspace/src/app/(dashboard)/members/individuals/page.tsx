@@ -73,10 +73,15 @@ export default function IndividualsPage() {
   // PHÂN LOẠI TAB THEO MONG MUỐN "KHÔNG CẦN DUYỆT VẪN ĐĂNG NHẬP"
   // ==========================================
   // Tab Danh sách chính: Gồm ACTIVE và những người tự đăng ký (PENDING_VERIFICATION)
-  const activeInds = individuals.filter(i => ['ACTIVE', 'PENDING_VERIFICATION'].includes(i.status) || !i.status);
-  
-  // Tab Xác minh NV: Chứa các hồ sơ bị từ chối hoặc cần rà soát đặc biệt
-  const verifyInds = individuals.filter(i => i.status === 'REJECTED');
+  // ĐÃ SỬA LẠI:
+  // 1. Tab Danh sách chính thức: CHỈ HIỂN THỊ HỒ SƠ ĐÃ ACTIVE
+  const activeInds = individuals.filter(i => i.status === 'ACTIVE' || !i.status);
+
+  // 2. Tab Trạm Xác minh NV (KYC): Chứa hồ sơ mới tự đăng ký, chờ nâng cấp HOẶC hồ sơ bị sếp trả về (REJECTED) bắt làm lại
+  const verifyInds = individuals.filter(i => ['PENDING_VERIFICATION', 'REJECTED'].includes(i.status));
+
+  // 3. Tab Bàn làm việc TGĐ: Nhân viên đã check xong, chờ Sếp duyệt chốt HOẶC chờ Sếp đồng ý xóa
+  const approveInds = individuals.filter(i => ['PENDING_APPROVAL', 'PENDING_DELETION'].includes(i.status));
   
   // Tab Ký duyệt TGĐ: Chứa hồ sơ chờ xóa hoặc chờ TGĐ ký
   const approveInds = individuals.filter(i => ['PENDING_APPROVAL', 'PENDING_DELETION'].includes(i.status));

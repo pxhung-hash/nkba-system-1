@@ -7,11 +7,11 @@ export default function UpgradeMembershipPage() {
   const [supabase] = useState(() => createClient());
   const [tiers, setTiers] = useState<any[]>([]);
   const [selectedTier, setSelectedTier] = useState<any>(null);
-  const [step, setStep] = useState(1); // 1: Chọn gói, 2: Thanh toán/Biên lai, 3: Thành công
+  const [step, setStep] = useState(1); 
   
   // State lưu thông tin người dùng
   const [realIndividualId, setRealIndividualId] = useState<string | null>(null);
-  const [authUserId, setAuthUserId] = useState<string | null>(null);
+  const [currentStatus, setCurrentStatus] = useState<string | null>(null);
   const [isLoadingUser, setIsLoadingUser] = useState(true);
 
   // State upload biên lai
@@ -29,17 +29,21 @@ export default function UpgradeMembershipPage() {
     const fetchUser = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
-        setAuthUserId(user.id);
-        
-        // Truy tìm ID thật trong bảng individuals
+        // Truy tìm ID thật và Trạng thái hiện tại
         const { data: profile } = await supabase
           .from('individuals')
-          .select('id')
+          .select('id, status')
           .eq('user_auth_id', user.id)
           .maybeSingle();
 
         if (profile) {
           setRealIndividualId(profile.id);
+          setCurrentStatus(profile.status);
+          
+          // NẾU HỒ SƠ ĐANG CHỜ DUYỆT -> CHO NHẢY THẲNG SANG BƯỚC 3 THÔNG BÁO
+          if (['PENDING_VERIFICATION', 'PENDING_APPROVAL'].includes(profile.status)) {
+            setStep(3);
+          }
         }
       }
       setIsLoadingUser(false);
@@ -50,11 +54,13 @@ export default function UpgradeMembershipPage() {
   }, [supabase]);
 
   const handleManualSubmit = async () => {
-    if (!receiptUrl) return alert('Vui lòng cung cấp link ảnh biên lai!');
+    if (!receiptUrl.trim()) return alert('Vui lòng cung cấp link ảnh biên lai!');
     if (!realIndividualId) return alert('Lỗi hệ thống: Không tìm thấy hồ sơ Hội viên của bạn!');
     
     setIsSubmitting(true);
 
+    // CẬP NHẬT DATABASE
+    // Đảm bảo bảng individuals trên Supabase của bạn ĐÃ CÓ 2 cột: upgrade_tier_id và payment_receipt_url nhé!
     const { error } = await supabase.from('individuals').update({
       upgrade_tier_id: selectedTier.id,
       payment_receipt_url: receiptUrl,
@@ -62,6 +68,7 @@ export default function UpgradeMembershipPage() {
     }).eq('id', realIndividualId);
 
     setIsSubmitting(false);
+    
     if (!error) {
       setStep(3); 
     } else {
@@ -88,10 +95,12 @@ export default function UpgradeMembershipPage() {
     <div className="min-h-screen bg-slate-50 py-12 px-4 animate-in fade-in duration-500">
       <div className="max-w-4xl mx-auto space-y-8">
         
-        <div className="text-center space-y-2">
-          <h1 className="text-3xl font-black text-[#002D62] uppercase tracking-tight">Nâng cấp Đặc quyền</h1>
-          <p className="text-slate-500 font-medium">Lựa chọn gói hội viên phù hợp để mở khóa toàn bộ tiện ích của hệ sinh thái NKBA.</p>
-        </div>
+        {step !== 3 && (
+          <div className="text-center space-y-2">
+            <h1 className="text-3xl font-black text-[#002D62] uppercase tracking-tight">Nâng cấp Đặc quyền</h1>
+            <p className="text-slate-500 font-medium">Lựa chọn gói hội viên phù hợp để mở khóa toàn bộ tiện ích của hệ sinh thái NKBA.</p>
+          </div>
+        )}
 
         {/* BƯỚC 1: CHỌN GÓI */}
         {step === 1 && (
@@ -158,16 +167,18 @@ export default function UpgradeMembershipPage() {
           </div>
         )}
 
-        {/* BƯỚC 3: THÔNG BÁO HOÀN TẤT */}
+        {/* BƯỚC 3: THÔNG BÁO HOÀN TẤT VÀ ĐANG CHỜ DUYỆT */}
         {step === 3 && (
-          <div className="bg-white p-12 rounded-3xl border border-slate-200 shadow-xl max-w-xl mx-auto text-center animate-in zoom-in-95 space-y-4">
-            <div className="w-20 h-20 bg-emerald-100 text-emerald-500 rounded-full flex items-center justify-center mx-auto mb-6">
-              <i className="ph-fill ph-check-circle text-5xl"></i>
+          <div className="bg-white p-12 rounded-3xl border border-slate-200 shadow-xl max-w-xl mx-auto text-center animate-in zoom-in-95 space-y-4 mt-12">
+            <div className="w-20 h-20 bg-amber-100 text-amber-500 rounded-full flex items-center justify-center mx-auto mb-6 shadow-inner">
+              <i className="ph-fill ph-hourglass-high text-5xl"></i>
             </div>
-            <h2 className="text-2xl font-black text-slate-900">Đã tiếp nhận yêu cầu!</h2>
-            <p className="text-slate-500 font-medium leading-relaxed">Chúng tôi đã nhận được thông tin của bạn. Bộ phận vận hành NKBA sẽ kiểm tra và kích hoạt gói <strong className="text-slate-800">{selectedTier?.name}</strong> trong thời gian sớm nhất.</p>
+            <h2 className="text-2xl font-black text-slate-900">Hồ sơ đang được xử lý!</h2>
+            <p className="text-slate-500 font-medium leading-relaxed mt-4">
+              Chúng tôi đã nhận được thông tin nâng cấp của bạn. Bộ phận vận hành NKBA đang tiến hành kiểm tra biên lai và sẽ kích hoạt đặc quyền trong thời gian sớm nhất.
+            </p>
             
-            <button onClick={() => window.location.href = '/'} className="mt-6 px-8 py-3 bg-[#002D62] text-white font-bold rounded-full hover:bg-blue-900 transition-colors shadow-lg">
+            <button onClick={() => window.location.href = '/'} className="mt-8 px-8 py-3 bg-[#002D62] text-white font-bold rounded-full hover:bg-blue-900 transition-colors shadow-lg">
               Quay về Trang chủ
             </button>
           </div>

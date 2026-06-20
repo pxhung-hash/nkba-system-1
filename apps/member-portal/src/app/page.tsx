@@ -43,16 +43,26 @@ export default function MemberDashboard() {
       }
 
       if (memberData) {
-        if (memberData.status !== 'ACTIVE') {
-          setMemberInfo({ is_pending: true, ...memberData }); setLoading(false); return;
+        // ĐÃ SỬA: Chặn các trạng thái bị cấm, nhưng CHO PHÉP người đang chờ duyệt (PENDING) vào xem Dashboard
+        if (['REJECTED', 'ARCHIVED', 'PENDING_DELETION'].includes(memberData.status)) {
+          setMemberInfo({ error: "Tài khoản của bạn đã bị từ chối hoặc ngừng hoạt động." }); 
+          setLoading(false); return;
         }
+
+        // Đánh dấu xem user có đang trong quá trình chờ xét duyệt thẻ hay không
+        const isPendingUpgrade = ['PENDING_APPROVAL', 'PENDING_VERIFICATION'].includes(memberData.status);
         
         // Trích xuất mã Tier để làm logic phân quyền hiển thị (Làm mờ thông tin)
         const tierCode = Array.isArray(memberData.individual_tiers) 
           ? memberData.individual_tiers[0]?.code 
           : (memberData.individual_tiers as any)?.code;
           
-        setMemberInfo({ ...memberData, is_admin: false, tier_code: tierCode });
+        setMemberInfo({ 
+          ...memberData, 
+          is_admin: false, 
+          tier_code: tierCode,
+          is_pending: isPendingUpgrade // Truyền trạng thái này xuống UI
+        });
       } 
       // ==========================================
       // PHÂN LUỒNG 2: TÌM TRONG NHÂN VIÊN (ADMIN)
@@ -63,7 +73,8 @@ export default function MemberDashboard() {
           setMemberInfo({
             full_name: empData.name, email: user.email, status: 'ACTIVE', is_admin: true, role: empData.role, tier_code: 'VIP',
             individual_tiers: { name: 'Quyền Truy cập Tối cao' },
-            corporates: { name: 'Ban Điều Hành NKBA' }
+            corporates: { name: 'Ban Điều Hành NKBA' },
+            is_pending: false
           });
         } else {
           setMemberInfo({ error: `Tài khoản ma! Không tìm thấy Hồ sơ nào khớp với thẻ Auth ID: ${user.id}` });
@@ -79,13 +90,25 @@ export default function MemberDashboard() {
   // XỬ LÝ GIAO DIỆN LỖI & LOADING 
   // ==========================================
   if (loading) return <div className="flex h-screen items-center justify-center bg-slate-50"><i className="ph-bold ph-spinner animate-spin text-4xl text-[#002D62]"></i></div>;
-  if (memberInfo?.error) return <div className="flex h-[80vh] items-center justify-center p-6"><div className="bg-white p-8 rounded-2xl shadow-xl border-l-4 border-rose-500"><p className="text-rose-600 font-black">{memberInfo.error}</p><button onClick={async () => { await supabase.auth.signOut(); router.push('/login'); }} className="mt-4 px-6 py-2 bg-slate-900 text-white font-bold rounded-lg w-full">Đăng xuất</button></div></div>;
-  if (memberInfo?.is_pending) return <div className="flex h-[80vh] items-center justify-center p-6"><div className="bg-white p-8 rounded-2xl shadow-xl border-t-4 border-amber-500 text-center"><p className="text-amber-600 font-black">Hồ sơ đang chờ duyệt!</p><button onClick={async () => { await supabase.auth.signOut(); router.push('/login'); }} className="mt-4 px-6 py-2 bg-slate-100 font-bold rounded-lg w-full">Đăng xuất</button></div></div>;
+  
+  if (memberInfo?.error) return (
+    <div className="flex h-[80vh] items-center justify-center p-6">
+      <div className="bg-white p-8 rounded-2xl shadow-xl border-l-4 border-rose-500 max-w-md w-full text-center">
+        <i className="ph-fill ph-warning-circle text-4xl text-rose-500 mb-3"></i>
+        <p className="text-slate-800 font-bold mb-6">{memberInfo.error}</p>
+        <button onClick={async () => { await supabase.auth.signOut(); router.push('/login'); }} className="px-6 py-3 bg-[#002D62] text-white font-bold rounded-xl w-full hover:bg-blue-900 transition-colors">Đăng xuất</button>
+      </div>
+    </div>
+  );
+
+  // ĐÃ XÓA MÀN HÌNH CHẶN PENDING_APPROVAL Ở ĐÂY. 
+  // Người dùng chờ duyệt sẽ trôi xuống render Dashboard bình thường bên dưới.
 
   // ==========================================
   // LOGIC HIỆU ỨNG FOMO: Chỉ cho VIP/GOLD/TITANIUM xem, thẻ khác bị làm mờ
+  // Nếu đang pending duyệt lên VIP, vẫn coi là thẻ thường cho đến khi được duyệt.
   // ==========================================
-  const isPremium = memberInfo?.is_admin || ['GOLD', 'TITANIUM', 'VIP'].includes(memberInfo?.tier_code);
+  const isPremium = memberInfo?.is_admin || (!memberInfo?.is_pending && ['GOLD', 'TITANIUM', 'VIP'].includes(memberInfo?.tier_code));
 
   // ==========================================
   // DỮ LIỆU TÓM TẮT ĐỂ HIỂN THỊ LÊN DASHBOARD (MOCK DATA TẠM THỜI)
@@ -108,6 +131,19 @@ export default function MemberDashboard() {
   return (
     <div className="p-4 md:p-8 space-y-8 max-w-7xl mx-auto bg-slate-50/50 min-h-screen">
       
+      {/* 🌟 THÔNG BÁO CHO NGƯỜI ĐANG CHỜ DUYỆT 🌟 */}
+      {memberInfo?.is_pending && (
+        <div className="bg-amber-50 border border-amber-200 p-5 rounded-2xl flex items-start gap-4 shadow-sm animate-in fade-in zoom-in-95">
+          <i className="ph-fill ph-hourglass-high text-amber-500 text-2xl mt-0.5 shrink-0"></i>
+          <div>
+            <h4 className="font-black text-amber-800 text-lg">Yêu cầu nâng cấp đang được xử lý</h4>
+            <p className="text-sm text-amber-700 mt-1 leading-relaxed">
+              Ban quản trị NKBA đang tiến hành kiểm tra hồ sơ và biên lai thanh toán của bạn. Việc này có thể mất từ 1-2 ngày làm việc. Trong thời gian này, bạn vẫn có thể sử dụng các tính năng cơ bản của hệ thống.
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* 1. KHU VỰC HEADER TỔNG QUAN */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 bg-white p-6 md:p-8 rounded-3xl border border-slate-200 shadow-sm flex flex-col justify-center relative overflow-hidden">
@@ -149,11 +185,16 @@ export default function MemberDashboard() {
               </div>
             </div>
             
-            {/* Nút nâng cấp nếu chưa phải Premium */}
-            {!isPremium && (
+            {/* ĐÃ SỬA: Hiển thị trạng thái "Đang chờ duyệt" thay vì Nút nâng cấp nếu user đang pending */}
+            {!isPremium && !memberInfo?.is_pending && (
               <Link href={UPGRADE_URL} className="inline-block mt-2 px-4 py-1.5 bg-gradient-to-r from-amber-400 to-amber-600 text-white text-[10px] font-black uppercase tracking-wider rounded-lg shadow-md hover:scale-105 transition-transform">
                 Nâng cấp thẻ ngay <i className="ph-bold ph-caret-right"></i>
               </Link>
+            )}
+            {!isPremium && memberInfo?.is_pending && (
+              <div className="inline-block mt-2 px-4 py-1.5 bg-white/10 border border-white/20 text-amber-300 text-[10px] font-black uppercase tracking-wider rounded-lg">
+                <i className="ph-bold ph-hourglass-high"></i> ĐANG CHỜ DUYỆT...
+              </div>
             )}
           </div>
           
@@ -210,8 +251,10 @@ export default function MemberDashboard() {
                       <p className="text-xs font-medium text-amber-800 flex items-center gap-2">
                         <i className="ph-fill ph-lock-key text-amber-500 text-lg"></i> Nâng cấp thẻ để xem Ngân sách & Liên hệ.
                       </p>
-                      {/* ĐÃ CHUYỂN THÀNH LINK */}
-                      <Link href={UPGRADE_URL} className="px-4 py-2 bg-amber-500 text-white font-bold text-xs rounded-lg hover:bg-amber-600 transition-colors inline-block">Nâng cấp</Link>
+                      {/* Ẩn nút Nâng cấp ở đây nếu họ đang chờ duyệt để tránh bấm nhiều lần */}
+                      {!memberInfo?.is_pending && (
+                        <Link href={UPGRADE_URL} className="px-4 py-2 bg-amber-500 text-white font-bold text-xs rounded-lg hover:bg-amber-600 transition-colors inline-block">Nâng cấp</Link>
+                      )}
                     </div>
                   )}
                 </div>
@@ -260,7 +303,10 @@ export default function MemberDashboard() {
             {!isPremium && (
               <div className="mt-5 p-3 bg-slate-50 rounded-xl border border-slate-100 flex justify-between items-center relative z-10">
                 <span className="text-[11px] font-medium text-slate-500"><i className="ph-fill ph-lock-key"></i> Tính năng tải bị giới hạn</span>
-                <Link href={UPGRADE_URL} className="text-[10px] font-black uppercase text-amber-600 hover:underline">Mở khóa</Link>
+                {/* Tương tự, nếu đang chờ duyệt thì ẩn nút nâng cấp */}
+                {!memberInfo?.is_pending && (
+                  <Link href={UPGRADE_URL} className="text-[10px] font-black uppercase text-amber-600 hover:underline">Mở khóa</Link>
+                )}
               </div>
             )}
 

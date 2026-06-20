@@ -2,7 +2,6 @@
 
 import { useState } from 'react';
 import { supabase } from 'supabase/client'; 
-import Link from 'next/link';
 
 export default function JoinAlliancePage() {
   // State quản lý form và các bước
@@ -139,7 +138,8 @@ export default function JoinAlliancePage() {
                   )}
                 </button>
                 <div className="text-center mt-4">
-                  <p className="text-sm text-slate-500 font-medium">Đã có tài khoản? <Link href="/login" className="text-[#002D62] font-bold hover:underline">Đăng nhập ngay</Link></p>
+                  {/* ĐÃ CẬP NHẬT ĐƯỜNG DẪN Ở ĐÂY */}
+                  <p className="text-sm text-slate-500 font-medium">Đã có tài khoản? <a href="https://portal.nkba.vn/login" className="text-[#002D62] font-bold hover:underline">Đăng nhập ngay</a></p>
                 </div>
               </div>
             </form>
@@ -174,9 +174,10 @@ export default function JoinAlliancePage() {
             </div>
 
             <div className="mt-8">
-              <Link href="/login" className="inline-flex h-12 px-8 bg-[#002D62] text-white font-bold rounded-xl items-center gap-2 shadow-md hover:bg-blue-900 transition-colors">
+              {/* ĐÃ CẬP NHẬT ĐƯỜNG DẪN Ở ĐÂY */}
+              <a href="https://portal.nkba.vn/login" className="inline-flex h-12 px-8 bg-[#002D62] text-white font-bold rounded-xl items-center gap-2 shadow-md hover:bg-blue-900 transition-colors">
                 ĐÃ XÁC THỰC? VỀ TRANG ĐĂNG NHẬP <i className="ph-bold ph-arrow-right"></i>
-              </Link>
+              </a>
             </div>
           </div>
         )}
