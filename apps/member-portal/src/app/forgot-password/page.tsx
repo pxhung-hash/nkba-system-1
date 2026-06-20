@@ -22,10 +22,10 @@ export default function ForgotPasswordPage() {
     setMessage(null);
     setIsLoading(true);
 
-    // ĐOẠN CODE CỦA BẠN ĐƯỢC ĐẶT Ở ĐÂY
+    // ĐÃ CẬP NHẬT: Trỏ về route PKCE auth/callback trước khi sang trang reset-password
+    // window.location.origin sẽ tự động là localhost:3000 hoặc portal.nkba.vn tùy môi trường
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      // Đổi thành http://localhost:3000/reset-password nếu bạn đang chạy local
-      redirectTo: 'https://portal.nkba.vn/reset-password', 
+      redirectTo: `${window.location.origin}/auth/callback?next=/reset-password`, 
     });
 
     setIsLoading(false);
@@ -40,7 +40,7 @@ export default function ForgotPasswordPage() {
 
   return (
     <div className="min-h-[70vh] flex items-center justify-center bg-slate-50 px-6">
-      <div className="w-full max-w-md bg-white p-8 rounded-2xl shadow-lg border border-slate-100">
+      <div className="w-full max-w-md bg-white p-8 rounded-2xl shadow-lg border border-slate-100 animate-in fade-in duration-300">
         <h1 className="text-2xl font-black text-[#002D62] text-center mb-2">Quên mật khẩu?</h1>
         <p className="text-sm text-slate-500 text-center mb-8">
           Nhập email bạn đã đăng ký, chúng tôi sẽ gửi link để đặt lại mật khẩu.
@@ -76,7 +76,9 @@ export default function ForgotPasswordPage() {
             disabled={isLoading}
             className="w-full py-3 bg-[#002D62] hover:bg-blue-900 text-white font-bold rounded-xl transition-all disabled:opacity-70 flex items-center justify-center"
           >
-            {isLoading ? 'Đang gửi...' : 'Gửi link khôi phục'}
+            {isLoading ? (
+              <><i className="ph-bold ph-spinner animate-spin mr-2"></i> Đang gửi...</>
+            ) : 'Gửi link khôi phục'}
           </button>
         </form>
 
