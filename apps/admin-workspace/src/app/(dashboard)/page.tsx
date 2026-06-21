@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/utils/supabase/client';
+import Link from 'next/link'; // ĐÃ BỔ SUNG IMPORT LINK
 
 export default function DashboardHome() {
   const router = useRouter();
@@ -143,6 +144,26 @@ export default function DashboardHome() {
           <h3 className="text-3xl font-black text-slate-900 mt-2">{totalTalents}</h3>
           <p className="text-sm text-green-600 font-medium mt-2">Sẵn sàng kết nối</p>
         </div>
+      </div>
+
+      {/* 🚀 ĐÃ BỔ SUNG: KHU VỰC LỐI TẮT CÔNG CỤ (QUICK ACCESS) */}
+      <h3 className="text-lg font-black text-slate-900 pt-4">Lối tắt Công cụ</h3>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <Link 
+          href="/plan-manage" 
+          className="bg-gradient-to-r from-[#002D62] to-blue-900 p-6 rounded-2xl shadow-lg text-white hover:shadow-xl hover:-translate-y-1 transition-all group flex items-center justify-between"
+        >
+          <div>
+            <h3 className="text-xl font-black mb-1 flex items-center gap-2">
+              <i className="ph-fill ph-file-html text-amber-400 text-2xl"></i>
+              Quản lý Kế hoạch Hành động
+            </h3>
+            <p className="text-blue-200 text-sm font-medium">Mini-IDE để biên tập, xem trước & lưu trữ tài liệu HTML</p>
+          </div>
+          <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center group-hover:bg-white/20 transition-colors">
+            <i className="ph-bold ph-arrow-right text-xl text-amber-400 group-hover:translate-x-1 transition-transform"></i>
+          </div>
+        </Link>
       </div>
 
       {/* Khu vực Biểu đồ */}
