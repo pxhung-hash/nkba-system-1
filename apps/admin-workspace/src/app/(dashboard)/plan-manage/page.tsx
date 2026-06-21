@@ -125,16 +125,17 @@ export default function ActionPlanManagerPage() {
   return (
     <div className="flex h-screen bg-slate-900 text-slate-100 overflow-hidden font-sans">
       
-      {/* 📁 CỘT TRÁI: DANH SÁCH FILE HTML */}
-      <div className="w-80 bg-slate-950 border-r border-slate-800 flex flex-col h-full shrink-0">
+      {/* 📁 CỘT TRÁI: DANH SÁCH FILE HTML (Đã thu nhỏ xuống w-64) */}
+      <div className="w-64 bg-slate-950 border-r border-slate-800 flex flex-col h-full shrink-0">
         <div className="p-4 border-b border-slate-800 flex justify-between items-center bg-slate-950">
           <div className="flex items-center gap-2">
             <i className="ph-fill ph-folder-open text-amber-500 text-xl"></i>
-            <h2 className="font-black text-sm uppercase tracking-wider text-slate-400">Kế hoạch hành động</h2>
+            {/* Đã giảm size chữ xuống text-xs để vừa vặn với không gian nhỏ */}
+            <h2 className="font-black text-xs uppercase tracking-wider text-slate-400 truncate">Kế hoạch hành động</h2>
           </div>
           <button 
             onClick={handleCreateNew} 
-            className="w-8 h-8 rounded-lg bg-[#002D62] hover:bg-blue-800 text-white flex items-center justify-center transition-colors"
+            className="w-8 h-8 rounded-lg bg-[#002D62] hover:bg-blue-800 text-white flex items-center justify-center transition-colors shrink-0"
             title="Tạo kế hoạch mới"
           >
             <i className="ph-bold ph-plus text-base"></i>
@@ -144,7 +145,7 @@ export default function ActionPlanManagerPage() {
         {/* Khối danh sách các file */}
         <div className="flex-1 overflow-y-auto p-2 space-y-1">
           {loading ? (
-            <div className="text-center py-8 text-slate-500 text-sm"><i className="ph-bold ph-spinner animate-spin mr-2"></i>Đang tải danh sách...</div>
+            <div className="text-center py-8 text-slate-500 text-sm"><i className="ph-bold ph-spinner animate-spin mr-2"></i>Đang tải...</div>
           ) : plans.length === 0 ? (
             <div className="text-center py-8 text-slate-500 text-xs px-4">Chưa có kế hoạch nào. Bấm nút (+) để tạo mới!</div>
           ) : (
@@ -155,12 +156,12 @@ export default function ActionPlanManagerPage() {
                 className={`group flex justify-between items-center p-3 rounded-xl cursor-pointer transition-all ${activePlan?.id === plan.id ? 'bg-[#002D62] text-white font-bold' : 'hover:bg-slate-800/50 text-slate-400'}`}
               >
                 <div className="flex items-center gap-2.5 min-w-0">
-                  <i className={`ph-fill ph-file-html text-lg ${activePlan?.id === plan.id ? 'text-amber-400' : 'text-slate-500'}`}></i>
+                  <i className={`ph-fill ph-file-html text-lg shrink-0 ${activePlan?.id === plan.id ? 'text-amber-400' : 'text-slate-500'}`}></i>
                   <span className="truncate text-sm">{plan.title}</span>
                 </div>
                 <button 
                   onClick={(e) => handleDelete(plan.id, e)}
-                  className="opacity-0 group-hover:opacity-100 p-1 hover:text-rose-400 rounded transition-all"
+                  className="opacity-0 group-hover:opacity-100 p-1 hover:text-rose-400 rounded transition-all shrink-0"
                   title="Xóa file"
                 >
                   <i className="ph-bold ph-trash"></i>
@@ -172,51 +173,51 @@ export default function ActionPlanManagerPage() {
       </div>
 
       {/* 📝 CỘT PHẢI: KHU VỰC SOẠN THẢO & PREVIEW */}
-      <div className="flex-1 flex flex-col h-full bg-slate-900">
+      <div className="flex-1 flex flex-col h-full bg-slate-900 min-w-0">
         {activePlan ? (
           <>
             {/* Thanh công cụ phía trên điều khiển */}
-            <div className="h-14 border-b border-slate-800 px-6 flex justify-between items-center bg-slate-950/50 shrink-0">
-              <div className="flex items-center gap-3 w-1/3">
+            <div className="h-14 border-b border-slate-800 px-4 md:px-6 flex justify-between items-center bg-slate-950/50 shrink-0 gap-4">
+              <div className="flex items-center gap-3 flex-1 min-w-0">
                 <input 
                   type="text" 
                   value={editTitle}
                   onChange={(e) => setEditTitle(e.target.value)}
-                  className="bg-transparent border-b border-transparent hover:border-slate-700 focus:border-amber-500 px-1 py-1 text-lg font-bold outline-none text-white w-full transition-colors"
+                  className="bg-transparent border-b border-transparent hover:border-slate-700 focus:border-amber-500 px-1 py-1 text-base md:text-lg font-bold outline-none text-white w-full transition-colors truncate"
                   placeholder="Đặt tên cho kế hoạch..."
                 />
               </div>
 
               {/* Bộ chuyển đổi Tab (Code vs Preview) */}
-              <div className="bg-slate-900 p-1 rounded-xl border border-slate-800 flex gap-1">
+              <div className="bg-slate-900 p-1 rounded-xl border border-slate-800 flex gap-1 shrink-0">
                 <button 
                   onClick={() => setViewMode('preview')}
-                  className={`px-4 py-1.5 rounded-lg font-bold text-xs transition-all flex items-center gap-1.5 ${viewMode === 'preview' ? 'bg-[#002D62] text-white shadow-md' : 'text-slate-400 hover:text-slate-200'}`}
+                  className={`px-3 md:px-4 py-1.5 rounded-lg font-bold text-[10px] md:text-xs transition-all flex items-center gap-1.5 ${viewMode === 'preview' ? 'bg-[#002D62] text-white shadow-md' : 'text-slate-400 hover:text-slate-200'}`}
                 >
                   <i className="ph-bold ph-browser"></i> WEB PREVIEW
                 </button>
                 <button 
                   onClick={() => setViewMode('code')}
-                  className={`px-4 py-1.5 rounded-lg font-bold text-xs transition-all flex items-center gap-1.5 ${viewMode === 'code' ? 'bg-[#002D62] text-white shadow-md' : 'text-slate-400 hover:text-slate-200'}`}
+                  className={`px-3 md:px-4 py-1.5 rounded-lg font-bold text-[10px] md:text-xs transition-all flex items-center gap-1.5 ${viewMode === 'code' ? 'bg-[#002D62] text-white shadow-md' : 'text-slate-400 hover:text-slate-200'}`}
                 >
                   <i className="ph-bold ph-code"></i> HTML SOURCE
                 </button>
               </div>
 
               {/* Nút lưu */}
-              <div className="w-1/3 flex justify-end">
+              <div className="flex justify-end shrink-0">
                 <button 
                   onClick={handleSave}
                   disabled={isSaving}
-                  className="px-6 h-10 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white font-black text-sm rounded-xl transition-all shadow-lg shadow-emerald-900/10 flex items-center gap-1.5"
+                  className="px-4 md:px-6 h-10 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white font-black text-xs md:text-sm rounded-xl transition-all shadow-lg shadow-emerald-900/10 flex items-center gap-1.5"
                 >
-                  {isSaving ? <><i className="ph-bold ph-spinner animate-spin"></i> ĐANG LƯU...</> : <><i className="ph-bold ph-floppy-disk"></i> LƯU KẾ HOẠCH</>}
+                  {isSaving ? <><i className="ph-bold ph-spinner animate-spin"></i> <span className="hidden md:inline">ĐANG LƯU...</span></> : <><i className="ph-bold ph-floppy-disk"></i> <span className="hidden md:inline">LƯU KẾ HOẠCH</span></>}
                 </button>
               </div>
             </div>
 
             {/* Vùng Workspace hiển thị nội dung tùy theo Mode */}
-            <div className="flex-1 p-6 overflow-hidden">
+            <div className="flex-1 p-4 md:p-6 overflow-hidden">
               {viewMode === 'code' ? (
                 /* CHẾ ĐỘ CODE: Biên tập mã nguồn HTML thô */
                 <textarea

@@ -11,7 +11,8 @@ export default function Sidebar() {
   const supabase = createClient();
 
   // STATE GIAO DIỆN
-  const [isOpen, setIsOpen] = useState(false);
+  const [isOpen, setIsOpen] = useState(false); // Dành cho Mobile (Hamburger)
+  const [isCollapsed, setIsCollapsed] = useState(false); // Dành cho Desktop (Thu gọn)
 
   // STATE PHÂN QUYỀN (RBAC)
   const [allowedPaths, setAllowedPaths] = useState<string[]>([]);
@@ -66,7 +67,7 @@ export default function Sidebar() {
     fetchPermissions();
   }, []);
 
-  // DANH SÁCH MENU (GIỮ NGUYÊN)
+  // DANH SÁCH MENU 
   const menuItems = [
     { isDivider: true, title: 'Tổng quan & Chiến lược' },
     { title: 'Dashboard', path: '/', icon: 'ph-squares-four' },
@@ -74,7 +75,6 @@ export default function Sidebar() {
     { title: 'Kế hoạch năm (OKRs)', path: '/strategy/planning', icon: 'ph-target' },
     { title: 'Theo dõi Thực thi', path: '/strategy/execution', icon: 'ph-kanban' },
 
-    // 🚀 ĐÃ BỔ SUNG NHÓM NÀY:
     { isDivider: true, title: 'Công cụ làm việc' },
     { title: 'Quản lý Kế hoạch', path: '/plan-manage', icon: 'ph-file-html' },
 
@@ -111,7 +111,7 @@ export default function Sidebar() {
 
   return (
     <>
-      {/* OVERLAY */}
+      {/* OVERLAY DÀNH CHO MOBILE */}
       {isOpen && (
         <div 
           className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[998] md:hidden transition-opacity"
@@ -121,33 +121,57 @@ export default function Sidebar() {
 
       {/* SIDEBAR */}
       <aside className={`
-        fixed inset-y-0 left-0 z-[999] w-72 md:w-64 bg-[#002D62] text-white flex flex-col h-full shadow-2xl md:shadow-xl
-        transform transition-transform duration-300 ease-in-out md:relative md:translate-x-0
+        fixed inset-y-0 left-0 z-[999] bg-[#002D62] text-white flex flex-col h-full shadow-2xl md:shadow-xl
+        transform transition-all duration-300 ease-in-out md:relative md:translate-x-0
+        w-72 ${isCollapsed ? 'md:w-20' : 'md:w-64'} 
         ${isOpen ? 'translate-x-0' : '-translate-x-full'}
       `}>
         
-        {/* Logo Area */}
-        <div className="h-20 flex items-center justify-between px-6 border-b border-white/10 shrink-0">
-          <h1 className="text-2xl font-black tracking-widest">NKBA<span className="text-blue-400">.ADMIN</span></h1>
+        {/* Logo & Toggle Button Area */}
+        <div className={`h-20 flex items-center border-b border-white/10 shrink-0 ${isCollapsed ? 'md:justify-center px-4 md:px-0' : 'justify-between px-4 lg:px-6'}`}>
+          {/* Text Logo - Ẩn khi thu gọn trên Desktop */}
+          <h1 className={`text-2xl font-black tracking-widest truncate ${isCollapsed ? 'md:hidden' : 'block'}`}>
+            NKBA<span className="text-blue-400">.ADMIN</span>
+          </h1>
+          
+          {/* Short Logo - Chỉ hiện khi thu gọn trên Desktop */}
+          <h1 className={`text-2xl font-black tracking-widest text-center hidden ${isCollapsed ? 'md:block' : ''}`}>
+            NK
+          </h1>
+
+          {/* Nút đóng Sidebar trên Mobile */}
           <button 
-            className="md:hidden w-8 h-8 flex items-center justify-center rounded-lg bg-white/10 hover:bg-white/20 text-white transition-colors"
+            className="md:hidden w-8 h-8 flex items-center justify-center rounded-lg bg-white/10 hover:bg-white/20 text-white transition-colors shrink-0"
             onClick={() => setIsOpen(false)}
           >
             <i className="ph ph-x text-lg"></i>
           </button>
+
+          {/* Nút Thu gọn / Mở rộng trên Desktop */}
+          <button 
+            className={`hidden md:flex w-8 h-8 items-center justify-center rounded-lg bg-white/10 hover:bg-white/20 text-white transition-colors shrink-0 ${isCollapsed ? 'mt-4' : ''}`}
+            onClick={() => setIsCollapsed(!isCollapsed)}
+            title={isCollapsed ? "Mở rộng" : "Thu gọn"}
+          >
+            <i className={`ph-bold ${isCollapsed ? 'ph-caret-right' : 'ph-caret-left'} text-lg`}></i>
+          </button>
         </div>
 
         {/* Navigation Links */}
-        <nav className="flex-1 py-6 px-4 space-y-1.5 overflow-y-auto custom-scrollbar">
+        <nav className={`flex-1 py-6 space-y-1.5 overflow-y-auto custom-scrollbar ${isCollapsed ? 'md:px-2 px-4' : 'px-4'}`}>
           
           {menuItems.map((item, index) => {
-            // [BỨC TƯỜNG LỬA TẠI ĐÂY] - Nếu không có quyền thì KHÔNG VẼ RA (return null)
             if (item.path && !canAccess(item.path)) return null;
 
             if (item.isDivider) {
               return (
-                <div key={`div-${index}`} className="pt-4 pb-1 px-2 mt-2 first:mt-0">
-                  <p className="text-[10px] font-black text-white/40 uppercase tracking-widest">{item.title}</p>
+                <div key={`div-${index}`} className={`pt-4 pb-1 mt-2 first:mt-0 ${isCollapsed ? 'md:px-0 md:text-center px-2' : 'px-2'}`}>
+                  {/* Text Divider - Ẩn khi thu gọn trên Desktop */}
+                  <p className={`text-[10px] font-black text-white/40 uppercase tracking-widest truncate ${isCollapsed ? 'md:hidden' : 'block'}`}>
+                    {item.title}
+                  </p>
+                  {/* Line Divider - Chỉ hiện khi thu gọn trên Desktop thay cho text */}
+                  <div className={`h-px bg-white/10 w-8 mx-auto my-2 hidden ${isCollapsed ? 'md:block' : ''}`}></div>
                 </div>
               );
             }
@@ -158,27 +182,32 @@ export default function Sidebar() {
               <Link 
                 key={item.path} 
                 href={item.path!}
-                className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 ${
-                  isActive 
-                    ? 'bg-white/10 text-white font-bold shadow-sm' 
-                    : 'text-white/70 hover:bg-white/5 hover:text-white'
-                }`}
+                title={isCollapsed ? item.title : undefined}
+                className={`flex items-center py-3 rounded-xl transition-all duration-200 
+                  ${isCollapsed ? 'md:justify-center md:px-0 px-4 gap-3' : 'px-4 gap-3'}
+                  ${isActive ? 'bg-white/10 text-white font-bold shadow-sm' : 'text-white/70 hover:bg-white/5 hover:text-white'}`}
               >
-                <i className={`ph ${item.icon} text-xl`}></i>
-                <span className="text-sm">{item.title}</span>
+                <i className={`ph ${item.icon} text-xl shrink-0`}></i>
+                {/* Text Menu - Ẩn khi thu gọn trên Desktop */}
+                <span className={`text-sm truncate ${isCollapsed ? 'md:hidden' : 'block'}`}>
+                  {item.title}
+                </span>
               </Link>
             );
           })}
         </nav>
 
-        {/* Footer Area */}
-        <div className="p-4 border-t border-white/10 shrink-0">
+        {/* Footer Area (Logout) */}
+        <div className={`p-4 border-t border-white/10 shrink-0 ${isCollapsed ? 'md:px-2' : ''}`}>
           <button 
             onClick={handleLogout}
-            className="flex items-center gap-3 px-4 py-3 w-full rounded-xl text-red-300 hover:bg-red-500/10 hover:text-red-200 transition-colors"
+            title={isCollapsed ? "Đăng xuất" : undefined}
+            className={`flex items-center py-3 w-full rounded-xl text-red-300 hover:bg-red-500/10 hover:text-red-200 transition-colors 
+              ${isCollapsed ? 'md:justify-center md:px-0 px-4 gap-3' : 'px-4 gap-3'}`}
           >
-            <i className="ph ph-sign-out text-xl"></i>
-            <span className="text-sm font-bold">Đăng xuất</span>
+            <i className="ph ph-sign-out text-xl shrink-0"></i>
+            {/* Text Đăng xuất - Ẩn khi thu gọn trên Desktop */}
+            <span className={`text-sm font-bold truncate ${isCollapsed ? 'md:hidden' : 'block'}`}>Đăng xuất</span>
           </button>
         </div>
         
