@@ -34,9 +34,9 @@ export default function JoinAlliancePage() {
             full_name: formData.fullName, 
             phone: formData.phone,
           },
-          // ĐÃ BỔ SUNG: Trỏ link xác thực trong Email về đúng luồng PKCE
-          // Gắn &next=/login để xác thực xong tự động đẩy user về trang đăng nhập
-          emailRedirectTo: `${window.location.origin}/auth/callback?next=/login`,
+          // ĐÃ SỬA: Đẩy thẳng user về trang đăng nhập sau khi click link trong email.
+          // Không qua auth/callback nữa.
+          emailRedirectTo: `${window.location.origin}/login`,
         }
       });
 
@@ -47,7 +47,6 @@ export default function JoinAlliancePage() {
 
       // ==============================================================
       // BƯỚC 2: TẠO HỒ SƠ CÁ NHÂN VÀO DATABASE
-      // Mặc định: Không có corporate_id, trạng thái ACTIVE (Không cần duyệt)
       // ==============================================================
       const { error: indError } = await supabase
         .from('individuals')
@@ -140,8 +139,7 @@ export default function JoinAlliancePage() {
                   )}
                 </button>
                 <div className="text-center mt-4">
-                  {/* ĐÃ CẬP NHẬT ĐƯỜNG DẪN Ở ĐÂY */}
-                  <p className="text-sm text-slate-500 font-medium">Đã có tài khoản? <a href="https://portal.nkba.vn/login" className="text-[#002D62] font-bold hover:underline">Đăng nhập ngay</a></p>
+                  <p className="text-sm text-slate-500 font-medium">Đã có tài khoản? <a href="/login" className="text-[#002D62] font-bold hover:underline">Đăng nhập ngay</a></p>
                 </div>
               </div>
             </form>
@@ -176,8 +174,7 @@ export default function JoinAlliancePage() {
             </div>
 
             <div className="mt-8">
-              {/* ĐÃ CẬP NHẬT ĐƯỜNG DẪN Ở ĐÂY */}
-              <a href="https://portal.nkba.vn/login" className="inline-flex h-12 px-8 bg-[#002D62] text-white font-bold rounded-xl items-center gap-2 shadow-md hover:bg-blue-900 transition-colors">
+              <a href="/login" className="inline-flex h-12 px-8 bg-[#002D62] text-white font-bold rounded-xl items-center gap-2 shadow-md hover:bg-blue-900 transition-colors">
                 ĐÃ XÁC THỰC? VỀ TRANG ĐĂNG NHẬP <i className="ph-bold ph-arrow-right"></i>
               </a>
             </div>

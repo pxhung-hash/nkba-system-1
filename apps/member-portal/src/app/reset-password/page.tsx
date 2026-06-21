@@ -5,7 +5,7 @@ import { createBrowserClient } from '@supabase/ssr';
 import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 
-// 1. COMPONENT CON CHỨA LOGIC XỬ LÝ (BẮT BUỘC PHẢI TÁCH RA)
+// 1. COMPONENT CON CHỨA LOGIC XỬ LÝ (ĐÃ BỌC SUSPENSE)
 function ResetPasswordForm() {
   const [supabase] = useState(() => createBrowserClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -14,7 +14,7 @@ function ResetPasswordForm() {
   
   const searchParams = useSearchParams();
   const router = useRouter();
-  const code = searchParams.get('code'); // Bắt mã code trực tiếp từ URL email gửi tới
+  const code = searchParams.get('code'); // Bắt mã token_hash trực tiếp từ URL email gửi tới
 
   const [email, setEmail] = useState<string>('');
   const [newPassword, setNewPassword] = useState('');
@@ -24,12 +24,15 @@ function ResetPasswordForm() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
 
-  // TỰ ĐỘNG CẤP QUYỀN KHI VÀO TRANG
+  // TỰ ĐỘNG CẤP QUYỀN KHI VÀO TRANG (SỬ DỤNG verifyOtp)
   useEffect(() => {
     const verifyCodeAndGetSession = async () => {
       if (code) {
-        // Đổi mã code lấy quyền đăng nhập (Session) ngay trên trình duyệt
-        const { data, error } = await supabase.auth.exchangeCodeForSession(code);
+        // Sử dụng verifyOtp để không bị phụ thuộc vào trình duyệt gốc (Vượt rào PKCE)
+        const { data, error } = await supabase.auth.verifyOtp({
+          token_hash: code,
+          type: 'recovery' // Khai báo đây là luồng khôi phục mật khẩu
+        });
         
         if (error) {
           setMessage({ type: 'error', text: 'Đường link đã hết hạn hoặc không hợp lệ. Vui lòng yêu cầu link mới!' });
@@ -37,11 +40,12 @@ function ResetPasswordForm() {
           setEmail(data.session.user.email);
         }
       } else {
+        // Kiểm tra xem người dùng có đang mượn tạm session cũ không
         const { data: { session } } = await supabase.auth.getSession();
         if (session?.user?.email) {
           setEmail(session.user.email);
         } else {
-          setMessage({ type: 'error', text: 'Không tìm thấy mã xác thực. Vui lòng bấm vào link trong email!' });
+          setMessage({ type: 'error', text: 'Không tìm thấy mã xác thực bảo mật trên đường dẫn!' });
         }
       }
       setLoadingToken(false);

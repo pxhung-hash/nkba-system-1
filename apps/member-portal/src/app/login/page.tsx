@@ -1,23 +1,46 @@
 'use client';
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useEffect, Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { createClient } from '@/utils/supabase/client';
-import Link from 'next/link'; // Sử dụng Link của Next.js để điều hướng mượt mà
+import Link from 'next/link';
 
-export default function LoginPage() {
+function LoginForm() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
+  const [successMsg, setSuccessMsg] = useState('');
   const [loading, setLoading] = useState(false);
-  const router = useRouter();
   
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const code = searchParams.get('code'); // Bắt mã code từ email xác thực (nếu có)
   const supabase = createClient();
+
+  // TỰ ĐỘNG XÁC THỰC EMAIL NẾU CÓ MÃ CODE TRÊN URL
+  useEffect(() => {
+    const verifyEmailCode = async () => {
+      if (code) {
+        const { error } = await supabase.auth.verifyOtp({
+          token_hash: code,
+          type: 'email', // Dành cho luồng xác thực tài khoản mới
+        });
+        
+        if (error) {
+          setErrorMsg('Đường link xác thực đã hết hạn hoặc không hợp lệ.');
+        } else {
+          setSuccessMsg('Xác thực email thành công! Vui lòng đăng nhập.');
+        }
+      }
+    };
+    verifyEmailCode();
+  }, [code, supabase]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setErrorMsg('');
+    setSuccessMsg('');
 
     try {
       // 1. Xác thực Email & Mật khẩu bằng Supabase Auth
@@ -31,11 +54,9 @@ export default function LoginPage() {
       }
 
       // 2. KIỂM TRA TRẠNG THÁI HỒ SƠ (Chỉ ACTIVE mới được vào)
-      // Lấy ID cá nhân được lưu ngầm trong metadata lúc đăng ký
       const individualId = authData.user.user_metadata?.individual_id;
 
       if (individualId) {
-        // Truy vấn xuống bảng individuals để kiểm tra status
         const { data: profile, error: profileError } = await supabase
           .from('individuals')
           .select('status')
@@ -59,11 +80,8 @@ export default function LoginPage() {
           throw new Error('Tài khoản này đã bị khóa hoặc ngừng hoạt động.');
         }
 
-        // Nếu qua hết các ải trên (status là ACTIVE) -> Cho vào nhà!
         router.push('/'); 
       } else {
-        // Trường hợp là nhân sự (nhân viên NKBA) đăng nhập nhầm cổng này
-        // Có thể cho vào hoặc báo lỗi tùy bạn, ở đây tạm thời cho vào.
         router.push('/'); 
       }
 
@@ -75,11 +93,120 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="flex min-h-screen bg-slate-50 w-full overflow-hidden">
+    <div className="w-full max-w-md mx-auto animate-in fade-in slide-in-from-bottom-8 duration-700">
       
-      {/* NỬA TRÁI: ĐỒ HỌA THƯƠNG HIỆU (Ẩn trên mobile) */}
+      <div className="lg:hidden flex justify-center mb-8">
+        <div className="w-12 h-12 bg-[#002D62] rounded-xl flex items-center justify-center text-white font-black text-xl shadow-lg">NK</div>
+      </div>
+
+      <div className="text-center lg:text-left mb-10">
+        <h2 className="text-3xl font-black text-slate-900 tracking-tight">Đăng nhập Portal</h2>
+        <p className="text-slate-500 mt-2 font-medium">Nhập thông tin tài khoản hội viên của bạn</p>
+      </div>
+      
+      {errorMsg && (
+        <div className="mb-6 p-4 text-sm font-bold text-rose-600 bg-rose-50 border-l-4 border-rose-500 rounded-r-xl flex items-start gap-3 animate-in shake">
+          <i className="ph-fill ph-warning-circle text-lg mt-0.5 shrink-0"></i>
+          <span>{errorMsg}</span>
+        </div>
+      )}
+
+      {successMsg && (
+        <div className="mb-6 p-4 text-sm font-bold text-emerald-600 bg-emerald-50 border-l-4 border-emerald-500 rounded-r-xl flex items-start gap-3 animate-in fade-in">
+          <i className="ph-fill ph-check-circle text-lg mt-0.5 shrink-0"></i>
+          <span>{successMsg}</span>
+        </div>
+      )}
+
+      <form onSubmit={handleLogin} className="space-y-6">
+        <div className="space-y-1.5">
+          <label className="block text-sm font-bold text-slate-700">Địa chỉ Email</label>
+          <div className="relative">
+            <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400">
+              <i className="ph-fill ph-envelope-simple text-lg"></i>
+            </div>
+            <input
+              type="email"
+              required
+              className="w-full pl-11 pr-4 py-3.5 bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-4 focus:ring-blue-600/10 focus:border-blue-600 transition-all font-medium text-slate-900 placeholder:text-slate-400 placeholder:font-normal"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="admin@nkba.vn"
+            />
+          </div>
+        </div>
+
+        <div className="space-y-1.5">
+          <div className="flex justify-between items-center">
+            <label className="block text-sm font-bold text-slate-700">Mật khẩu</label>
+            <Link 
+              href="/forgot-password" 
+              className="text-sm font-bold text-blue-600 hover:text-blue-800 transition-colors"
+            >
+              Quên mật khẩu?
+            </Link>
+          </div>
+          <div className="relative">
+            <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400">
+              <i className="ph-fill ph-lock-key text-lg"></i>
+            </div>
+            <input
+              type="password"
+              required
+              className="w-full pl-11 pr-4 py-3.5 bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-4 focus:ring-blue-600/10 focus:border-blue-600 transition-all font-medium text-slate-900 placeholder:text-slate-400 placeholder:font-normal"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="••••••••"
+            />
+          </div>
+        </div>
+
+        <button
+          type="submit"
+          disabled={loading}
+          className="w-full py-4 text-white bg-[#002D62] rounded-xl hover:bg-blue-900 font-black tracking-wide shadow-xl shadow-blue-900/20 disabled:opacity-70 transition-all flex items-center justify-center gap-2 group"
+        >
+          {loading ? (
+            <>
+              <i className="ph-bold ph-spinner animate-spin text-xl"></i>
+              ĐANG XÁC THỰC...
+            </>
+          ) : (
+            <>
+              TRUY CẬP HỆ THỐNG
+              <i className="ph-bold ph-arrow-right text-lg group-hover:translate-x-1 transition-transform"></i>
+            </>
+          )}
+        </button>
+      </form>
+
+      <div className="mt-10 pt-6 border-t border-slate-100 flex flex-col items-center gap-6">
+        <p className="text-center text-sm font-medium text-slate-500">
+          Doanh nghiệp của bạn chưa là hội viên?{' '}
+          <Link href="https://nkba.vn/dang-ky" className="text-[#002D62] font-bold hover:underline">
+            Đăng ký tham gia liên minh
+          </Link>
+        </p>
+
+        <a 
+          href="https://admin.nkba.vn/login" 
+          className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-slate-200 bg-slate-50 text-xs font-bold text-slate-400 hover:text-rose-600 hover:border-rose-200 hover:bg-rose-50 transition-all"
+          title="Truy cập khu vực Ban Quản Trị"
+        >
+          <i className="ph-fill ph-shield-star text-base"></i>
+          DÀNH CHO BAN QUẢN TRỊ
+        </a>
+      </div>
+    </div>
+  );
+}
+
+// BỌC SUSPENSE BÊN NGOÀI ĐỂ TRÁNH LỖI VERCEL
+export default function LoginPage() {
+  return (
+    <div className="flex min-h-screen bg-slate-50 w-full overflow-hidden">
+      {/* NỬA TRÁI: ĐỒ HỌA THƯƠNG HIỆU */}
       <div className="hidden lg:flex w-1/2 bg-[#002D62] relative p-12 flex-col justify-between overflow-hidden">
-        {/* Các mảng màu trang trí (Background Blur) */}
         <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-blue-500/20 rounded-full blur-[100px] translate-x-1/3 -translate-y-1/4"></div>
         <div className="absolute bottom-0 left-0 w-[600px] h-[600px] bg-indigo-500/20 rounded-full blur-[120px] -translate-x-1/4 translate-y-1/3"></div>
         <div className="absolute top-1/2 left-1/4 w-[300px] h-[300px] bg-amber-500/10 rounded-full blur-[80px]"></div>
@@ -109,113 +236,14 @@ export default function LoginPage() {
 
       {/* NỬA PHẢI: FORM ĐĂNG NHẬP */}
       <div className="w-full lg:w-1/2 flex flex-col justify-center p-8 sm:p-12 relative overflow-y-auto">
-        <div className="w-full max-w-md mx-auto animate-in fade-in slide-in-from-bottom-8 duration-700">
-          
-          {/* Logo cho Mobile (Chỉ hiện khi ẩn màn hình trái) */}
-          <div className="lg:hidden flex justify-center mb-8">
-            <div className="w-12 h-12 bg-[#002D62] rounded-xl flex items-center justify-center text-white font-black text-xl shadow-lg">NK</div>
+        <Suspense fallback={
+          <div className="flex justify-center items-center h-full">
+            <i className="ph-bold ph-spinner animate-spin text-4xl text-[#002D62]"></i>
           </div>
-
-          <div className="text-center lg:text-left mb-10">
-            <h2 className="text-3xl font-black text-slate-900 tracking-tight">Đăng nhập Portal</h2>
-            <p className="text-slate-500 mt-2 font-medium">Nhập thông tin tài khoản hội viên của bạn</p>
-          </div>
-          
-          {errorMsg && (
-            <div className="mb-6 p-4 text-sm font-bold text-rose-600 bg-rose-50 border-l-4 border-rose-500 rounded-r-xl flex items-start gap-3 animate-in shake">
-              <i className="ph-fill ph-warning-circle text-lg mt-0.5 shrink-0"></i>
-              <span>{errorMsg}</span>
-            </div>
-          )}
-
-          <form onSubmit={handleLogin} className="space-y-6">
-            <div className="space-y-1.5">
-              <label className="block text-sm font-bold text-slate-700">Địa chỉ Email</label>
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400">
-                  <i className="ph-fill ph-envelope-simple text-lg"></i>
-                </div>
-                <input
-                  type="email"
-                  required
-                  className="w-full pl-11 pr-4 py-3.5 bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-4 focus:ring-blue-600/10 focus:border-blue-600 transition-all font-medium text-slate-900 placeholder:text-slate-400 placeholder:font-normal"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="admin@nkba.vn"
-                />
-              </div>
-            </div>
-
-            <div className="space-y-1.5">
-              <div className="flex justify-between items-center">
-                <label className="block text-sm font-bold text-slate-700">Mật khẩu</label>
-                
-                <Link 
-                  href="/forgot-password" 
-                  className="text-sm font-bold text-blue-600 hover:text-blue-800 transition-colors"
-                >
-                  Quên mật khẩu?
-                </Link>
-              </div>
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400">
-                  <i className="ph-fill ph-lock-key text-lg"></i>
-                </div>
-                <input
-                  type="password"
-                  required
-                  className="w-full pl-11 pr-4 py-3.5 bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-4 focus:ring-blue-600/10 focus:border-blue-600 transition-all font-medium text-slate-900 placeholder:text-slate-400 placeholder:font-normal"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="••••••••"
-                />
-              </div>
-            </div>
-
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full py-4 text-white bg-[#002D62] rounded-xl hover:bg-blue-900 font-black tracking-wide shadow-xl shadow-blue-900/20 disabled:opacity-70 transition-all flex items-center justify-center gap-2 group"
-            >
-              {loading ? (
-                <>
-                  <i className="ph-bold ph-spinner animate-spin text-xl"></i>
-                  ĐANG XÁC THỰC...
-                </>
-              ) : (
-                <>
-                  TRUY CẬP HỆ THỐNG
-                  <i className="ph-bold ph-arrow-right text-lg group-hover:translate-x-1 transition-transform"></i>
-                </>
-              )}
-            </button>
-          </form>
-
-          {/* KHU VỰC CÁC ĐƯỜNG LINK ĐIỀU HƯỚNG PHỤ */}
-          <div className="mt-10 pt-6 border-t border-slate-100 flex flex-col items-center gap-6">
-            
-            <p className="text-center text-sm font-medium text-slate-500">
-              Doanh nghiệp của bạn chưa là hội viên?{' '}
-              {/* Đã sửa thẻ <a> thành thẻ <Link> của Next.js để điều hướng mượt */}
-              <Link href="https://nkba.vn/dang-ky" className="text-[#002D62] font-bold hover:underline">
-                Đăng ký tham gia liên minh
-              </Link>
-            </p>
-
-            {/* Nút tắt dành cho Admin (Trỏ về Admin Workspace) */}
-            <a 
-              href="https://admin.nkba.vn/login" 
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-slate-200 bg-slate-50 text-xs font-bold text-slate-400 hover:text-rose-600 hover:border-rose-200 hover:bg-rose-50 transition-all"
-              title="Truy cập khu vực Ban Quản Trị"
-            >
-              <i className="ph-fill ph-shield-star text-base"></i>
-              DÀNH CHO BAN QUẢN TRỊ
-            </a>
-          </div>
-
-        </div>
+        }>
+          <LoginForm />
+        </Suspense>
       </div>
-
     </div>
   );
 }
