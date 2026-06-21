@@ -34,10 +34,6 @@ export default function IndividualsPage() {
       setCurrentUser(emp);
     }
 
-    // ==========================================
-    // ĐÃ FIX: CHỈ ĐỊNH ĐÍCH DANH KHÓA NGOẠI (Dựa trên Schema thực tế)
-    // Tránh lỗi ambiguity khi có 2 khóa ngoại cùng trỏ về 1 bảng
-    // ==========================================
     const [indRes, corpRes, tierRes] = await Promise.all([
       supabase.from('individuals')
         .select(`
@@ -47,7 +43,6 @@ export default function IndividualsPage() {
           verifier:employees!individuals_verified_by_fkey(name),
           approver:employees!individuals_approved_by_fkey(name)
         `)
-        // ĐÃ FIX SẮP XẾP THEO JOIN_DATE THAY VÌ CREATED_AT
         .order('join_date', { ascending: false }),
       supabase.from('corporates').select('*, corporate_tiers(quota_silver, quota_gold, quota_titanium)').eq('status', 'ACTIVE'),
       supabase.from('individual_tiers').select('*')
@@ -70,20 +65,14 @@ export default function IndividualsPage() {
   const isCEO = currentUser?.role === 'SUPER_ADMIN' || currentUser?.role === 'CEO';
 
   // ==========================================
-  // PHÂN LOẠI TAB THEO MONG MUỐN "KHÔNG CẦN DUYỆT VẪN ĐĂNG NHẬP"
+  // PHÂN LOẠI TAB (ĐÃ BỔ SUNG PENDING_UPGRADE)
   // ==========================================
-  // Tab Danh sách chính: Gồm ACTIVE và những người tự đăng ký (PENDING_VERIFICATION)
-  // ĐÃ SỬA LẠI:
-  // 1. Tab Danh sách chính thức: CHỈ HIỂN THỊ HỒ SƠ ĐÃ ACTIVE
   const activeInds = individuals.filter(i => i.status === 'ACTIVE' || !i.status);
 
-  // 2. Tab Trạm Xác minh NV (KYC): Chứa hồ sơ mới tự đăng ký, chờ nâng cấp HOẶC hồ sơ bị sếp trả về (REJECTED) bắt làm lại
-  const verifyInds = individuals.filter(i => ['PENDING_VERIFICATION', 'REJECTED'].includes(i.status));
+  // Thêm PENDING_UPGRADE vào Trạm xác minh để Admin kiểm tra biên lai
+  const verifyInds = individuals.filter(i => ['PENDING_VERIFICATION', 'REJECTED', 'PENDING_UPGRADE'].includes(i.status));
 
-  // 3. Tab Bàn làm việc TGĐ: Nhân viên đã check xong, chờ Sếp duyệt chốt HOẶC chờ Sếp đồng ý xóa
-  const approveInds = individuals.filter(i => ['PENDING_APPROVAL', 'PENDING_DELETION'].includes(i.status));
-  
-  // Tab Ký duyệt TGĐ: Chứa hồ sơ chờ xóa hoặc chờ TGĐ ký
+  // Tab Bàn làm việc TGĐ
   const approveInds = individuals.filter(i => ['PENDING_APPROVAL', 'PENDING_DELETION'].includes(i.status));
 
   const handleSaveInd = async () => {
@@ -165,7 +154,9 @@ export default function IndividualsPage() {
       else if (action === 'SUBMIT_TO_CEO') {
         if (reviewingInd.is_corporate_sponsored && reviewingInd.corporate_id) { 
           const selectedCorp = corporates.find(c => c.id === reviewingInd.corporate_id);
-          const selectedTier = indTiers.find(t => t.id === reviewingInd.tier_id);
+          // NẾU LÀ NÂNG CẤP, KIỂM TRA QUOTA CỦA GÓI MỚI THAY VÌ GÓI CŨ
+          const checkTierId = reviewingInd.upgrade_tier_id || reviewingInd.tier_id;
+          const selectedTier = indTiers.find(t => t.id === checkTierId);
           if (!selectedCorp || !selectedTier) throw new Error('Không tìm thấy Công ty hoặc Gói thẻ!');
 
           const tierCode = selectedTier.code.toLowerCase(); 
@@ -175,7 +166,7 @@ export default function IndividualsPage() {
             .select('*', { count: 'exact', head: true })
             .eq('is_corporate_sponsored', true)
             .eq('corporate_id', reviewingInd.corporate_id)
-            .eq('tier_id', reviewingInd.tier_id)
+            .eq('tier_id', checkTierId)
             .in('status', ['ACTIVE', 'PENDING_APPROVAL']);
 
           if ((count || 0) >= maxQuota) {
@@ -196,13 +187,21 @@ export default function IndividualsPage() {
       }
 
       else if (action === 'FINAL_APPROVE') {
-        await supabase.from('individuals').update({ 
+        // LUỒNG TỰ ĐỘNG ĐỔI GÓI KHI SẾP KÝ DUYỆT NÂNG CẤP
+        const updatePayload: any = {
           status: 'ACTIVE', 
           approved_by: currentUser.id,
           join_date: new Date().toISOString(),
           rejection_reason: null
-        }).eq('id', reviewingInd.id);
-        alert('🎉 KÝ DUYỆT THÀNH CÔNG! Hội viên cá nhân chính thức hoạt động.');
+        };
+
+        if (reviewingInd.upgrade_tier_id) {
+          updatePayload.tier_id = reviewingInd.upgrade_tier_id;
+          updatePayload.upgrade_tier_id = null; // Xóa cờ chờ nâng cấp
+        }
+
+        await supabase.from('individuals').update(updatePayload).eq('id', reviewingInd.id);
+        alert('🎉 KÝ DUYỆT THÀNH CÔNG! Hồ sơ chính thức hoạt động/được nâng cấp.');
       }
 
       else if (action === 'ARCHIVE') {
@@ -311,8 +310,17 @@ export default function IndividualsPage() {
                       ) : <span className="text-[9px] font-black bg-slate-200 text-slate-600 px-1.5 py-0.5 rounded uppercase">Độc lập</span>}
                     </td>
                     <td className="p-4">
-                      <span className={`px-2.5 py-1 rounded-md text-[10px] font-black uppercase tracking-wider ${(!ind.status || ind.status === 'ACTIVE' || ind.status === 'PENDING_VERIFICATION') ? 'bg-emerald-100 text-emerald-700' : ind.status === 'REJECTED' ? 'bg-rose-100 text-rose-700' : ind.status === 'PENDING_DELETION' ? 'bg-slate-800 text-white' : 'bg-amber-100 text-amber-700'}`}>
-                        {(!ind.status || ind.status === 'PENDING_VERIFICATION') ? 'ACTIVE (TỰ ĐĂNG KÝ)' : ind.status.replace('_', ' ')}
+                      {/* LÀM NỔI BẬT TRẠNG THÁI NÂNG CẤP BẰNG MÀU TÍM */}
+                      <span className={`px-2.5 py-1 rounded-md text-[10px] font-black uppercase tracking-wider ${
+                        (!ind.status || ind.status === 'ACTIVE' || ind.status === 'PENDING_VERIFICATION') ? 'bg-emerald-100 text-emerald-700' : 
+                        ind.status === 'REJECTED' ? 'bg-rose-100 text-rose-700' : 
+                        ind.status === 'PENDING_DELETION' ? 'bg-slate-800 text-white' : 
+                        ind.status === 'PENDING_UPGRADE' ? 'bg-purple-100 text-purple-700' :
+                        'bg-amber-100 text-amber-700'
+                      }`}>
+                        {(!ind.status || ind.status === 'PENDING_VERIFICATION') ? 'ACTIVE (TỰ ĐĂNG KÝ)' : 
+                         ind.status === 'PENDING_UPGRADE' ? 'YÊU CẦU NÂNG CẤP' : 
+                         ind.status.replace('_', ' ')}
                       </span>
                     </td>
                     <td className="p-4 text-right space-x-2 pr-6">
@@ -357,7 +365,7 @@ export default function IndividualsPage() {
                 <div><p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Liên hệ</p><p className="font-medium text-slate-700">{reviewingInd.email || reviewingInd.phone || 'N/A'}</p></div>
                 
                 <div>
-                   <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Gói cấp phát</p>
+                   <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Gói cấp phát (Hiện tại)</p>
                    <p className="font-bold text-amber-600">
                      {Array.isArray(reviewingInd.individual_tiers) ? reviewingInd.individual_tiers[0]?.name : reviewingInd.individual_tiers?.name || 'CHƯA CHỌN GÓI'}
                    </p>
@@ -369,6 +377,18 @@ export default function IndividualsPage() {
                     <p className="font-bold text-blue-600 bg-blue-50 px-3 py-1.5 rounded-lg border border-blue-100 w-fit"><i className="ph-fill ph-buildings"></i> {reviewingInd.corporates?.name}</p>
                   ) : <p className="font-bold text-slate-600"><i className="ph-fill ph-user"></i> Cấp thẻ Độc lập</p>}
                 </div>
+
+                {/* KHU VỰC HIỂN THỊ LINK XEM BIÊN LAI NÂNG CẤP */}
+                {reviewingInd.payment_receipt_url && (
+                  <div className="col-span-2 mt-2 bg-purple-50 p-4 rounded-xl border border-purple-200">
+                    <p className="text-[10px] font-black text-purple-600 uppercase tracking-widest mb-2 flex items-center gap-1">
+                      <i className="ph-fill ph-receipt text-lg"></i> Thông tin Nâng cấp Thẻ
+                    </p>
+                    <a href={reviewingInd.payment_receipt_url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 px-4 py-2 bg-purple-600 text-white font-bold text-xs rounded-lg hover:bg-purple-700 transition-colors">
+                      <i className="ph-bold ph-arrow-square-out"></i> Xem Ảnh Biên Lai Thanh Toán
+                    </a>
+                  </div>
+                )}
               </div>
 
               {reviewMode === 'APPROVE' && (
