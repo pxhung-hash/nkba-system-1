@@ -74,10 +74,14 @@ export default function Sidebar() {
     { title: 'Kế hoạch năm (OKRs)', path: '/strategy/planning', icon: 'ph-target' },
     { title: 'Theo dõi Thực thi', path: '/strategy/execution', icon: 'ph-kanban' },
 
+    // 🚀 ĐÃ BỔ SUNG NHÓM NÀY:
+    { isDivider: true, title: 'Công cụ làm việc' },
+    { title: 'Quản lý Kế hoạch', path: '/plan-manage', icon: 'ph-file-html' },
+
     { isDivider: true, title: 'Nội bộ NKBA' },
     { title: 'Quản lý Tổ chức', path: '/organization', icon: 'ph-git-branch' },
     { title: 'Quản trị Nhân sự', path: '/employees', icon: 'ph-identification-badge' },
-    { title: 'Cấu hình Phân quyền', path: '/roles', icon: 'ph-shield-check' }, // Thằng này giờ sẽ bị quản lý chặt!
+    { title: 'Cấu hình Phân quyền', path: '/roles', icon: 'ph-shield-check' }, 
 
     { isDivider: true, title: 'Hệ sinh thái Hội viên' },
     { title: 'Cấu hình Gói cước', path: '/settings/tiers', icon: 'ph-wallet' }, 
