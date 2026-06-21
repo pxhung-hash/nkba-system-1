@@ -43,16 +43,15 @@ export default function MemberDashboard() {
       }
 
       if (memberData) {
-        // ĐÃ SỬA: Chặn các trạng thái bị cấm, nhưng CHO PHÉP người đang chờ duyệt (PENDING) vào xem Dashboard
+        // NHỮNG TRẠNG THÁI BỊ CẤM CỬA HOÀN TOÀN
         if (['REJECTED', 'ARCHIVED', 'PENDING_DELETION'].includes(memberData.status)) {
           setMemberInfo({ error: "Tài khoản của bạn đã bị từ chối hoặc ngừng hoạt động." }); 
           setLoading(false); return;
         }
 
-        // Đánh dấu xem user có đang trong quá trình chờ xét duyệt thẻ hay không
-        const isPendingUpgrade = ['PENDING_APPROVAL', 'PENDING_VERIFICATION'].includes(memberData.status);
+        // ĐÁNH CỜ NHẬN DIỆN NGƯỜI ĐANG XIN NÂNG CẤP (Bật banner vàng, KHÔNG đuổi ra ngoài)
+        const isPendingUpgrade = memberData.status === 'PENDING_UPGRADE';
         
-        // Trích xuất mã Tier để làm logic phân quyền hiển thị (Làm mờ thông tin)
         const tierCode = Array.isArray(memberData.individual_tiers) 
           ? memberData.individual_tiers[0]?.code 
           : (memberData.individual_tiers as any)?.code;
@@ -61,7 +60,7 @@ export default function MemberDashboard() {
           ...memberData, 
           is_admin: false, 
           tier_code: tierCode,
-          is_pending: isPendingUpgrade // Truyền trạng thái này xuống UI
+          is_pending: isPendingUpgrade 
         });
       } 
       // ==========================================
@@ -101,18 +100,12 @@ export default function MemberDashboard() {
     </div>
   );
 
-  // ĐÃ XÓA MÀN HÌNH CHẶN PENDING_APPROVAL Ở ĐÂY. 
-  // Người dùng chờ duyệt sẽ trôi xuống render Dashboard bình thường bên dưới.
+  // 🚨 ĐÃ XÓA MÀN HÌNH CHẶN "HỒ SƠ ĐANG CHỜ DUYỆT" Ở ĐÂY!
+  // Thay vào đó, user sẽ được trôi xuống giao diện bên dưới.
 
-  // ==========================================
-  // LOGIC HIỆU ỨNG FOMO: Chỉ cho VIP/GOLD/TITANIUM xem, thẻ khác bị làm mờ
-  // Nếu đang pending duyệt lên VIP, vẫn coi là thẻ thường cho đến khi được duyệt.
-  // ==========================================
   const isPremium = memberInfo?.is_admin || (!memberInfo?.is_pending && ['GOLD', 'TITANIUM', 'VIP'].includes(memberInfo?.tier_code));
 
-  // ==========================================
-  // DỮ LIỆU TÓM TẮT ĐỂ HIỂN THỊ LÊN DASHBOARD (MOCK DATA TẠM THỜI)
-  // ==========================================
+  // Mock data
   const mockProjects = [
     { id: 1, title: 'Thi công MEP Nhà máy Điện tử Koha', budget: '12 Tỷ VNĐ', location: 'Bắc Ninh', contact: 'Mr. Tanaka (098xxxxxxx)' },
     { id: 2, title: 'Tìm thầu phụ Xưởng cơ khí GĐ2', budget: '5 Tỷ VNĐ', location: 'Đồng Nai', contact: 'Ms. Haruno (090xxxxxxx)' },
@@ -131,14 +124,14 @@ export default function MemberDashboard() {
   return (
     <div className="p-4 md:p-8 space-y-8 max-w-7xl mx-auto bg-slate-50/50 min-h-screen">
       
-      {/* 🌟 THÔNG BÁO CHO NGƯỜI ĐANG CHỜ DUYỆT 🌟 */}
+      {/* 🌟 BANNER THÔNG BÁO CHO NGƯỜI ĐANG CHỜ DUYỆT NÂNG CẤP 🌟 */}
       {memberInfo?.is_pending && (
         <div className="bg-amber-50 border border-amber-200 p-5 rounded-2xl flex items-start gap-4 shadow-sm animate-in fade-in zoom-in-95">
           <i className="ph-fill ph-hourglass-high text-amber-500 text-2xl mt-0.5 shrink-0"></i>
           <div>
-            <h4 className="font-black text-amber-800 text-lg">Yêu cầu nâng cấp đang được xử lý</h4>
+            <h4 className="font-black text-amber-800 text-lg">Yêu cầu nâng cấp đặc quyền đang được xử lý</h4>
             <p className="text-sm text-amber-700 mt-1 leading-relaxed">
-              Ban quản trị NKBA đang tiến hành kiểm tra hồ sơ và biên lai thanh toán của bạn. Việc này có thể mất từ 1-2 ngày làm việc. Trong thời gian này, bạn vẫn có thể sử dụng các tính năng cơ bản của hệ thống.
+              Ban quản trị NKBA đang tiến hành kiểm tra hồ sơ và biên lai thanh toán của bạn. Việc này có thể mất từ 1-2 ngày làm việc. Trong thời gian này, bạn vẫn có thể sử dụng các tính năng hiện tại của hệ thống.
             </p>
           </div>
         </div>
@@ -213,10 +206,8 @@ export default function MemberDashboard() {
         </div>
       </div>
 
-      {/* 2. KHU VỰC FEED (MỒI CÂU) - KẾT NỐI VỚI CÁC TRANG CHUYÊN SÂU */}
+      {/* 2. KHU VỰC FEED (MỒI CÂU) */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        
-        {/* CỘT TRÁI (CHỨA BIZ-LINK & J-JOB) */}
         <div className="lg:col-span-2 space-y-8">
           
           {/* TÓM TẮT SÀN BIZ-LINK */}
@@ -283,10 +274,9 @@ export default function MemberDashboard() {
 
         </div>
 
-        {/* CỘT PHẢI (CHỨA INSIGHTS & ĐỐI TÁC TIÊU BIỂU) */}
+        {/* CỘT PHẢI */}
         <div className="space-y-8">
           
-          {/* TÓM TẮT INSIGHTS VIP */}
           <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-6 relative overflow-hidden group">
             <div className="absolute top-0 right-0 w-24 h-24 bg-rose-500/10 rounded-full blur-2xl"></div>
             <h2 className="text-lg font-black text-slate-900 mb-5 flex items-center gap-2 relative z-10"><i className="ph-fill ph-chart-polar text-rose-500"></i> Insights VIP</h2>
