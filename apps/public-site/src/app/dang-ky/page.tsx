@@ -25,7 +25,6 @@ export default function JoinAlliancePage() {
     try {
       // ==============================================================
       // BƯỚC 1: TẠO TÀI KHOẢN BẢO MẬT (AUTH) 
-      // Supabase sẽ tự động gửi email xác thực dựa trên cấu hình của bạn
       // ==============================================================
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: formData.email,
@@ -34,7 +33,10 @@ export default function JoinAlliancePage() {
           data: {
             full_name: formData.fullName, 
             phone: formData.phone,
-          }
+          },
+          // ĐÃ BỔ SUNG: Trỏ link xác thực trong Email về đúng luồng PKCE
+          // Gắn &next=/login để xác thực xong tự động đẩy user về trang đăng nhập
+          emailRedirectTo: `${window.location.origin}/auth/callback?next=/login`,
         }
       });
 

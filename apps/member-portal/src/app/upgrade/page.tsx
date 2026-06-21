@@ -40,8 +40,9 @@ export default function UpgradeMembershipPage() {
           setRealIndividualId(profile.id);
           setCurrentStatus(profile.status);
           
+          // ĐÃ CẬP NHẬT: Thêm PENDING_UPGRADE vào danh sách cấm gửi trùng lặp
           // NẾU HỒ SƠ ĐANG CHỜ DUYỆT -> CHO NHẢY THẲNG SANG BƯỚC 3 THÔNG BÁO
-          if (['PENDING_VERIFICATION', 'PENDING_APPROVAL'].includes(profile.status)) {
+          if (['PENDING_VERIFICATION', 'PENDING_APPROVAL', 'PENDING_UPGRADE'].includes(profile.status)) {
             setStep(3);
           }
         }
@@ -59,12 +60,11 @@ export default function UpgradeMembershipPage() {
     
     setIsSubmitting(true);
 
-    // CẬP NHẬT DATABASE
-    // Đảm bảo bảng individuals trên Supabase của bạn ĐÃ CÓ 2 cột: upgrade_tier_id và payment_receipt_url nhé!
+    // ĐÃ CẬP NHẬT DATABASE: Dùng trạng thái PENDING_UPGRADE để phân biệt với người mới
     const { error } = await supabase.from('individuals').update({
       upgrade_tier_id: selectedTier.id,
       payment_receipt_url: receiptUrl,
-      status: 'PENDING_VERIFICATION' // Đưa vào trạm xác minh của NV
+      status: 'PENDING_UPGRADE' // 👈 Trạng thái dành riêng cho việc nâng cấp thẻ
     }).eq('id', realIndividualId);
 
     setIsSubmitting(false);
