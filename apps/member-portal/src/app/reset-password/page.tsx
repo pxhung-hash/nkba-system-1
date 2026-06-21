@@ -1,139 +1,174 @@
 'use client';
 
-import { useState } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation'; // Tích hợp thêm useSearchParams vào đây
+import { useState, useEffect } from 'react';
 import { createBrowserClient } from '@supabase/ssr';
+import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 
 export default function ResetPasswordPage() {
-  const router = useRouter();
-  
-  // ĐỌC THAM SỐ LỖI TỪ URL (Ví dụ: khi link đổi mật khẩu hết hạn hoặc đã dùng)
-  const searchParams = useSearchParams();
-  const errorDescription = searchParams.get('error_description');
-
-  const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-  const [error, setError] = useState<string | null>(null);
-  const [message, setMessage] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
-
-  // Khởi tạo Supabase client ở phía trình duyệt
-  const supabase = createBrowserClient(
+  const [supabase] = useState(() => createBrowserClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  );
+  ));
+  
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const code = searchParams.get('code'); // Bắt mã code trực tiếp từ URL email gửi tới
 
+  const [email, setEmail] = useState<string>('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  
+  const [loadingToken, setLoadingToken] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
+
+  // 1. TỰ ĐỘNG CẤP QUYỀN KHI VÀO TRANG
+  useEffect(() => {
+    const verifyCodeAndGetSession = async () => {
+      if (code) {
+        // Đổi mã code lấy quyền đăng nhập (Session) ngay trên trình duyệt
+        const { data, error } = await supabase.auth.exchangeCodeForSession(code);
+        
+        if (error) {
+          setMessage({ type: 'error', text: 'Đường link đã hết hạn hoặc không hợp lệ. Vui lòng yêu cầu link mới!' });
+        } else if (data.session?.user?.email) {
+          // KÉO MAIL CỦA HỌ VÀO GIAO DIỆN NHƯ Ý BẠN MUỐN
+          setEmail(data.session.user.email);
+        }
+      } else {
+        // Nếu vào trang mà không có code (tự gõ url) -> check xem có session cũ không
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session?.user?.email) {
+          setEmail(session.user.email);
+        } else {
+          setMessage({ type: 'error', text: 'Không tìm thấy mã xác thực. Vui lòng bấm vào link trong email!' });
+        }
+      }
+      setLoadingToken(false);
+    };
+
+    verifyCodeAndGetSession();
+  }, [code, supabase]);
+
+  // 2. XỬ LÝ LƯU MẬT KHẨU MỚI
   const handleUpdatePassword = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError(null);
+    if (newPassword !== confirmPassword) {
+      setMessage({ type: 'error', text: 'Mật khẩu xác nhận không khớp!' });
+      return;
+    }
+    if (newPassword.length < 6) {
+      setMessage({ type: 'error', text: 'Mật khẩu phải có ít nhất 6 ký tự.' });
+      return;
+    }
+
+    setIsSubmitting(true);
     setMessage(null);
 
-    // 1. Kiểm tra 2 mật khẩu có khớp nhau không
-    if (password !== confirmPassword) {
-      setError('Mật khẩu nhập lại không khớp.');
-      return;
-    }
+    // Cập nhật mật khẩu mới cho user
+    const { error } = await supabase.auth.updateUser({ password: newPassword });
 
-    if (password.length < 6) {
-      setError('Mật khẩu phải có ít nhất 6 ký tự.');
-      return;
-    }
-
-    setIsLoading(true);
-
-    // 2. Gọi API Supabase để cập nhật mật khẩu mới
-    const { error } = await supabase.auth.updateUser({
-      password: password,
-    });
-
-    setIsLoading(false);
+    setIsSubmitting(false);
 
     if (error) {
-      setError(error.message);
+      setMessage({ type: 'error', text: error.message });
     } else {
-      setMessage('Đổi mật khẩu thành công! Đang chuyển hướng về trang đăng nhập...');
-      // Đợi 2 giây rồi đẩy user về trang login
+      setMessage({ type: 'success', text: 'Cập nhật mật khẩu thành công! Đang chuyển hướng...' });
+      // Tự động đẩy về trang chủ hoặc dashboard sau 2 giây
       setTimeout(() => {
-        router.push('/login'); 
+        router.push('/');
       }, 2000);
     }
   };
 
-  // =========================================================================
-  // TRƯỜNG HỢP 1: NẾU LINK HẾT HẠN HOẶC BỊ LỖI -> HIỂN THỊ THÔNG BÁO LỖI
-  // =========================================================================
-  if (errorDescription) {
+  if (loadingToken) {
     return (
-      <div className="min-h-[70vh] flex items-center justify-center bg-slate-50 px-6">
-        <div className="w-full max-w-md bg-white p-8 rounded-2xl shadow-lg border-t-4 border-rose-500 text-center animate-in fade-in zoom-in-95 duration-300">
-          <div className="w-16 h-16 bg-rose-100 text-rose-500 rounded-full flex items-center justify-center mx-auto mb-4">
-            <i className="ph-fill ph-warning-circle text-3xl"></i>
-          </div>
-          <h2 className="text-xl font-bold text-slate-800 mb-2">Đường link không hợp lệ</h2>
-          <p className="text-sm text-slate-500 mb-6">Đường link đổi mật khẩu này đã được sử dụng hoặc đã hết hạn. Vui lòng yêu cầu một đường link mới.</p>
-          <Link href="/forgot-password" className="inline-block px-6 py-3 bg-[#002D62] text-white rounded-xl font-bold hover:bg-blue-900 transition-colors">
-            Gửi lại yêu cầu
-          </Link>
+      <div className="min-h-screen flex items-center justify-center bg-slate-50">
+        <div className="text-center space-y-4">
+          <i className="ph-bold ph-spinner animate-spin text-4xl text-[#002D62]"></i>
+          <p className="text-slate-500 font-medium text-sm">Đang kiểm tra liên kết bảo mật...</p>
         </div>
       </div>
     );
   }
 
-  // =========================================================================
-  // TRƯỜNG HỢP 2: ĐƯỜNG LINK HỢP LỆ -> HIỂN THỊ FORM ĐỔI MẬT KHẨU NHƯ BÌNH THƯỜNG
-  // =========================================================================
   return (
-    <div className="min-h-[70vh] flex items-center justify-center bg-slate-50 px-6">
-      <div className="w-full max-w-md bg-white p-8 rounded-2xl shadow-lg border border-slate-100 animate-in fade-in duration-300">
-        <h1 className="text-2xl font-black text-[#002D62] text-center mb-2">Đặt lại mật khẩu</h1>
-        <p className="text-sm text-slate-500 text-center mb-8">Vui lòng nhập mật khẩu mới cho tài khoản của bạn.</p>
+    <div className="min-h-[80vh] flex items-center justify-center bg-slate-50 px-6 py-12">
+      <div className="w-full max-w-md bg-white p-8 rounded-3xl shadow-xl border border-slate-100 animate-in fade-in duration-500">
+        <h1 className="text-2xl font-black text-[#002D62] text-center mb-2">Tạo mật khẩu mới</h1>
+        
+        {email ? (
+          <p className="text-sm text-slate-500 text-center mb-8">
+            Hệ thống đã xác nhận tài khoản:<br/>
+            <strong className="text-[#002D62] bg-blue-50 px-3 py-1 rounded-full inline-block mt-2">{email}</strong>
+          </p>
+        ) : (
+          <p className="text-sm text-slate-500 text-center mb-8">
+            Vui lòng nhập mật khẩu mới cho tài khoản của bạn.
+          </p>
+        )}
 
-        <form onSubmit={handleUpdatePassword} className="space-y-5">
-          <div>
-            <label className="block text-sm font-bold text-slate-700 mb-1">Mật khẩu mới</label>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#002D62]/20 focus:border-[#002D62] transition-all"
-              placeholder="••••••••"
-            />
+        {message?.type === 'error' && (
+          <div className="mb-6 p-4 bg-rose-50 border border-rose-100 rounded-xl text-rose-600 text-sm font-bold flex items-start gap-2">
+            <i className="ph-fill ph-warning-circle text-lg shrink-0"></i>
+            <p>{message.text}</p>
           </div>
+        )}
 
-          <div>
-            <label className="block text-sm font-bold text-slate-700 mb-1">Xác nhận mật khẩu mới</label>
-            <input
-              type="password"
-              value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
-              required
-              className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#002D62]/20 focus:border-[#002D62] transition-all"
-              placeholder="••••••••"
-            />
+        {message?.type === 'success' && (
+          <div className="mb-6 p-4 bg-emerald-50 border border-emerald-100 rounded-xl text-emerald-600 text-sm font-bold flex items-start gap-2">
+            <i className="ph-fill ph-check-circle text-lg shrink-0"></i>
+            <p>{message.text}</p>
           </div>
+        )}
 
-          {error && (
-            <div className="p-3 bg-red-50 text-red-600 text-sm font-medium rounded-lg animate-in fade-in duration-200">
-              {error}
+        {/* Chỉ hiện form nếu đã bắt được email hợp lệ */}
+        {email && message?.type !== 'success' && (
+          <form onSubmit={handleUpdatePassword} className="space-y-5">
+            <div>
+              <label className="block text-xs font-black text-slate-400 uppercase tracking-widest mb-2">Mật khẩu mới</label>
+              <input
+                type="password"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                required
+                className="w-full px-4 h-12 rounded-xl border-2 border-slate-100 focus:outline-none focus:border-[#002D62] transition-colors font-mono"
+                placeholder="••••••••"
+              />
             </div>
-          )}
 
-          {message && (
-            <div className="p-3 bg-green-50 text-green-600 text-sm font-medium rounded-lg animate-in fade-in duration-200">
-              {message}
+            <div>
+              <label className="block text-xs font-black text-slate-400 uppercase tracking-widest mb-2">Xác nhận mật khẩu</label>
+              <input
+                type="password"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                required
+                className="w-full px-4 h-12 rounded-xl border-2 border-slate-100 focus:outline-none focus:border-[#002D62] transition-colors font-mono"
+                placeholder="••••••••"
+              />
             </div>
-          )}
 
-          <button
-            type="submit"
-            disabled={isLoading}
-            className="w-full py-3 bg-[#002D62] hover:bg-blue-900 text-white font-bold rounded-xl transition-all disabled:opacity-70 flex items-center justify-center"
-          >
-            {isLoading ? 'Đang cập nhật...' : 'Cập nhật mật khẩu'}
-          </button>
-        </form>
+            <button
+              type="submit"
+              disabled={isSubmitting}
+              className="w-full h-14 mt-4 bg-[#002D62] hover:bg-blue-900 text-white font-black rounded-xl transition-all shadow-lg shadow-blue-900/20 disabled:opacity-50 flex items-center justify-center gap-2"
+            >
+              {isSubmitting ? (
+                <><i className="ph-bold ph-spinner animate-spin text-xl"></i> ĐANG LƯU...</>
+              ) : (
+                'CẬP NHẬT MẬT KHẨU'
+              )}
+            </button>
+          </form>
+        )}
+
+        <div className="mt-8 text-center pt-6 border-t border-slate-100">
+          <Link href="/login" className="text-sm font-bold text-slate-400 hover:text-[#002D62] transition-colors">
+            Quay lại trang Đăng nhập
+          </Link>
+        </div>
       </div>
     </div>
   );
