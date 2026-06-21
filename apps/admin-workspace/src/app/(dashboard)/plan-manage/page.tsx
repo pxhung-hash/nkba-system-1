@@ -21,6 +21,9 @@ export default function ActionPlanManagerPage() {
   const [editContent, setEditContent] = useState('');
   const [viewMode, setViewMode] = useState<'code' | 'preview'>('preview'); // Chế độ Code hoặc Xem trước Web
   
+  // 🚀 ĐÃ BỔ SUNG: State quản lý chế độ phóng to toàn màn hình Workspace
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  
   // State trạng thái hệ thống
   const [loading, setLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -39,7 +42,6 @@ export default function ActionPlanManagerPage() {
 
     if (data && data.length > 0) {
       setPlans(data);
-      // Mặc định chọn file đầu tiên nếu chưa chọn file nào
       if (!activePlan) {
         selectPlan(data[0]);
       }
@@ -107,7 +109,6 @@ export default function ActionPlanManagerPage() {
     if (error) {
       alert('Lỗi lưu dữ liệu: ' + error.message);
     } else {
-      // Cập nhật lại danh sách bên menu trái
       setPlans(plans.map(p => p.id === activePlan.id ? { ...p, title: editTitle, html_content: editContent } : p));
       setActivePlan({ ...activePlan, title: editTitle, html_content: editContent });
       alert('Đã lưu kế hoạch thành công!');
@@ -116,7 +117,7 @@ export default function ActionPlanManagerPage() {
 
   // 4. TÍNH NĂNG XÓA FILE
   const handleDelete = async (id: string, e: React.MouseEvent) => {
-    e.stopPropagation(); // Ngăn sự kiện click chọn file bị kích hoạt
+    e.stopPropagation();
     if (!confirm('Bạn có chắc chắn muốn xóa kế hoạch này không?')) return;
 
     const { error } = await supabase.from('action_plans').delete().eq('id', id);
@@ -149,7 +150,7 @@ export default function ActionPlanManagerPage() {
           </div>
           <button 
             onClick={handleCreateNew} 
-            className="w-8 h-8 rounded-lg bg-[#002D62] hover:bg-blue-800 text-white flex items-center justify-center transition-colors shrink-0 shadow-md"
+            className="w-8 h-8 rounded-lg bg-gradient-to-r from-[#002D62] to-blue-900 hover:opacity-90 text-white flex items-center justify-center transition-all shrink-0 shadow-md"
             title="Tạo kế hoạch mới"
           >
             <i className="ph-bold ph-plus text-base"></i>
@@ -187,7 +188,8 @@ export default function ActionPlanManagerPage() {
       </div>
 
       {/* 📝 CỘT PHẢI: KHU VỰC SOẠN THẢO & PREVIEW */}
-      <div className="flex-1 flex flex-col h-full bg-slate-900 min-w-0 relative z-0">
+      {/* ĐÃ CẬP NHẬT: Class CSS động bẫy trạng thái isFullscreen */}
+      <div className={`flex flex-col h-full bg-slate-900 min-w-0 transition-all duration-200 ${isFullscreen ? 'fixed inset-0 z-[9999] w-screen h-screen m-0 rounded-none border-none' : 'flex-1 relative z-0'}`}>
         {activePlan ? (
           <>
             {/* Thanh công cụ phía trên điều khiển */}
@@ -218,8 +220,18 @@ export default function ActionPlanManagerPage() {
                 </button>
               </div>
 
-              {/* Nút lưu */}
-              <div className="flex justify-end shrink-0 pl-2">
+              {/* Nhóm Nút tính năng bên phải (Thêm nút Fullscreen) */}
+              <div className="flex justify-end shrink-0 pl-2 items-center gap-2">
+                {/* 🚀 ĐÃ BỔ SUNG: NÚT PHÓNG TO / THU NHỎ TOÀN MÀN HÌNH */}
+                <button
+                  onClick={() => setIsFullscreen(!isFullscreen)}
+                  className={`w-10 h-10 rounded-xl border transition-all flex items-center justify-center ${isFullscreen ? 'bg-amber-500 border-amber-600 text-slate-900 hover:bg-amber-400' : 'bg-slate-800 border-slate-700 text-slate-300 hover:bg-slate-700'}`}
+                  title={isFullscreen ? "Thu nhỏ màn hình" : "Mở rộng toàn màn hình"}
+                >
+                  <i className={`ph-bold ${isFullscreen ? 'ph-arrows-in' : 'ph-arrows-out'} text-lg`}></i>
+                </button>
+
+                {/* Nút lưu */}
                 <button 
                   onClick={handleSave}
                   disabled={isSaving}
@@ -237,12 +249,12 @@ export default function ActionPlanManagerPage() {
                 <textarea
                   value={editContent}
                   onChange={(e) => setEditContent(e.target.value)}
-                  className="w-full h-full p-6 bg-[#0d1117] border border-slate-700 rounded-2xl outline-none font-mono text-sm text-blue-100 leading-relaxed focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 transition-all resize-none shadow-inner"
+                  className="w-full h-full p-6 bg-slate-950 border border-slate-700 rounded-2xl outline-none font-mono text-sm text-blue-100 leading-relaxed focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 transition-all resize-none shadow-inner"
                   placeholder="Viết mã HTML của bạn vào đây..."
                   spellCheck={false}
                 />
               ) : (
-                /* CHẾ ĐỘ PREVIEW: Iframe cách ly an toàn tuyệt đối, render 100% giống Chrome */
+                /* CHẾ ĐỘ PREVIEW: Iframe cách ly an toàn tuyệt đối */
                 <div className="w-full h-full bg-white rounded-2xl border border-slate-700 overflow-hidden shadow-2xl flex flex-col">
                   <div className="bg-slate-100 border-b border-slate-200 px-4 py-2 text-xs text-slate-500 font-mono flex items-center justify-between select-none">
                     <div className="flex items-center gap-2">
@@ -254,7 +266,6 @@ export default function ActionPlanManagerPage() {
                     <span className="text-[10px] bg-white border border-slate-200 px-2 py-0.5 rounded text-slate-400">100% Standard Web View</span>
                   </div>
                   
-                  {/* Sử dụng iframe với srcDoc để render HTML chuẩn, cho phép chạy Tailwind CDN */}
                   <iframe 
                     title="Live Web Preview"
                     srcDoc={editContent}
