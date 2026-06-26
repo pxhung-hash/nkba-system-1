@@ -17,8 +17,8 @@ export default function MemberProfilePage() {
     full_name: '', title: '', phone: '', email: '', 
     skills: '', experience_years: 0, expected_salary: '', bio: '',
     linkedin_url: '', avatar_url: '', 
-    experiences: [] as { company: '', role: '', period: '', description: '' }[],
-    education: [] as { school: '', degree: '', year: '' }[],
+    experiences: [] as { company: string, role: string, period: string, description: string }[],
+    education: [] as { school: string, degree: '', year: string }[],
     certificates: [] as { name: '', organization: '', year: '' }[],
     languages: [] as { language: '', proficiency: '' }[]
   });
@@ -42,7 +42,8 @@ export default function MemberProfilePage() {
         const { data: talent } = await supabase.from('talents').select('*').eq('individual_id', profile.id).maybeSingle();
         if (talent) {
           setMyTalentProfile(talent);
-          setIsOptIn(true);
+          // ĐÃ SỬA: Chỉ bật sáng trạng thái hoạt động nếu status khác 'HIDDEN'
+          setIsOptIn(talent.status !== 'HIDDEN');
           setForm({
             full_name: talent.full_name || '', title: talent.title || '', phone: talent.phone || '', email: talent.email || '',
             skills: talent.skills || '', experience_years: talent.experience_years || 0, 
@@ -72,6 +73,36 @@ export default function MemberProfilePage() {
     fetchData();
   }, [supabase]);
 
+  // --- ĐÃ BỔ SUNG: XỬ LÝ ĐỒNG BỘ CÔNG TẮC ẨN DANH XUỐNG DATABASE ---
+  const handleToggleOptIn = async () => {
+    if (currentUser?.is_admin) return;
+    
+    const nextOptInState = !isOptIn;
+    
+    // Nếu chưa từng xuất bản hồ sơ lần nào, chỉ chuyển đổi trạng thái cục bộ
+    if (!myTalentProfile) {
+      setIsOptIn(nextOptInState);
+      return;
+    }
+
+    setIsSaving(true);
+    const targetStatus = nextOptInState ? 'PENDING' : 'HIDDEN';
+
+    const { error } = await supabase
+      .from('talents')
+      .update({ status: targetStatus })
+      .eq('id', myTalentProfile.id);
+
+    if (error) {
+      alert('Lỗi đồng bộ trạng thái: ' + error.message);
+    } else {
+      setIsOptIn(nextOptInState);
+      setMyTalentProfile({ ...myTalentProfile, status: targetStatus });
+      alert(nextOptInState ? '✅ Đã bật tìm kiếm cơ hội! Hồ sơ đã được gửi tới Ban thẩm định.' : '🔒 Đã chuyển sang Chế độ ẩn danh thành công.');
+    }
+    setIsSaving(false);
+  };
+
   // --- XỬ LÝ UPLOAD ẢNH ---
   const handleUploadAvatar = async (e: React.ChangeEvent<HTMLInputElement>) => {
     try {
@@ -100,7 +131,7 @@ export default function MemberProfilePage() {
     window.print();
   };
 
-  // HÀM XỬ LÝ MẢNG ĐỘNG
+  // HÀM XỬ LÝ MẢNG ĐỘNG (GIỮ NGUYÊN VẸN 100%)
   const addExperience = () => setForm({ ...form, experiences: [...form.experiences, { company: '', role: '', period: '', description: '' }] });
   const removeExperience = (index: number) => { const newExp = [...form.experiences]; newExp.splice(index, 1); setForm({ ...form, experiences: newExp }); };
   const updateExperience = (index: number, field: string, value: string) => { const newExp = [...form.experiences]; (newExp[index] as any)[field] = value; setForm({ ...form, experiences: newExp }); };
@@ -143,11 +174,19 @@ export default function MemberProfilePage() {
     if (myTalentProfile) {
       const { error } = await supabase.from('talents').update(payload).eq('id', myTalentProfile.id);
       if (error) alert('Lỗi cập nhật: ' + error.message);
-      else alert('✅ Cập nhật hồ sơ thành công!');
+      else {
+        alert('✅ Cập nhật hồ sơ thành công!');
+        setMyTalentProfile({ ...myTalentProfile, ...payload });
+        setIsOptIn(true);
+      }
     } else {
       const { error, data } = await supabase.from('talents').insert([payload]).select().single();
       if (error) alert('Lỗi tạo hồ sơ: ' + error.message);
-      else { alert('✅ Đã đẩy hồ sơ lên Talent-Hub!'); setMyTalentProfile(data); }
+      else { 
+        alert('✅ Đã đẩy hồ sơ lên Talent-Hub!'); 
+        setMyTalentProfile(data); 
+        setIsOptIn(true);
+      }
     }
     setIsSaving(false);
   };
@@ -188,7 +227,7 @@ export default function MemberProfilePage() {
 
           <label className="flex items-center gap-4 bg-white p-3 pr-5 rounded-2xl border border-slate-200 shadow-sm cursor-pointer hover:border-indigo-300 transition-colors">
             <div className="relative">
-              <input type="checkbox" className="sr-only" checked={isOptIn} onChange={() => setIsOptIn(!isOptIn)} />
+              <input type="checkbox" className="sr-only" checked={isOptIn} onChange={handleToggleOptIn} />
               <div className={`block w-14 h-8 rounded-full transition-colors ${isOptIn ? 'bg-indigo-600' : 'bg-slate-300'}`}></div>
               <div className={`dot absolute left-1 top-1 bg-white w-6 h-6 rounded-full transition-transform shadow-md ${isOptIn ? 'transform translate-x-6' : ''}`}></div>
             </div>
@@ -267,13 +306,15 @@ export default function MemberProfilePage() {
                   </div>
                   <div className="mt-0.5">
                     <p className="text-base font-black tracking-wide uppercase">
-                      Trạng thái: {myTalentProfile.status === 'VERIFIED' ? 'Đã duyệt (Verified Expert)' : myTalentProfile.status === 'PENDING' ? 'Đang chờ thẩm định' : 'Cần bổ sung thông tin'}
+                      Trạng thái: {myTalentProfile.status === 'VERIFIED' ? 'Đã duyệt (Verified Expert)' : myTalentProfile.status === 'PENDING' ? 'Đang chờ thẩm định' : myTalentProfile.status === 'HIDDEN' ? 'Đang tạm ẩn hồ sơ' : 'Cần bổ sung thông tin'}
                     </p>
                     <p className="text-sm font-medium mt-1 opacity-90 leading-relaxed">
                       {myTalentProfile.status === 'VERIFIED' 
                         ? 'Hồ sơ của bạn đã đạt chuẩn và đang hiển thị công khai trên hệ thống Talent Hub.' 
                         : myTalentProfile.status === 'REJECTED' 
                         ? 'Hồ sơ bị từ chối. Vui lòng cập nhật rõ ràng hơn lịch sử làm việc để Admin xét duyệt lại.' 
+                        : myTalentProfile.status === 'HIDDEN'
+                        ? 'Hồ sơ chuyên gia của bạn đã được rút xuống. Gạt công tắc bật lại để gửi yêu cầu phê duyệt hiển thị lên sàn.'
                         : 'Ban thẩm định NKBA đang kiểm tra tính xác thực hồ sơ năng lực của bạn.'}
                     </p>
                   </div>
