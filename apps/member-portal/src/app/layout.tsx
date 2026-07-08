@@ -22,6 +22,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   const isLoginPage = pathname === '/login';
 
   useEffect(() => {
+    let notiChannel: any = null;
+
     const fetchUserAndNotis = async () => {
       const { data: { user } } = await supabase.auth.getUser();
 
@@ -32,7 +34,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 
       // ==========================================
       // TÌM TRONG BẢNG HỘI VIÊN BẰNG USER_AUTH_ID
-      // (Đã thêm !individuals_tier_id_fkey để fix lỗi xung đột khóa ngoại)
       // ==========================================
       const { data: profile } = await supabase
         .from('individuals')
@@ -50,19 +51,40 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             id: profile.id,
             name: profile.full_name,
             tier: Array.isArray(profile.individual_tiers) 
-        ? profile.individual_tiers[0]?.name 
-        : (profile.individual_tiers as any)?.name,
+              ? profile.individual_tiers[0]?.name 
+              : (profile.individual_tiers as any)?.name,
             is_admin: false
           });
 
-          const { data: notis } = await supabase
-            .from('notifications')
-            .select('*')
-            .eq('member_id', profile.id)
-            .order('created_at', { ascending: false })
-            .limit(10);
+          // Tải danh sách thông báo ban đầu
+          const fetchInitialNotis = async () => {
+            const { data: notis } = await supabase
+              .from('notifications')
+              .select('*')
+              .eq('member_id', profile.id)
+              .order('created_at', { ascending: false })
+              .limit(20);
 
-          if (notis) setNotifications(notis);
+            if (notis) setNotifications(notis);
+          };
+
+          await fetchInitialNotis();
+
+          // 🚀 ĐÃ BỔ SUNG: REALTIME LISTENER - Lắng nghe thông báo mới
+          notiChannel = supabase
+            .channel('public:notifications')
+            .on(
+              'postgres_changes',
+              { event: 'INSERT', schema: 'public', table: 'notifications', filter: `member_id=eq.${profile.id}` },
+              (payload) => {
+                // Có thông báo mới thì nhét lên đầu mảng
+                setNotifications(prev => [payload.new, ...prev]);
+                
+                // Mẹo nhỏ: Bật âm thanh báo ting tinh nếu thích
+                // const audio = new Audio('/noti-sound.mp3'); audio.play();
+              }
+            )
+            .subscribe();
         }
       } 
       else {
@@ -85,6 +107,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     };
 
     fetchUserAndNotis();
+
+    // Dọn dẹp listener khi component bị hủy
+    return () => {
+      if (notiChannel) supabase.removeChannel(notiChannel);
+    };
   }, [pathname, supabase]);
 
   const unreadCount = notifications.filter(n => !n.is_read).length;
@@ -149,34 +176,39 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 
                 <div className="flex items-center gap-2 md:gap-4 relative">
                   
+                  {/* CHUÔNG THÔNG BÁO */}
                   <button 
                     onClick={() => { setShowNotiPanel(!showNotiPanel); setShowMobileMenu(false); }} 
                     className={`w-10 h-10 rounded-full flex items-center justify-center transition-colors relative ${showNotiPanel ? 'bg-blue-50 text-blue-600' : 'bg-slate-50 border border-slate-200 text-slate-500 hover:text-blue-600'}`}
                   >
-                    <i className="ph ph-bell text-xl"></i>
+                    <i className={`ph ${unreadCount > 0 ? 'ph-bell-ringing' : 'ph-bell'} text-xl`}></i>
                     {unreadCount > 0 && <span className="absolute top-2 right-2 w-2.5 h-2.5 bg-rose-500 rounded-full border-2 border-white animate-pulse"></span>}
                   </button>
 
+                  {/* PANEL HIỂN THỊ THÔNG BÁO */}
                   {showNotiPanel && (
-                    <div className="absolute top-14 right-10 md:right-40 w-[300px] md:w-80 bg-white rounded-2xl shadow-2xl border border-slate-100 overflow-hidden flex flex-col z-[100] animate-in slide-in-from-top-2">
+                    <div className="absolute top-14 right-10 md:right-40 w-[300px] md:w-[350px] bg-white rounded-2xl shadow-2xl border border-slate-100 overflow-hidden flex flex-col z-[100] animate-in slide-in-from-top-2">
                       <div className="p-4 bg-slate-50 border-b border-slate-100 flex justify-between items-center">
-                        <h4 className="font-black text-slate-800">Thông báo</h4>
-                        {unreadCount > 0 && <span className="text-[10px] font-bold bg-rose-100 text-rose-600 px-2 py-0.5 rounded-full">{unreadCount} mới</span>}
+                        <h4 className="font-black text-slate-800">Thông báo của bạn</h4>
+                        {unreadCount > 0 && <span className="text-[10px] font-bold bg-rose-100 text-rose-600 px-2 py-0.5 rounded-full">{unreadCount} chưa đọc</span>}
                       </div>
                       
-                      <div className="max-h-96 overflow-y-auto">
+                      <div className="max-h-96 overflow-y-auto custom-scrollbar">
                         {notifications.length === 0 ? (
-                          <div className="p-6 text-center text-sm text-slate-400">Chưa có thông báo nào.</div>
+                          <div className="p-10 flex flex-col items-center text-center text-sm text-slate-400">
+                            <i className="ph-fill ph-bell-slash text-4xl text-slate-200 mb-2"></i>
+                            Chưa có thông báo nào.
+                          </div>
                         ) : (
                           notifications.map(noti => (
-                            <div key={noti.id} onClick={() => handleReadNotification(noti)} className={`p-4 border-b border-slate-50 cursor-pointer hover:bg-slate-50 transition-colors flex gap-3 ${!noti.is_read ? 'bg-blue-50/30' : ''}`}>
-                              <div className="mt-1">
-                                {!noti.is_read ? <div className="w-2 h-2 rounded-full bg-blue-500"></div> : <i className="ph ph-check-circle text-slate-300"></i>}
+                            <div key={noti.id} onClick={() => handleReadNotification(noti)} className={`p-4 border-b border-slate-50 cursor-pointer hover:bg-slate-50 transition-colors flex gap-3 ${!noti.is_read ? 'bg-blue-50/20' : ''}`}>
+                              <div className="mt-1 shrink-0">
+                                {!noti.is_read ? <div className="w-2 h-2 rounded-full bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.8)]"></div> : <i className="ph-fill ph-check-circle text-slate-300"></i>}
                               </div>
-                              <div>
-                                <p className={`text-sm ${!noti.is_read ? 'font-black text-slate-900' : 'font-bold text-slate-600'}`}>{noti.title}</p>
-                                <p className="text-xs text-slate-500 mt-1 line-clamp-2">{noti.content}</p>
-                                <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-2">{new Date(noti.created_at).toLocaleDateString('vi-VN')}</p>
+                              <div className="flex-1 min-w-0">
+                                <p className={`text-sm leading-tight mb-1 ${!noti.is_read ? 'font-black text-slate-900' : 'font-bold text-slate-600'}`}>{noti.title}</p>
+                                <p className="text-xs text-slate-500 line-clamp-2 leading-relaxed">{noti.content}</p>
+                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-2">{new Date(noti.created_at).toLocaleString('vi-VN')}</p>
                               </div>
                             </div>
                           ))
@@ -204,11 +236,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                   )}
 
                   <button onClick={handleLogout} title="Đăng xuất" className="hidden md:flex w-10 h-10 ml-2 rounded-full items-center justify-center text-slate-400 hover:bg-rose-50 hover:text-rose-600 transition-colors">
-                    <i className="ph ph-sign-out text-xl"></i>
+                    <i className="ph-bold ph-sign-out text-xl"></i>
                   </button>
 
                   <button onClick={() => { setShowMobileMenu(!showMobileMenu); setShowNotiPanel(false); }} className="lg:hidden w-10 h-10 ml-1 rounded-full bg-slate-50 border border-slate-200 flex items-center justify-center text-slate-600 hover:text-blue-600 transition-colors">
-                    <i className={`ph ${showMobileMenu ? 'ph-x' : 'ph-list'} text-xl`}></i>
+                    <i className={`ph-bold ${showMobileMenu ? 'ph-x' : 'ph-list'} text-xl`}></i>
                   </button>
 
                 </div>
@@ -227,7 +259,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                     })}
                     <div className="h-px bg-slate-100 my-2"></div>
                     <button onClick={handleLogout} className="px-4 py-3 rounded-xl text-base font-bold flex items-center gap-3 text-rose-500 hover:bg-rose-50 transition-all text-left">
-                      <i className="ph ph-sign-out text-xl"></i> Đăng xuất
+                      <i className="ph-bold ph-sign-out text-xl"></i> Đăng xuất
                     </button>
                   </nav>
                 </div>
