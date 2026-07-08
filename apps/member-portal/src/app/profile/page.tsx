@@ -211,7 +211,8 @@ export default function MemberProfilePage() {
   );
 
   return (
-    <div className="space-y-8 animate-in fade-in p-6 md:p-10 max-w-7xl mx-auto pb-24 print:p-0">
+    // ĐÃ THÊM: print:m-0 print:space-y-0 để hủy bỏ margin-top tự động khi in
+    <div className="space-y-8 animate-in fade-in p-6 md:p-10 max-w-7xl mx-auto pb-24 print:p-0 print:m-0 print:space-y-0">
       
       {/* HEADER KHÔNG HIỂN THỊ KHI IN PDF */}
       <div className="border-b border-slate-200 pb-6 flex flex-col md:flex-row justify-between md:items-end gap-4 print:hidden">
@@ -478,7 +479,7 @@ export default function MemberProfilePage() {
               {/* THANH LƯU CỐ ĐỊNH Ở DƯỚI */}
               <div className="fixed bottom-0 left-0 right-0 bg-white/80 backdrop-blur-xl border-t border-slate-200 p-4 px-6 md:px-10 z-50 flex justify-end">
                 <div className="max-w-7xl w-full mx-auto flex justify-end">
-                  <button onClick={handleSaveProfile} disabled={isSaving} className="h-14 px-10 bg-indigo-600 text-white rounded-2xl text-sm font-black shadow-xl shadow-indigo-600/30 hover:bg-indigo-700 hover:-translate-y-1 transition-all disabled:opacity-50 flex items-center gap-2">
+                  <button onClick={handleSaveProfile} disabled={isSaving} className="w-full h-14 px-10 bg-indigo-600 text-white rounded-2xl text-sm font-black shadow-xl shadow-indigo-600/30 hover:bg-indigo-700 hover:-translate-y-1 transition-all disabled:opacity-50 flex items-center gap-2">
                     {isSaving ? <><i className="ph-bold ph-spinner animate-spin text-xl"></i> ĐANG LƯU HỒ SƠ...</> : <><i className="ph-bold ph-floppy-disk text-xl"></i> XUẤT BẢN HỒ SƠ CHUYÊN GIA</>}
                   </button>
                 </div>
@@ -491,14 +492,16 @@ export default function MemberProfilePage() {
         {/* ========================================================================= */}
         {/* KHU VỰC ẨN: GIAO DIỆN CV PREMIUM MỚI (CHỈ HIỆN KHI BẤM NÚT IN) */}
         {/* ========================================================================= */}
+        {/* ĐÃ SỬA: Thêm !mt-0 vào div tổng */}
         <div className="hidden print:flex absolute top-0 left-0 !mt-0 w-full min-h-[297mm] bg-white z-[9999] text-slate-800" id="cv-print">
           
           {/* CỘT TRÁI (NỀN ĐẬM NKBA) - CHIẾM 1/3 */}
-          <div className="w-1/3 bg-[#002D62] text-white p-10 flex flex-col min-h-full">
+          <div className="w-[32%]  bg-[#002D62] text-white px-6 pt-6 pb-10 flex flex-col min-h-full  shrink-0">
             
             {/* AVATAR */}
-            <div className="flex justify-center mb-10 mt-4">
-              <div className="w-40 h-40 rounded-full border-4 border-white/20 overflow-hidden shadow-2xl bg-white/10 flex items-center justify-center">
+            {/* ĐÃ SỬA: Sửa mt-4 thành mt-0 và giảm mb */}
+            <div className="flex justify-center mb-8 mt-0">
+              <div className="w-36 h-36 rounded-full border-4 border-white/20 overflow-hidden shadow-2xl bg-white/10 flex items-center justify-center">
                 {form.avatar_url ? (
                   <img src={form.avatar_url} alt="Avatar" className="w-full h-full object-cover" />
                 ) : (
@@ -508,8 +511,8 @@ export default function MemberProfilePage() {
             </div>
 
             {/* THÔNG TIN LIÊN HỆ */}
-            <div className="mb-10 space-y-4 text-sm font-medium text-blue-100">
-              <h3 className="text-white font-black tracking-widest uppercase border-b border-white/20 pb-2 mb-5">Liên hệ</h3>
+            <div className="mb-8 space-y-3 text-sm font-medium text-blue-100">
+              <h3 className="text-white font-black tracking-widest uppercase border-b border-white/20 pb-2 mb-4 tracking-widest">Liên hệ</h3>
               {form.phone && <div className="flex items-center gap-3"><i className="ph-fill ph-phone text-blue-300 text-lg shrink-0"></i> <span>{form.phone}</span></div>}
               {form.email && <div className="flex items-center gap-3"><i className="ph-fill ph-envelope-simple text-blue-300 text-lg shrink-0"></i> <span className="break-all line-clamp-2">{form.email}</span></div>}
               {form.linkedin_url && <div className="flex items-start gap-3"><i className="ph-fill ph-linkedin-logo text-blue-300 text-lg shrink-0 mt-0.5"></i> <span className="break-all text-xs leading-relaxed">{form.linkedin_url.replace('https://www.', '').replace('https://', '')}</span></div>}
@@ -561,17 +564,19 @@ export default function MemberProfilePage() {
           </div>
 
           {/* CỘT PHẢI (NỀN SÁNG) - CHIẾM 2/3 */}
-          <div className="w-2/3 bg-white p-12 flex flex-col">
+          {/* ĐÃ SỬA: Đổi p-12 thành px-10 pt-6 pb-12 */}
+          <div className="w-2/3 bg-white px-10 pt-6 pb-12 flex flex-col">
             
             {/* HEADER TÊN & CHỨC DANH */}
-            <div className="mb-12 mt-4">
-              <h1 className="text-4xl font-black text-[#002D62] uppercase tracking-tight mb-3 leading-none">{form.full_name || 'TÊN CỦA BẠN'}</h1>
-              <h2 className="text-xl font-bold text-slate-500 tracking-wide uppercase">{form.title || 'Chức Danh Chuyên Môn'}</h2>
+            {/* ĐÃ SỬA: Bỏ mt-4 thành mt-0 và giảm font-size xuống text-3xl */}
+            <div className="mb-10 mt-0">
+              <h1 className="text-3xl font-black text-[#002D62] uppercase tracking-tight mb-2 leading-none">{form.full_name || 'TÊN CỦA BẠN'}</h1>
+              <h2 className="text-lg font-bold text-slate-500 tracking-wide uppercase">{form.title || 'Chức Danh Chuyên Môn'}</h2>
             </div>
 
             {/* TÓM LƯỢC (BIO) */}
             {form.bio && (
-              <div className="mb-10">
+              <div className="mb-8">
                 <h3 className="text-lg font-black text-[#002D62] uppercase tracking-widest border-b-2 border-slate-100 pb-2 mb-4 flex items-center gap-2">
                   <i className="ph-fill ph-user-circle"></i> Hồ sơ chuyên gia
                 </h3>
@@ -581,7 +586,7 @@ export default function MemberProfilePage() {
 
             {/* KINH NGHIỆM LÀM VIỆC */}
             {form.experiences.length > 0 && (
-              <div className="mb-10">
+              <div className="mb-8">
                 <h3 className="text-lg font-black text-[#002D62] uppercase tracking-widest border-b-2 border-slate-100 pb-2 mb-6 flex items-center gap-2">
                   <i className="ph-fill ph-briefcase-metal"></i> Kinh nghiệm làm việc
                 </h3>
