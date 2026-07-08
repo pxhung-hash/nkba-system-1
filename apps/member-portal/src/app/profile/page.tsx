@@ -629,6 +629,7 @@ export default function MemberProfilePage() {
       </div>
       
       {/* KHAI BÁO CSS CHUẨN CHO BẢN IN PDF A4 */}
+      {/* ĐÃ SỬA: Bổ sung lệnh triệt tiêu Header và Main để đẩy lên kịch trần */}
       <style jsx global>{`
         @media print {
           @page {
@@ -637,11 +638,24 @@ export default function MemberProfilePage() {
           }
           html, body {
             width: 210mm;
-            height: 297mm;
+            min-height: 297mm;
             margin: 0 !important;
             padding: 0 !important;
             background: #fff;
           }
+          
+          /* 1. Xóa bỏ Header của Layout tổng khi in */
+          header {
+            display: none !important;
+          }
+          
+          /* 2. Reset relative của <main> để thẻ #cv-print neo chuẩn xác vào mép giấy */
+          main {
+            position: static !important;
+            margin: 0 !important;
+            padding: 0 !important;
+          }
+
           body * {
             visibility: hidden;
           }
@@ -650,11 +664,11 @@ export default function MemberProfilePage() {
           }
           #cv-print {
             position: absolute;
-            left: 0;
-            top: 0;
-            margin: 0;
-            padding: 0;
-            width: 100%;
+            left: 0 !important;
+            top: 0 !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            width: 100% !important;
             min-height: 100vh;
             -webkit-print-color-adjust: exact !important;
             print-color-adjust: exact !important;
