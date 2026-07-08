@@ -83,21 +83,31 @@ export default function EmployeeRolesPage() {
     if (!formData.code || !formData.name) return alert('Vui lòng nhập đủ Mã NV và Tên nhân viên!');
     setIsSaving(true);
 
+    // Mẹo nhỏ: Xử lý email rỗng thành null để không bị lỗi trùng lặp (Unique Constraint) trong Database
+    const payload = {
+      ...formData,
+      email: formData.email.trim() === '' ? null : formData.email.trim()
+    };
+
     if (modalMode === 'add') {
-      const { data, error } = await supabase.from('employees').insert([formData]).select().single();
+      // ĐÃ SỬA: Bỏ .single() ở đuôi
+      const { data, error } = await supabase.from('employees').insert([payload]).select();
+      
       if (error) {
         alert('Lỗi thêm mới: ' + error.message);
-      } else if (data) {
-        setEmployees([data, ...employees]);
+      } else if (data && data.length > 0) {
+        setEmployees([data[0], ...employees]); // Lấy phần tử đầu tiên data[0]
         alert('✅ Đã cấp tài khoản nhân sự mới thành công!');
         setShowModal(false);
       }
     } else {
-      const { data, error } = await supabase.from('employees').update(formData).eq('id', currentEmpId).select().single();
+      // ĐÃ SỬA: Bỏ .single() ở đuôi
+      const { data, error } = await supabase.from('employees').update(payload).eq('id', currentEmpId).select();
+      
       if (error) {
         alert('Lỗi cập nhật: ' + error.message);
-      } else if (data) {
-        setEmployees(employees.map(emp => emp.id === currentEmpId ? data : emp));
+      } else if (data && data.length > 0) {
+        setEmployees(employees.map(emp => emp.id === currentEmpId ? data[0] : emp)); // Lấy phần tử đầu tiên data[0]
         alert('✅ Cập nhật thông tin thành công!');
         setShowModal(false);
       }
