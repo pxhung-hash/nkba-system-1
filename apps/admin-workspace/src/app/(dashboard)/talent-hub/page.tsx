@@ -35,7 +35,7 @@ export default function TalentHubPage() {
     setIsLoading(false);
   };
 
-  useEffect(() => { fetchData(); }, []);
+  useEffect(() => { fetchData(); }, [supabase]);
 
   // PHÂN LOẠI HỒ SƠ CHUYÊN GIA THEO TRẠNG THÁI
   const verifiedTalents = talents.filter(t => t.status === 'VERIFIED');
@@ -76,25 +76,35 @@ export default function TalentHubPage() {
     
     setIsProcessing(targetId);
     
+    // Cập nhật trạng thái thành PENDING và lưu admin_note
     const { error: updateErr } = await supabase.from('talents').update({ status: 'PENDING', admin_note: feedbackNote }).eq('id', targetId);
     
     if (updateErr) {
       alert('Lỗi cập nhật CV: ' + updateErr.message);
     } else {
       const talentToUpdate = talents.find(t => t.id === targetId);
+      
+      // Bắn thông báo cho user
       if (talentToUpdate?.individual_id) {
-        await supabase.from('notifications').insert([{
+        const { error: notifErr } = await supabase.from('notifications').insert([{
           member_id: talentToUpdate.individual_id,
           title: 'Yêu cầu cập nhật Hồ sơ Chuyên gia',
           content: `Admin NKBA đã yêu cầu bạn bổ sung thông tin: "${feedbackNote}"`,
           link_url: '/profile'
         }]);
+        
+        // Log lỗi nếu bảng notifications có cấu trúc bắt buộc khác
+        if (notifErr) console.error("Lỗi khi bắn Notification:", notifErr.message);
       }
 
       alert('✅ Đã gửi yêu cầu bổ sung thông tin tới Hội viên!');
+      
+      // Fetch lại dữ liệu mới nhất
       fetchData();
-      if (viewingTalent?.id === targetId) setViewingTalent({ ...viewingTalent, status: 'PENDING', admin_note: feedbackNote });
+      
+      // ĐÃ SỬA: Đóng Feedback Modal VÀ Đóng luôn Modal Chi tiết để quay ra ngoài danh sách
       setFeedbackModal({ isOpen: false, talentId: null });
+      setViewingTalent(null); 
     }
     setIsProcessing(null);
   };
@@ -135,22 +145,22 @@ export default function TalentHubPage() {
       {/* MENU ĐIỀU HƯỚNG TABS */}
       <div className="shrink-0 bg-white p-6 md:px-8 rounded-[2rem] border border-slate-200 shadow-sm flex flex-col md:flex-row justify-between md:items-center gap-6">
          <div className="flex items-center gap-4">
-            <div className="w-14 h-14 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center shadow-inner"><i className="ph ph-detective text-3xl"></i></div>
+            <div className="w-14 h-14 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center shadow-inner"><i className="ph-fill ph-detective text-3xl"></i></div>
             <div>
               <p className="text-indigo-600 font-bold text-xs uppercase tracking-[0.2em] mb-1">MẠNG LƯỚI CHUYÊN GIA</p>
               <h2 className="text-2xl md:text-3xl font-black text-slate-900 tracking-tight leading-tight">Talent Hub (Headhunt)</h2>
             </div>
          </div>
          <div className="flex gap-2 bg-slate-100 p-1.5 rounded-2xl border border-slate-200 overflow-x-auto">
-            <button onClick={() => setActiveTab('pending')} className={`px-6 py-2.5 rounded-xl text-sm font-bold transition-all relative whitespace-nowrap ${activeTab === 'pending' ? 'bg-white text-amber-700 shadow-sm ring-1 ring-slate-200' : 'text-slate-500 hover:text-slate-700'}`}>
-              <i className="ph ph-clock-countdown mr-1"></i> Chờ Thẩm Định ({pendingTalents.length})
+            <button onClick={() => setActiveTab('pending')} className={`shrink-0 px-6 py-2.5 rounded-xl text-sm font-bold transition-all relative whitespace-nowrap ${activeTab === 'pending' ? 'bg-white text-amber-700 shadow-sm ring-1 ring-slate-200' : 'text-slate-500 hover:text-slate-700'}`}>
+              <i className="ph-bold ph-clock-countdown mr-1"></i> Chờ Thẩm Định ({pendingTalents.length})
               {pendingTalents.length > 0 && <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-rose-500 rounded-full animate-pulse"></span>}
             </button>
-            <button onClick={() => setActiveTab('vault')} className={`px-6 py-2.5 rounded-xl text-sm font-bold transition-all whitespace-nowrap ${activeTab === 'vault' ? 'bg-white text-indigo-700 shadow-sm ring-1 ring-slate-200' : 'text-slate-500 hover:text-slate-700'}`}>
-              <i className="ph ph-users-three mr-1"></i> Kho Chuyên Gia ({verifiedTalents.length})
+            <button onClick={() => setActiveTab('vault')} className={`shrink-0 px-6 py-2.5 rounded-xl text-sm font-bold transition-all whitespace-nowrap ${activeTab === 'vault' ? 'bg-white text-indigo-700 shadow-sm ring-1 ring-slate-200' : 'text-slate-500 hover:text-slate-700'}`}>
+              <i className="ph-bold ph-users-three mr-1"></i> Kho Chuyên Gia ({verifiedTalents.length})
             </button>
-            <button onClick={() => setActiveTab('matching')} className={`px-6 py-2.5 rounded-xl text-sm font-bold transition-all whitespace-nowrap ${activeTab === 'matching' ? 'bg-white text-emerald-700 shadow-sm ring-1 ring-slate-200' : 'text-slate-500 hover:text-slate-700'}`}>
-              <i className="ph ph-arrows-merge mr-1"></i> Trạm Khớp Nối
+            <button onClick={() => setActiveTab('matching')} className={`shrink-0 px-6 py-2.5 rounded-xl text-sm font-bold transition-all whitespace-nowrap ${activeTab === 'matching' ? 'bg-white text-emerald-700 shadow-sm ring-1 ring-slate-200' : 'text-slate-500 hover:text-slate-700'}`}>
+              <i className="ph-bold ph-arrows-merge mr-1"></i> Trạm Khớp Nối
             </button>
          </div>
       </div>
@@ -162,7 +172,7 @@ export default function TalentHubPage() {
           <div className="absolute inset-0 z-[60] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 animate-in fade-in">
             <div className="bg-white w-full max-w-lg rounded-3xl shadow-2xl overflow-hidden animate-in zoom-in-95">
               <div className="p-6 bg-amber-50 border-b border-amber-100 flex items-center gap-3">
-                <i className="ph ph-warning-circle text-2xl text-amber-500"></i>
+                <i className="ph-fill ph-warning-circle text-2xl text-amber-500"></i>
                 <h3 className="text-lg font-black text-amber-900">Yêu cầu bổ sung Hồ sơ</h3>
               </div>
               <div className="p-6 space-y-4">
@@ -178,7 +188,7 @@ export default function TalentHubPage() {
               <div className="p-4 bg-slate-50 flex justify-end gap-3 border-t border-slate-100">
                 <button onClick={() => setFeedbackModal({isOpen: false, talentId: null})} className="h-10 px-5 text-slate-500 font-bold text-sm hover:bg-slate-200 rounded-xl transition-colors">HỦY</button>
                 <button onClick={submitFeedback} disabled={!!isProcessing} className="h-10 px-6 bg-amber-500 text-[#002D62] font-black text-sm rounded-xl shadow-md hover:bg-amber-400 transition-colors disabled:opacity-50 flex items-center gap-2">
-                  <i className="ph ph-paper-plane-right"></i> GỬI YÊU CẦU
+                  <i className="ph-bold ph-paper-plane-right"></i> GỬI YÊU CẦU
                 </button>
               </div>
             </div>
@@ -191,8 +201,8 @@ export default function TalentHubPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
               {(activeTab === 'vault' ? verifiedTalents : pendingTalents).map(talent => (
                 <div key={talent.id} className="bg-white border border-slate-200 rounded-[2rem] p-6 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden group flex flex-col">
-                  {talent.status === 'VERIFIED' && <div className="absolute top-0 right-0 p-6 pointer-events-none"><div className="bg-blue-500 text-white rounded-full p-1 shadow-md"><i className="ph ph-check font-bold"></i></div></div>}
-                  {talent.status === 'REJECTED' && <div className="absolute top-0 right-0 p-6 pointer-events-none"><div className="bg-rose-500 text-white rounded-full p-1 shadow-md"><i className="ph ph-warning font-bold"></i></div></div>}
+                  {talent.status === 'VERIFIED' && <div className="absolute top-0 right-0 p-6 pointer-events-none"><div className="bg-emerald-500 text-white rounded-full p-1.5 shadow-md"><i className="ph-bold ph-check"></i></div></div>}
+                  {talent.status === 'REJECTED' && <div className="absolute top-0 right-0 p-6 pointer-events-none"><div className="bg-rose-500 text-white rounded-full p-1.5 shadow-md"><i className="ph-bold ph-warning"></i></div></div>}
                   
                   <div className="flex items-center gap-4 mb-5">
                     <div className="w-16 h-16 rounded-full bg-slate-100 text-slate-500 flex items-center justify-center text-xl font-black shadow-inner border border-slate-200 shrink-0">
@@ -204,12 +214,12 @@ export default function TalentHubPage() {
                     </div>
                   </div>
                   <div className="space-y-3 mb-6">
-                    <div className="flex items-center gap-2 text-sm font-medium text-slate-600"><i className="ph ph-briefcase text-slate-400 text-lg"></i> {talent.experience_years} năm kinh nghiệm</div>
-                    <div className="flex items-center gap-2 text-sm font-medium text-slate-600"><i className="ph ph-money text-emerald-500 text-lg"></i> Mong muốn: <span className="font-bold text-slate-800">{talent.expected_salary || 'Thỏa thuận'}</span></div>
+                    <div className="flex items-center gap-2 text-sm font-medium text-slate-600"><i className="ph-fill ph-briefcase text-slate-400 text-lg"></i> {talent.experience_years} năm kinh nghiệm</div>
+                    <div className="flex items-center gap-2 text-sm font-medium text-slate-600"><i className="ph-fill ph-money text-emerald-500 text-lg"></i> Mong muốn: <span className="font-bold text-slate-800">{talent.expected_salary || 'Thỏa thuận'}</span></div>
                   </div>
                   <div className="mt-auto pt-4 border-t border-slate-100 flex gap-2">
-                    <button onClick={() => setViewingTalent(talent)} className="flex-1 h-11 bg-slate-50 text-slate-600 rounded-xl text-sm font-bold border border-slate-200 hover:bg-slate-100 hover:text-[#002D62] transition-colors flex items-center justify-center gap-2">
-                      <i className="ph ph-eye text-lg"></i> XEM CHI TIẾT & DUYỆT
+                    <button onClick={() => setViewingTalent(talent)} className={`flex-1 h-11 rounded-xl text-sm font-bold border transition-colors flex items-center justify-center gap-2 ${talent.status === 'PENDING' ? 'bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100' : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100'}`}>
+                      <i className="ph-bold ph-eye text-lg"></i> {talent.status === 'PENDING' ? 'XEM & DUYỆT NGAY' : 'XEM CHI TIẾT'}
                     </button>
                   </div>
                 </div>
@@ -229,14 +239,14 @@ export default function TalentHubPage() {
             <div className="bg-white w-full max-w-3xl max-h-full rounded-[2rem] shadow-2xl overflow-hidden flex flex-col animate-in zoom-in-95">
               
               <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
-                <h3 className="text-xl font-black text-slate-900 flex items-center gap-2"><i className="ph ph-identification-card text-indigo-500 text-2xl"></i> Chi tiết Hồ sơ Chuyên gia</h3>
-                <button onClick={() => setViewingTalent(null)} className="w-10 h-10 rounded-full bg-white border border-slate-200 flex items-center justify-center text-slate-400 hover:text-rose-500 hover:bg-rose-50"><i className="ph ph-x text-lg font-bold"></i></button>
+                <h3 className="text-xl font-black text-slate-900 flex items-center gap-2"><i className="ph-fill ph-identification-card text-indigo-500 text-2xl"></i> Chi tiết Hồ sơ Chuyên gia</h3>
+                <button onClick={() => setViewingTalent(null)} className="w-10 h-10 rounded-full bg-white border border-slate-200 flex items-center justify-center text-slate-400 hover:text-rose-500 hover:bg-rose-50"><i className="ph-bold ph-x text-lg"></i></button>
               </div>
 
               <div className="p-6 md:p-8 overflow-y-auto scroll-smooth space-y-8 flex-1">
                 {viewingTalent.admin_note && (
                   <div className="bg-amber-50 border border-amber-200 p-4 rounded-xl flex items-start gap-3">
-                    <i className="ph ph-warning-circle text-amber-600 text-xl mt-0.5"></i>
+                    <i className="ph-fill ph-warning-circle text-amber-600 text-xl mt-0.5"></i>
                     <div>
                       <p className="text-xs font-black text-amber-800 uppercase tracking-widest mb-1">Ghi chú yêu cầu sửa đổi từ Admin</p>
                       <p className="text-sm font-medium text-amber-900">{viewingTalent.admin_note}</p>
@@ -257,8 +267,8 @@ export default function TalentHubPage() {
                     </div>
                     <p className="text-lg font-bold text-indigo-600 mb-4">{viewingTalent.title}</p>
                     <div className="flex flex-wrap gap-x-6 gap-y-2 text-sm font-medium text-slate-600">
-                      <span className="flex items-center gap-2"><i className="ph ph-envelope-simple text-slate-400"></i> {viewingTalent.email || '---'}</span>
-                      <span className="flex items-center gap-2"><i className="ph ph-phone text-slate-400"></i> {viewingTalent.phone || '---'}</span>
+                      <span className="flex items-center gap-2"><i className="ph-fill ph-envelope-simple text-slate-400"></i> {viewingTalent.email || '---'}</span>
+                      <span className="flex items-center gap-2"><i className="ph-fill ph-phone text-slate-400"></i> {viewingTalent.phone || '---'}</span>
                     </div>
                   </div>
                 </div>
@@ -296,7 +306,7 @@ export default function TalentHubPage() {
                   <>
                     <button onClick={() => handleRejectTalent(viewingTalent.id)} disabled={!!isProcessing} className="h-11 px-6 bg-rose-50 text-rose-600 border border-rose-200 rounded-xl text-sm font-black hover:bg-rose-100 transition-colors">TỪ CHỐI</button>
                     <button onClick={() => openFeedbackModal(viewingTalent.id)} disabled={!!isProcessing} className="h-11 px-6 bg-amber-50 text-amber-700 border border-amber-200 rounded-xl text-sm font-black hover:bg-amber-100 transition-colors">YÊU CẦU SỬA</button>
-                    <button onClick={() => handleVerifyTalent(viewingTalent.id)} disabled={!!isProcessing} className="h-11 px-8 bg-indigo-600 text-white rounded-xl text-sm font-black shadow-lg hover:bg-indigo-500 transition-colors flex items-center gap-2"><i className="ph ph-check-circle text-lg"></i> CẤP TICK XANH</button>
+                    <button onClick={() => handleVerifyTalent(viewingTalent.id)} disabled={!!isProcessing} className="h-11 px-8 bg-emerald-600 text-white rounded-xl text-sm font-black shadow-lg hover:bg-emerald-500 transition-colors flex items-center gap-2"><i className="ph-bold ph-check-circle text-lg"></i> CẤP TICK XANH</button>
                   </>
                 )}
               </div>
@@ -309,7 +319,7 @@ export default function TalentHubPage() {
            <div className="flex-1 flex flex-col lg:flex-row gap-6 min-h-0">
              {/* BÊN TRÁI: DANH SÁCH CÁC JOB ĐANG TUYỂN */}
              <div className="w-full lg:w-1/3 bg-white border border-slate-200 shadow-sm rounded-[2rem] flex flex-col overflow-hidden">
-              <div className="p-5 border-b border-slate-100 bg-slate-50/50"><h3 className="font-black text-slate-800 flex items-center gap-2"><i className="ph ph-briefcase text-blue-500"></i> Vị trí đang Tuyển</h3></div>
+              <div className="p-5 border-b border-slate-100 bg-slate-50/50"><h3 className="font-black text-slate-800 flex items-center gap-2"><i className="ph-fill ph-briefcase text-blue-500"></i> Vị trí đang Tuyển</h3></div>
               <div className="flex-1 overflow-y-auto p-3 space-y-2 scroll-smooth">
                 {jobs.map(job => (
                   <div key={job.id} onClick={() => setSelectedJob(job)} className={`p-4 rounded-2xl border cursor-pointer transition-all ${selectedJob?.id === job.id ? 'bg-[#002D62] border-[#002D62] shadow-md transform scale-[1.02]' : 'bg-white border-slate-200 hover:border-blue-300 hover:bg-slate-50'}`}>
@@ -329,7 +339,7 @@ export default function TalentHubPage() {
                       <span className="text-[9px] font-black tracking-widest uppercase px-2 py-0.5 bg-blue-100 text-blue-800 rounded">Vị trí chọn đối khớp</span>
                       <h3 className="font-black text-slate-800 mt-1">{selectedJob.title}</h3>
                     </div>
-                    <div className="text-right text-xs font-bold text-slate-400"><i className="ph ph-buildings"></i> {getCompanyName(selectedJob.member_id)}</div>
+                    <div className="text-right text-xs font-bold text-slate-400"><i className="ph-fill ph-buildings"></i> {getCompanyName(selectedJob.member_id)}</div>
                   </div>
                   
                   {/* DANH SÁCH CHUYÊN GIA ĐÃ CÓ TICK XANH ĐỂ TIẾN CỬ */}
@@ -357,7 +367,7 @@ export default function TalentHubPage() {
                 </div>
               ) : (
                 <div className="flex-1 flex flex-col items-center justify-center p-6 text-slate-400">
-                  <i className="ph ph-arrows-merge text-5xl mb-4"></i>
+                  <i className="ph-fill ph-arrows-merge text-5xl mb-4"></i>
                   <p className="font-bold">Chọn một Job vị trí tuyển dụng bên trái để mở kho dữ liệu tiến cử.</p>
                 </div>
               )}
