@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { supabase } from '@nkba/supabase/client'; 
+import { supabasePublic } from '@nkba/supabase/client'; 
 import { useLanguage } from '@/i18n/LanguageContext';
 import { dict } from '@/i18n/dictionaries';
 
