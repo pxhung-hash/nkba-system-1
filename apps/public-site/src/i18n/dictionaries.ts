@@ -3,6 +3,7 @@ export const dict = {
     nav: {
       about: "Về chúng tôi",
       ecosystem: "Hệ sinh thái",
+      events: "Sự kiện",
       news: "Tin tức",
       contact: "Liên hệ"
     },
@@ -425,12 +426,93 @@ export const dict = {
       ctaDesc: "Nâng cấp hạng thẻ Titanium để truy cập toàn bộ kho dữ liệu ứng viên và đăng tin tuyển dụng không giới hạn, tiếp cận trực tiếp mạng lưới kỹ sư chất lượng cao nhất Việt Nam.",
       ctaBtn: "NÂNG CẤP ĐẶC QUYỀN"
     },
+    eventsPage: {
+      title: "Sự kiện & Hội thảo",
+      desc: "Nơi giao lưu, kết nối và cập nhật kiến thức chuyên sâu dành riêng cho cộng đồng lãnh đạo và doanh nghiệp Xây dựng Việt - Nhật.",
+      upcomingTab: "Sự kiện nổi bật",
+      pastTab: "Sự kiện đã qua",
+      registerBtn: "Đăng ký tham gia ngay",
+      viewDetailBtn: "Xem chi tiết",
+      
+      // Sự kiện Ra mắt
+      launchEvent: {
+        tag: "Official Launch Event",
+        title: "LỄ RA MẮT LIÊN MINH NKBA",
+        subtitle: "Connecting Trust - Building Value",
+        dateLabel: "Thời gian",
+        date: "01/08/2026",
+        time: "16:30 - 21:00",
+        locationLabel: "Địa điểm",
+        location1: "Tầng 1",
+        location2: "Viet Long House",
+        scaleLabel: "Quy mô",
+        scale1: "30",
+        scale2: " Khách mời VIP",
+        formatLabel: "Hình thức",
+        format: "Speech & Outdoor BBQ",
+        agendaTitle: "Kịch bản Chương trình",
+        agenda: [
+          { time: "16:30", title: "Đón khách & Networking sớm", desc: "Check-in, chụp hình tại Backdrop. Phục vụ Welcome Drinks. Ban lãnh đạo chủ động bắt chuyện giao lưu với khách." },
+          { time: "17:15", title: "Tuyên bố Khai mạc", desc: "Lời cảm ơn khách quý. Câu chuyện ra đời của NKBA và khát vọng kiến tạo một chuẩn mực mới cho ngành." },
+          { time: "17:30", title: "Trình bày Hệ sinh thái", desc: "Chi tiết về 3 trụ cột. Công bố YKK AP là đối tác bảo trợ kỹ thuật. Công bố quyền lợi gia nhập." },
+          { time: "18:00", title: "Lễ Ký kết & Kêu gọi", desc: "Ký MOU tượng trưng với đối tác chiến lược. Mời gọi khách tham dự đăng ký hội viên ngay trong buổi tối." },
+          { time: "18:15", title: "Tiệc nướng BBQ & Networking", desc: "Thưởng thức BBQ tại không gian Vườn Nhật Zouen. Giao lưu sâu (1-1) và hỗ trợ khách đăng ký." }
+        ]
+      },
+
+      pastEvents: [
+        {
+          id: 1,
+          date: "15/05/2026",
+          title: "Webinar: Tối ưu chuỗi cung ứng vật liệu MEP",
+          desc: "Buổi chia sẻ nội bộ dành cho các thành viên khối nhà thầu cơ điện."
+        }
+      ]
+    },
+    eventRegisterPage: {
+      title: "Đăng Ký Tham Dự",
+      subtitle: "Vui lòng điền thông tin để Ban Tổ Chức chuẩn bị đón tiếp chu đáo nhất.",
+      eventInfoTitle: "Thông Tin Sự Kiện",
+      eventTitle: "Lễ Ra Mắt Liên Minh NKBA",
+      eventDate: "01/08/2026",
+      eventTime: "16:30 - 21:00",
+      eventLocation: "Viet Long House (Tầng 1)",
+      perksTitle: "Đặc quyền khi tham dự:",
+      perk1: "Gặp gỡ trực tiếp 30 Chủ doanh nghiệp / C-Level ngành xây dựng Việt - Nhật.",
+      perk2: "Cơ hội nhận gói tư vấn pháp lý thầu miễn phí.",
+      perk3: "Thưởng thức tiệc BBQ cao cấp tại không gian Vườn Nhật.",
+      formName: "Họ và tên (*)",
+      formCompany: "Tên doanh nghiệp (*)",
+      formPosition: "Chức vụ (*)",
+      formPhone: "Số điện thoại (*)",
+      formEmail: "Email liên hệ (*)",
+      formNote: "Câu hỏi cho Ban Tổ Chức (Nếu có)",
+      btnSubmit: "GỬI ĐĂNG KÝ MỜI THAM DỰ",
+      btnProcessing: "ĐANG XỬ LÝ...",
+      successTitle: "ĐĂNG KÝ THÀNH CÔNG!",
+      successDesc: "Cảm ơn bạn đã đăng ký tham dự Lễ ra mắt NKBA. Ban Tổ Chức sẽ liên hệ để xác nhận thư mời (E-Invite) trong thời gian sớm nhất."
+    },
+    rsvpPage: {
+      title: "Phản hồi Thư mời (RSVP)",
+      subtitle: "Vui lòng xác nhận sự hiện diện của bạn để Ban Tổ Chức chuẩn bị đón tiếp chu đáo nhất.",
+      guestHello: "Xin chào khách mời VIP,",
+      confirmBtn: "XÁC NHẬN THAM DỰ",
+      declineBtn: "TÔI KHÔNG THỂ THAM GIA",
+      successConfirmTitle: "XÁC NHẬN THÀNH CÔNG!",
+      successConfirmDesc: "Cảm ơn bạn đã xác nhận tham dự. Vé điện tử (QR Code) và hướng dẫn check-in chi tiết sẽ được gửi qua email trước ngày diễn ra sự kiện.",
+      successDeclineTitle: "ĐÃ GHI NHẬN PHẢN HỒI",
+      successDeclineDesc: "Rất tiếc vì bạn không thể tham gia lần này. Cảm ơn bạn đã thông báo và hẹn gặp lại ở những sự kiện tiếp theo của hệ sinh thái NKBA.",
+      invalidToken: "Đường dẫn không hợp lệ hoặc đã hết hạn. Vui lòng liên hệ Ban Tổ Chức để được hỗ trợ.",
+      processing: "Đang xử lý...",
+      backToHome: "VỀ TRANG CHỦ NKBA"
+    },
       lang: "Ngôn ngữ"
   },
   ja: {
     nav: {
       about: "NKBAについて",
       ecosystem: "事業概要",
+      events: "イベント",
       news: "ニュース",
       contact: "お問い合わせ"
     },
@@ -852,6 +934,86 @@ export const dict = {
       ctaTitle: "人材はプロジェクト成功の核心です",
       ctaDesc: "Titaniumメンバーシップにアップグレードすると、候補者データベース全体にアクセスし、無制限に求人広告を掲載して、ベトナム最高品質のエンジニアネットワークに直接アプローチできます。",
       ctaBtn: "特権をアップグレード"
+    },
+    eventsPage: {
+      title: "イベント＆セミナー",
+      desc: "日越の建設企業およびリーダーのコミュニティ向けに、交流、ネットワーキング、および専門知識を更新するための場です。",
+      upcomingTab: "注目のイベント",
+      pastTab: "過去のイベント",
+      registerBtn: "今すぐ参加登録",
+      viewDetailBtn: "詳細を見る",
+      
+      // Sự kiện Ra mắt
+      launchEvent: {
+        tag: "公式ローンチイベント",
+        title: "NKBAアライアンス設立記念式典",
+        subtitle: "Connecting Trust - Building Value",
+        dateLabel: "日時",
+        date: "2026年08月01日",
+        time: "16:30 - 21:00",
+        locationLabel: "会場",
+        location1: "1階",
+        location2: "Viet Long House",
+        scaleLabel: "規模",
+        scale1: "30名",
+        scale2: " のVIPゲスト",
+        formatLabel: "形式",
+        format: "スピーチ ＆ 屋外BBQ",
+        agendaTitle: "プログラムのスケジュール",
+        agenda: [
+          { time: "16:30", title: "受付 ＆ 早期ネットワーキング", desc: "チェックイン、バックドロップでの写真撮影。ウェルカムドリンクの提供。経営陣によるゲストとの積極的な交流。" },
+          { time: "17:15", title: "開会宣言", desc: "ゲストへの感謝の言葉。NKBA設立の背景と、業界の新たな基準を築くという私たちの熱意。" },
+          { time: "17:30", title: "エコシステムとソリューションのプレゼン", desc: "3つの柱の詳細。YKK APを技術後援パートナーとして発表。メンバーシップ特典の発表。" },
+          { time: "18:00", title: "調印式 ＆ コールトゥアクション", desc: "戦略的パートナーとのMOU調印。参加者にその晩のメンバー登録を呼びかけます。" },
+          { time: "18:15", title: "屋外BBQ ＆ ネットワーキング", desc: "日本庭園ZouenでBBQを楽しみながら、1対1の深い交流と登録サポートを実施します。" }
+        ]
+      },
+
+      pastEvents: [
+        {
+          id: 1,
+          date: "2026年05月15日",
+          title: "ウェビナー: MEP資材サプライチェーンの最適化",
+          desc: "電気設備請負業者向けの社内共有セッション。"
+        }
+      ]
+    },
+    eventRegisterPage: {
+      title: "参加登録",
+      subtitle: "事務局が最適な準備を行えるよう、以下の情報をご記入ください。",
+      eventInfoTitle: "イベント情報",
+      eventTitle: "NKBAアライアンス設立記念式典",
+      eventDate: "2026年08月01日",
+      eventTime: "16:30 - 21:00",
+      eventLocation: "Viet Long House (1階)",
+      perksTitle: "参加特典：",
+      perk1: "日越建設業界の経営者・Cレベル30名と直接交流。",
+      perk2: "無料の法務コンサルティングパッケージを受け取るチャンス。",
+      perk3: "日本庭園の空間で高級BBQを楽しむ。",
+      formName: "氏名 (*)",
+      formCompany: "企業名 (*)",
+      formPosition: "役職 (*)",
+      formPhone: "電話番号 (*)",
+      formEmail: "メールアドレス (*)",
+      formNote: "事務局へのご質問（任意）",
+      btnSubmit: "参加招待を申し込む",
+      btnProcessing: "処理中...",
+      successTitle: "登録完了！",
+      successDesc: "NKBA設立記念式典への参加登録ありがとうございます。追って事務局より招待状（E-Invite）の確認のご連絡を差し上げます。"
+    },
+    rsvpPage: {
+      title: "招待状へのご返信 (RSVP)",
+      subtitle: "事務局が最適な準備を行えるよう、ご出欠をお知らせください。",
+      guestHello: "VIPゲスト様、こんにちは。",
+      confirmBtn: "出席を確定する",
+      declineBtn: "今回は欠席する",
+      successConfirmTitle: "確認が完了しました！",
+      successConfirmDesc: "ご出席の確認ありがとうございます。イベント開催前に、電子チケット（QRコード）と詳細なチェックイン手順をメールでお送りします。",
+      successDeclineTitle: "ご回答を記録しました",
+      successDeclineDesc: "今回ご参加いただけないとのこと、誠に残念です。お知らせいただきありがとうございます。NKBAの次回のイベントでお会いできることを楽しみにしています。",
+      invalidToken: "リンクが無効であるか、期限切れです。サポートが必要な場合は事務局にお問い合わせください。",
+      processing: "処理中...",
+      backToHome: "NKBAホームページへ戻る"
     },
       lang: "言語"
   }

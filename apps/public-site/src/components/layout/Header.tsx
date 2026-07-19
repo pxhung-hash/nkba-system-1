@@ -20,10 +20,12 @@ export default function Header() {
           />
         </Link>
 
-        {/* MENU ĐIỀU HƯỚNG */}
+        {/* MENU ĐIỀU HƯỚNG (DESKTOP) */}
         <nav className="hidden md:flex items-center gap-8">
           <Link href="/ve-chung-toi" className="text-sm font-bold text-slate-600 hover:text-[#002D62] transition-colors">{t.nav.about}</Link>
           <Link href="/dich-vu" className="text-sm font-bold text-slate-600 hover:text-[#002D62] transition-colors">{t.nav.ecosystem}</Link>
+          {/* Bổ sung trang Sự kiện */}
+          <Link href="/su-kien" className="text-sm font-bold text-slate-600 hover:text-[#002D62] transition-colors">{t.nav.events}</Link>
           <Link href="/tin-tuc" className="text-sm font-bold text-slate-600 hover:text-[#002D62] transition-colors">{t.nav.news}</Link>
           <Link href="/lien-he" className="text-sm font-bold text-slate-600 hover:text-[#002D62] transition-colors">{t.nav.contact}</Link>
         </nav>
@@ -31,12 +33,12 @@ export default function Header() {
         {/* BUTTONS & LANGUAGE SWITCHER */}
         <div className="flex items-center gap-3 sm:gap-5">
           <Link href="/dang-ky" className="hidden lg:block text-sm font-bold text-slate-500 hover:text-[#002D62] transition-colors">
-            {t.buttons.join}
+            {t.buttons?.join || "Tham gia"}
           </Link>
           <a href="https://portal.nkba.vn/login" className="px-5 py-2.5 sm:px-6 sm:py-3 bg-[#002D62] text-white text-sm font-black rounded-xl hover:bg-blue-900 transition-all shadow-lg shadow-blue-900/20 flex items-center gap-2 group">
             <i className="ph-fill ph-user-circle text-lg"></i>
-            <span className="hidden sm:inline">{t.buttons.login}</span>
-            <span className="sm:hidden">{t.buttons.portal}</span>
+            <span className="hidden sm:inline">{t.buttons?.login || "Đăng nhập"}</span>
+            <span className="sm:hidden">{t.buttons?.portal || "Portal"}</span>
           </a>
 
           {/* CHUYỂN NGÔN NGỮ (Desktop) */}
@@ -66,6 +68,10 @@ export default function Header() {
           <Link href="/dich-vu" className="text-base font-bold text-slate-700 hover:text-[#002D62] flex items-center gap-3">
             <i className="ph ph-squares-four text-xl text-slate-400"></i> {t.nav.ecosystem}
           </Link>
+          {/* Bổ sung trang Sự kiện (Mobile) */}
+          <Link href="/su-kien" className="text-base font-bold text-slate-700 hover:text-[#002D62] flex items-center gap-3">
+            <i className="ph ph-calendar-star text-xl text-slate-400"></i> {t.nav.events}
+          </Link>
           <Link href="/tin-tuc" className="text-base font-bold text-slate-700 hover:text-[#002D62] flex items-center gap-3">
             <i className="ph ph-article text-xl text-slate-400"></i> {t.nav.news}
           </Link>
@@ -76,12 +82,12 @@ export default function Header() {
           <div className="h-px w-full bg-slate-100 my-1"></div>
           
           <Link href="/dang-ky" className="text-base font-bold text-[#002D62] flex items-center gap-3">
-            <i className="ph-fill ph-sparkle text-xl text-amber-500"></i> {t.buttons.newMemberMobile}
+            <i className="ph-fill ph-sparkle text-xl text-amber-500"></i> {t.buttons?.newMemberMobile || "Đăng ký hội viên mới"}
           </Link>
 
           {/* NÚT CHUYỂN NGÔN NGỮ MOBILE */}
           <div className="flex items-center gap-4 mt-2 p-4 bg-slate-50 rounded-xl">
-            <span className="text-sm font-bold text-slate-500">{t.lang}:</span>
+            <span className="text-sm font-bold text-slate-500">{t.lang || "Ngôn ngữ"}:</span>
             <button onClick={() => setLang('vi')} className={`px-4 py-1.5 rounded-lg text-sm font-bold transition-all ${lang === 'vi' ? 'bg-[#002D62] text-white shadow-md' : 'bg-white text-slate-500 border border-slate-200'}`}>VI</button>
             <button onClick={() => setLang('ja')} className={`px-4 py-1.5 rounded-lg text-sm font-bold transition-all ${lang === 'ja' ? 'bg-red-600 text-white shadow-md' : 'bg-white text-slate-500 border border-slate-200'}`}>JP</button>
           </div>

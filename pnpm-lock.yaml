@@ -20,6 +20,9 @@ importers:
 
   apps/admin-workspace:
     dependencies:
+      '@nkba/supabase':
+        specifier: workspace:*
+        version: link:../../packages/supabase
       '@supabase/ssr':
         specifier: ^0.10.2
         version: 0.10.2(@supabase/supabase-js@2.103.3)
@@ -63,9 +66,12 @@ importers:
 
   apps/member-portal:
     dependencies:
+      '@nkba/supabase':
+        specifier: workspace:*
+        version: link:../../packages/supabase
       '@supabase/ssr':
-        specifier: ^0.10.2
-        version: 0.10.2(@supabase/supabase-js@2.103.3)
+        specifier: ^0.10.3
+        version: 0.10.3(@supabase/supabase-js@2.103.3)
       '@supabase/supabase-js':
         specifier: ^2.103.0
         version: 2.103.3
@@ -106,6 +112,9 @@ importers:
 
   apps/public-site:
     dependencies:
+      '@nkba/supabase':
+        specifier: workspace:*
+        version: link:../../packages/supabase
       '@swc/helpers':
         specifier: ^0.5.21
         version: 0.5.21
@@ -121,9 +130,6 @@ importers:
       react-dom:
         specifier: 19.2.4
         version: 19.2.4(react@19.2.4)
-      supabase:
-        specifier: workspace:*
-        version: link:../../packages/supabase
     devDependencies:
       '@tailwindcss/postcss':
         specifier: ^4.2.2
@@ -641,6 +647,11 @@ packages:
     resolution: {integrity: sha512-JFbchN63CXLFHJRNT7udec4/RoD9PmXkSGko3QSO6vUuqGBtSzdmxR7FPfQNr7SuFd65I7Xv46q66ALjEN1cgQ==}
     peerDependencies:
       '@supabase/supabase-js': ^2.102.1
+
+  '@supabase/ssr@0.10.3':
+    resolution: {integrity: sha512-ux2CJgX89h0Fz2lY7ZNafNG2SkXpyRc5dz77K9eKeBLPdtywQixKwIuetDeIViAJBp/buOUVmgj8PVesOklNpw==}
+    peerDependencies:
+      '@supabase/supabase-js': ^2.105.3
 
   '@supabase/storage-js@2.100.0':
     resolution: {integrity: sha512-d4EeuK6RNIgYNA2MU9kj8lQrLm5AzZ+WwpWjGkii6SADQNIGTC/uiaTRu02XJ5AmFALQfo8fLl9xuCkO6Xw+iQ==}
@@ -2690,6 +2701,11 @@ snapshots:
       - utf-8-validate
 
   '@supabase/ssr@0.10.2(@supabase/supabase-js@2.103.3)':
+    dependencies:
+      '@supabase/supabase-js': 2.103.3
+      cookie: 1.1.1
+
+  '@supabase/ssr@0.10.3(@supabase/supabase-js@2.103.3)':
     dependencies:
       '@supabase/supabase-js': 2.103.3
       cookie: 1.1.1
