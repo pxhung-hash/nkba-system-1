@@ -195,84 +195,71 @@ export default function EInviteModal({ isOpen, onClose, event, guests }: EInvite
 
             {/* BLOCK 4: THỜI GIAN, ĐỊA ĐIỂM & QR RSVP */}
             <div className="flex items-center justify-between px-2 my-2 border-t border-b py-3" style={{ borderColor: 'rgba(255,255,255,0.1)' }}>
-              <div className="text-left w-full" style={{ paddingRight: '10px' }}>
-                <div className="flex items-start mb-3">
-                  {/* ĐÃ FIX: Dùng line-height và vertical-align cổ điển để icon căn giữa 100% */}
-                  <div className="w-7 h-7 rounded-full shrink-0 border mt-0.5" style={{ backgroundColor: 'rgba(190,0,39,0.2)', color: '#BE0027', borderColor: 'rgba(190,0,39,0.3)', textAlign: 'center', lineHeight: '26px' }}>
-                    <i className="ph-fill ph-clock text-base" style={{ verticalAlign: 'middle', display: 'inline-block' }}></i>
+              <div className="space-y-3 text-left w-full">
+                
+                <div className="flex items-center gap-3.5">
+                  <div className="w-7 h-7 rounded-full flex items-center justify-center shrink-0 border" style={{ backgroundColor: '#be002733', color: '#BE0027', borderColor: '#be00274d' }}>
+                    <i className="ph-fill ph-clock text-base"></i>
                   </div>
-                  <div style={{ marginLeft: '12px' }}>
-                    <p className="text-[11px] font-bold tracking-widest uppercase mb-0.5" style={{ color: '#bfdbfe', lineHeight: 1.2 }}>Thời gian</p>
-                    <p className="text-xs font-bold" style={{ color: '#ffffff', lineHeight: 1.2 }}>17:00</p>
-                    <p className="text-[11px]" style={{ color: '#dbeafe', lineHeight: 1.2 }}>
+                  <div className="flex flex-col">
+                    <p className="text-[11px] font-bold tracking-widest uppercase mb-0.5" style={{ color: '#bfdbfe' }}>Thời gian</p>
+                    <p className="text-xs font-bold mb-0.5" style={{ color: '#ffffff' }}>17:00</p>
+                    <p className="text-[11px]" style={{ color: '#dbeafe' }}>
                       {event?.event_date ? new Date(event.event_date).toLocaleDateString('vi-VN') : 'Thứ Năm, 18/07/2026'}
                     </p>
                   </div>
                 </div>
 
-                <div className="flex items-start">
-                  {/* ĐÃ FIX: Dùng line-height và vertical-align cổ điển */}
-                  <div className="w-7 h-7 rounded-full shrink-0 border mt-0.5" style={{ backgroundColor: 'rgba(212,175,55,0.2)', color: '#D4AF37', borderColor: 'rgba(212,175,55,0.2)', textAlign: 'center', lineHeight: '26px' }}>
-                    <i className="ph-fill ph-map-pin text-base" style={{ verticalAlign: 'middle', display: 'inline-block' }}></i>
+                <div className="flex items-start gap-3.5 mt-3">
+                  <div className="w-7 h-7 rounded-full flex items-center justify-center shrink-0 border mt-0.5" style={{ backgroundColor: '#d4af3733', color: '#D4AF37', borderColor: '#d4af3733' }}>
+                    <i className="ph-fill ph-map-pin text-base"></i>
                   </div>
-                  <div style={{ marginLeft: '12px', maxWidth: '140px' }}>
-                    <p className="text-[11px] font-bold tracking-widest uppercase mb-0.5" style={{ color: '#bfdbfe', lineHeight: 1.2 }}>Địa điểm</p>
+                  <div className="flex flex-col max-w-[140px]">
+                    <p className="text-[11px] font-bold tracking-widest uppercase mb-0.5" style={{ color: '#bfdbfe' }}>Địa điểm</p>
                     <a 
                       href="https://maps.app.goo.gl/Qh7vLqqv9cHHtdDj7" 
                       target="_blank"
                       rel="noreferrer"
-                      className="text-xs font-bold leading-snug block" 
+                      className="text-xs font-bold block mb-0.5" 
                       style={{ color: '#ffffff', textDecoration: 'none' }}
                     >
                       {event?.details?.location || 'Việt Long House'}
                     </a>
-                    <p className="text-[8.5px] mt-1 leading-snug" style={{ color: '#dbeafe', opacity: 0.85 }}>
+                    <p className="text-[8.5px]" style={{ color: '#dbeafe', opacity: 0.85 }}>
                       Tòa A, Lô CT-21B P. Đoàn Văn Tập, KĐT Việt Hưng, Hà Nội
                     </p>
                   </div>
                 </div>
+
               </div>
 
-              <div className="flex flex-col items-center justify-center pl-4 border-l shrink-0" style={{ borderColor: 'rgba(255,255,255,0.1)' }}>
-                <QRCodeCanvas 
-                  value={generateRsvpUrl(activeGuest)} 
-                  size={64} 
-                  level="H" 
-                  fgColor="#FFFFFF" 
-                  bgColor="transparent" 
-                />
-                <p className="text-[8px] font-bold uppercase tracking-widest text-center mt-1.5" style={{ color: '#F3E5AB', lineHeight: 1.2 }}>Xác nhận<br/>tham dự</p>
+              <div className="flex flex-col items-center justify-center gap-1.5 pl-4 border-l shrink-0" style={{ borderColor: 'rgba(255,255,255,0.1)' }}>
+                <QRCodeCanvas bgColor="transparent" fgColor="#FFFFFF" level="H" size="{64}" value="{generateRsvpUrl(activeGuest)}"/>
+                <p className="text-[8px] font-bold uppercase tracking-widest text-center mt-1" style={{ color: '#F3E5AB' }}>Xác nhận<br/>tham dự</p>
               </div>
             </div>
 
             {/* BLOCK 5: AGENDA */}
-            <div className="my-1 text-left px-2">
-              {/* ĐÃ FIX: Căn giữa hoàn toàn khối Header Agenda */}
-              <div className="mb-4 w-full block text-center">
-                <div className="text-[11px] font-bold tracking-widest uppercase text-center w-full" style={{ color: '#D4AF37', marginBottom: '8px' }}>Agenda Sự kiện</div>
-                <div className="w-full h-px mx-auto" style={{ backgroundColor: 'rgba(212,175,55,0.2)' }}></div>
-              </div>
+            <div className="my-2 text-left px-2">
+              <p className="text-[11px] font-bold tracking-widest uppercase mb-3 text-center border-b pb-1.5" style={{ color: '#D4AF37', borderColor: '#d4af3733' }}>Agenda Sự kiện</p>
               
-              {/* ĐÃ FIX: Gỡ bỏ thẻ absolute của icon, thay bằng flex block chuẩn xác, tăng marginBottom */}
-              <div className="relative ml-2 mt-2">
-                <div className="absolute top-2 bottom-2 w-px" style={{ backgroundColor: 'rgba(255,255,255,0.2)', left: '4px', zIndex: 1 }}></div>
+              <div className="space-y-3 relative ml-2">
+                <div className="absolute inset-y-0 w-px" style={{ backgroundColor: 'rgba(255,255,255,0.2)', left: '4px' }}></div>
                 
-                <div className="flex items-start" style={{ marginBottom: '16px' }}>
-                  <div className="w-2.5 h-2.5 border-2 rounded-full shrink-0 relative" style={{ backgroundColor: '#002D62', borderColor: '#60A5FA', marginTop: '3px', marginRight: '14px', zIndex: 10 }}></div>
-                  <p className="text-[11px] font-bold w-11 shrink-0" style={{ color: '#bfdbfe', paddingTop: '1px' }}>16:30</p>
-                  <span className="text-[11px]" style={{ color: '#ffffff', paddingTop: '1px' }}>Đón khách & Welcome Drink</span>
+                <div className="relative pl-5 flex items-center mb-3">
+                  <div className="absolute w-2.5 h-2.5 border-2 rounded-full" style={{ backgroundColor: '#002D62', borderColor: '#60A5FA', left: '0px' }}></div>
+                  <p className="text-[11px] font-bold w-11 shrink-0" style={{ color: '#bfdbfe' }}>16:30</p>
+                  <span className="text-[11px]" style={{ color: '#ffffff' }}>Đón khách & Welcome Drink</span>
                 </div>
-
-                <div className="flex items-start" style={{ marginBottom: '16px' }}>
-                  <div className="w-2.5 h-2.5 border-2 rounded-full shrink-0 relative" style={{ backgroundColor: '#002D62', borderColor: '#BE0027', marginTop: '3px', marginRight: '14px', zIndex: 10 }}></div>
-                  <p className="text-[11px] font-bold w-11 shrink-0" style={{ color: '#bfdbfe', paddingTop: '1px' }}>17:15</p>
-                  <span className="text-[11px]" style={{ color: '#ffffff', paddingTop: '1px' }}>Keynote & Giới thiệu NKBA</span>
+                <div className="relative pl-5 flex items-center mb-3">
+                  <div className="absolute w-2.5 h-2.5 border-2 rounded-full" style={{ backgroundColor: '#002D62', borderColor: '#BE0027', left: '0px' }}></div>
+                  <p className="text-[11px] font-bold w-11 shrink-0" style={{ color: '#bfdbfe' }}>17:15</p>
+                  <span className="text-[11px]" style={{ color: '#ffffff' }}>Keynote & Giới thiệu NKBA</span>
                 </div>
-
-                <div className="flex items-start">
-                  <div className="w-2.5 h-2.5 rounded-full shrink-0 relative" style={{ backgroundColor: '#D4AF37', boxShadow: '0 0 8px #D4AF37', marginTop: '3px', marginRight: '14px', zIndex: 10 }}></div>
-                  <p className="text-[11px] font-bold w-11 shrink-0" style={{ color: '#D4AF37', paddingTop: '1px' }}>18:15</p>
-                  <span className="text-[11px] font-bold" style={{ color: '#ffffff', paddingTop: '1px' }}>Tiệc nướng BBQ & Networking</span>
+                <div className="relative pl-5 flex items-center">
+                  <div className="absolute w-2.5 h-2.5 rounded-full" style={{ backgroundColor: '#D4AF37', boxShadow: '0 0 8px #D4AF37', left: '0px' }}></div>
+                  <p className="text-[11px] font-bold w-11 shrink-0" style={{ color: '#D4AF37' }}>18:15</p>
+                  <span className="text-[11px] font-bold" style={{ color: '#ffffff' }}>Tiệc nướng BBQ & Networking</span>
                 </div>
               </div>
             </div>
@@ -283,27 +270,20 @@ export default function EInviteModal({ isOpen, onClose, event, guests }: EInvite
               
               <div className="flex items-center gap-6">
                 <div className="shrink-0 flex items-center">
-                  <QRCodeCanvas 
-                    {/* ĐÃ FIX: CHUYỂN LOCALHOST THÀNH DOMAIN CHÍNH THỨC */}
-                    value="https://nkba.vn/su-kien" 
-                    size={52} 
-                    level="M" 
-                    fgColor="#FFFFFF" 
-                    bgColor="transparent"
-                  />
+                  <QRCodeCanvas bgColor="transparent" fgColor="#FFFFFF" level="M" size="{52}" value="https://nkba.vn/su-kien"/>
                 </div>
 
                 <div className="w-px h-[52px] shrink-0" style={{ backgroundColor: 'rgba(255,255,255,0.1)' }}></div>
 
-                <div className="text-left flex flex-col justify-between h-[52px] py-1">
-                  <div className="flex items-center gap-2.5 text-[10px] font-medium tracking-wide" style={{ color: '#dbeafe', lineHeight: 1.2 }}>
-                    <i className="ph-fill ph-globe text-[12px] flex items-center" style={{ color: '#D4AF37', lineHeight: 1 }}></i> nkba.vn
+                <div className="text-left flex flex-col justify-between h-[52px]">
+                  <div className="flex items-center gap-2.5 text-[10px] font-medium tracking-wide" style={{ color: '#dbeafe' }}>
+                    <i className="ph-fill ph-globe text-[12px]" style={{ color: '#D4AF37' }}></i> nkba.vn
                   </div>
-                  <div className="flex items-center gap-2.5 text-[10px] font-medium tracking-wide" style={{ color: '#dbeafe', lineHeight: 1.2 }}>
-                    <i className="ph-fill ph-phone text-[12px] flex items-center" style={{ color: '#D4AF37', lineHeight: 1 }}></i> 034 259 6911
+                  <div className="flex items-center gap-2.5 text-[10px] font-medium tracking-wide" style={{ color: '#dbeafe' }}>
+                    <i className="ph-fill ph-phone text-[12px]" style={{ color: '#D4AF37' }}></i> 034 259 6911
                   </div>
-                  <div className="flex items-center gap-2.5 text-[10px] font-medium tracking-wide" style={{ color: '#dbeafe', lineHeight: 1.2 }}>
-                    <i className="ph-fill ph-envelope text-[12px] flex items-center" style={{ color: '#D4AF37', lineHeight: 1 }}></i> info@nkba.vn
+                  <div className="flex items-center gap-2.5 text-[10px] font-medium tracking-wide" style={{ color: '#dbeafe' }}>
+                    <i className="ph-fill ph-envelope text-[12px]" style={{ color: '#D4AF37' }}></i> info@nkba.vn
                   </div>
                 </div>
               </div>

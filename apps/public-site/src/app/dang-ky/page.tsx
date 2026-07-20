@@ -28,10 +28,10 @@ export default function JoinAlliancePage() {
     setErrorMessage(null);
 
     try {
-      // ==============================================================
       // BƯỚC 1: TẠO TÀI KHOẢN BẢO MẬT (AUTH) 
+      // Dùng supabasePublic mà bạn đã import ở đầu file[cite: 1]
       // ==============================================================
-      const { data: authData, error: authError } = await supabase.auth.signUp({
+      const { data: authData, error: authError } = await supabasePublic.auth.signUp({
         email: formData.email,
         password: formData.password,
         options: {
@@ -52,7 +52,7 @@ export default function JoinAlliancePage() {
       // ==============================================================
       // BƯỚC 2: TẠO HỒ SƠ CÁ NHÂN VÀO DATABASE
       // ==============================================================
-      const { error: indError } = await supabase
+      const { error: indError } = await supabasePublic
         .from('individuals')
         .insert([{
           full_name: formData.fullName, 
