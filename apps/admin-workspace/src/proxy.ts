@@ -2,7 +2,7 @@ import { createServerClient } from '@supabase/ssr';
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   // 1. Tạo response mặc định
   let response = NextResponse.next({ request });
 
@@ -16,7 +16,7 @@ export async function middleware(request: NextRequest) {
           return request.cookies.getAll();
         },
         setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value, options }) => request.cookies.set(name, value));
+          cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value));
           response = NextResponse.next({ request });
           cookiesToSet.forEach(({ name, value, options }) =>
             response.cookies.set(name, value, options)
@@ -30,25 +30,24 @@ export async function middleware(request: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser();
   const path = request.nextUrl.pathname;
 
-  // ==========================================
-  // 🕵️‍♂️ CAMERA GIÁM SÁT (HIỂN THỊ TRONG TERMINAL VS CODE)
-  // ==========================================
+  // 1. Danh sách các "Vùng xanh" (Không cần thẻ vẫn vào được)
+  const publicRoutes = ['/login', '/signup', '/auth/callback'];
+  const isPublicRoute = publicRoutes.includes(path);
+
   console.log("\n=== 🕵️‍♂️ MIDDLEWARE BÁO CÁO ===");
   console.log("📍 Đang truy cập URL:", request.url);
-  console.log("📍 Pathname:", path);
   console.log("👤 Thẻ Auth (User):", user ? `Có (ID: ${user.id})` : "KHÔNG CÓ (NULL)");
   console.log("================================\n");
 
-  // 4. LOGIC 1: CÓ THẺ TỪ mà lại lảng vảng ở trang /login -> Mời vào Dashboard làm việc
-  if (user && path === '/login') {
-    console.log("👉 User đã login, mời từ /login về / (Dashboard)");
+  // 2. LOGIC 1: Đã login mà lảng vảng ở trang công khai (như /login) -> Mời vào Dashboard
+  if (user && isPublicRoute) {
     return NextResponse.redirect(new URL('/', request.url));
   }
 
-  // 5. LOGIC 2: KHÔNG CÓ THẺ TỪ mà lại đòi vào Dashboard -> Đuổi ra trang /login
-  if (!user && path !== '/login') {
-    console.log("🚨 Khách KHÔNG CÓ thẻ, ĐUỔI RA /login");
-    // [QUAN TRỌNG]: Thêm đuôi ?error=middleware_kicked_you để in dấu vết lên thanh URL trình duyệt
+  // 3. LOGIC 2: KHÔNG có thẻ VÀ đang cố vào "Vùng cấm" (không phải public route) -> Đuổi
+  if (!user && !isPublicRoute) {
+    // Lưu ý: Đảm bảo app admin (cổng 3002) của bạn CÓ trang /login này. 
+    // Nếu trang login nằm ở cổng 3000, bạn phải fix cứng URL: return NextResponse.redirect('http://localhost:3000/login');
     return NextResponse.redirect(new URL('/login?error=middleware_kicked_you', request.url));
   }
 
@@ -57,7 +56,8 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
+  // Cập nhật Matcher: Bỏ qua tất cả file tĩnh (.png, .jpg, .svg, .css, .js)
   matcher: [
-    '/((?!api|_next/static|_next/image|favicon.ico).*)',
+    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|css|js)$).*)',
   ],
 };

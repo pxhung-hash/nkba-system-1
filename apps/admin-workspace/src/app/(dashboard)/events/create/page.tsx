@@ -33,7 +33,16 @@ export default function CreateEventPage() {
     }));
   };
 
-  const handleSubmit = async (e: React.FormEvent, submitStatus: 'DRAFT' | 'PUBLISHED') => {
+  
+  const handleSubmit = async (e: React.MouseEvent<HTMLButtonElement>, submitStatus: 'DRAFT' | 'PUBLISHED') => {
+    // 1. Lấy form bao quanh nút bấm hiện tại
+    const form = e.currentTarget.form;
+    
+    // 2. Bắt trình duyệt kiểm tra xem có ô bắt buộc nào bị bỏ trống không
+    if (form && !form.checkValidity()) {
+      form.reportValidity(); // Hiển thị cảnh báo đỏ của trình duyệt
+      return; // Dừng lại, không chạy tiếp code bên dưới
+    }
     e.preventDefault();
     setIsSubmitting(true);
     

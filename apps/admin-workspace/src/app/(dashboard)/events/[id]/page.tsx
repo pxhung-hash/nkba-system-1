@@ -6,6 +6,8 @@ import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { getEventDetails } from '@/actions/event.actions';
 import TicketModal from '@/components/events/TicketModal';
+import AddGuestModal from '@/components/events/AddGuestModal';
+import EInviteModal from '@/components/events/EInviteModal'; // <- Đã thêm Import Modal Thiệp VIP
 
 export default function EventDetailPage() {
   const params = useParams();
@@ -17,9 +19,11 @@ export default function EventDetailPage() {
   const [loading, setLoading] = useState(true);
   const [isSendingMail, setIsSendingMail] = useState(false);
 
-  // State cho Modal QR Code
+  // State cho các Modal
   const [selectedGuest, setSelectedGuest] = useState<any>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isAddGuestModalOpen, setIsAddGuestModalOpen] = useState(false);
+  const [isInviteModalOpen, setIsInviteModalOpen] = useState(false); // <- Đã thêm state quản lý thiệp VIP
 
   // Hàm fetch dữ liệu từ Server Action
   const fetchData = useCallback(async () => {
@@ -152,6 +156,19 @@ export default function EventDetailPage() {
             <i className="ph-fill ph-address-book text-[#002D62]"></i> Danh sách Khách mời
           </h2>
           <div className="flex flex-wrap items-center gap-3 w-full lg:w-auto">
+            {/* <- Đã thêm nút Xuất Thiệp VIP vào đây -> */}
+            <button 
+              onClick={() => setIsInviteModalOpen(true)}
+              className="px-5 py-2 bg-gradient-to-r from-[#D4AF37] to-amber-500 text-white text-sm font-bold rounded-xl hover:shadow-lg transition-all flex items-center gap-2"
+            >
+              <i className="ph-bold ph-magic-wand"></i> Xuất Thiệp VIP
+            </button>
+            <button 
+              onClick={() => setIsAddGuestModalOpen(true)}
+              className="px-5 py-2 bg-white border border-slate-300 text-slate-700 text-sm font-bold rounded-xl hover:bg-slate-50 shadow-sm flex items-center gap-2"
+            >
+              <i className="ph-bold ph-user-plus"></i> Thêm khách mời
+            </button>
             <button onClick={handleSendMassEmail} disabled={isSendingMail} className="px-5 py-2 bg-[#BE0027] text-white text-sm font-bold rounded-xl hover:bg-red-700 shadow-sm flex items-center gap-2 disabled:opacity-70">
               {isSendingMail ? <><i className="ph-bold ph-spinner animate-spin"></i> Đang xử lý...</> : <><i className="ph-bold ph-paper-plane-tilt"></i> Gửi Email RSVP</>}
             </button>
@@ -217,6 +234,25 @@ export default function EventDetailPage() {
 
       {/* Ticket Modal Pop-up */}
       <TicketModal isOpen={isModalOpen} onClose={() => { setIsModalOpen(false); setSelectedGuest(null); }} guest={selectedGuest} event={event} />
+    
+      {/* Modal Thêm Khách Mời */}
+      <AddGuestModal 
+        isOpen={isAddGuestModalOpen} 
+        onClose={() => { 
+          setIsAddGuestModalOpen(false); 
+          fetchData(); 
+        }} 
+        eventId={eventId} 
+      />
+
+      {/* Modal Xuất Thiệp VIP */}
+      <EInviteModal 
+        isOpen={isInviteModalOpen} 
+        onClose={() => setIsInviteModalOpen(false)} 
+        event={event} 
+        guests={guests} 
+      />
+
     </div>
   );
 }

@@ -93,6 +93,10 @@ export default function Sidebar() {
     { isDivider: true, title: 'Dự án & Kết nối' },
     { title: 'Biz-Link (Dự án)', path: '/biz-link/projects', icon: 'ph-handshake' },
     { title: 'Talent-Hub', path: '/talent-hub', icon: 'ph-briefcase' },
+    
+    // 👇 THÊM DÒNG NÀY VÀO ĐÂY 👇
+    { title: 'Quản lý Sự kiện', path: '/events', icon: 'ph-calendar-star' }, 
+    
     { title: 'Insights & Báo cáo', path: '/insights', icon: 'ph-chart-bar' },
   ];
 
