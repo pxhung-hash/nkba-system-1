@@ -31,7 +31,7 @@ function RsvpContent() {
         setGuest(res.guest);
         setEvent(res.event);
       } else {
-        setErrorMsg(res.message);
+        setErrorMsg(res.message || 'Đã có lỗi xảy ra. Vui lòng thử lại.');
       }
       setLoading(false);
     });
@@ -46,7 +46,7 @@ function RsvpContent() {
       // Cập nhật lại UI ngay lập tức
       setGuest({ ...guest, rsvp_status: status });
     } else {
-      alert(res.message);
+      setErrorMsg(res.message || 'Đã có lỗi xảy ra. Vui lòng thử lại.');
     }
     
     setIsUpdating(false);

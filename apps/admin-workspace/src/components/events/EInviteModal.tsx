@@ -234,7 +234,7 @@ export default function EInviteModal({ isOpen, onClose, event, guests }: EInvite
               </div>
 
               <div className="flex flex-col items-center justify-center gap-1.5 pl-4 border-l shrink-0" style={{ borderColor: 'rgba(255,255,255,0.1)' }}>
-                <QRCodeCanvas bgColor="transparent" fgColor="#FFFFFF" level="H" size="{64}" value="{generateRsvpUrl(activeGuest)}"/>
+                <QRCodeCanvas bgColor="transparent" fgColor="#FFFFFF" level="H" size={64} value="{generateRsvpUrl(activeGuest)}"/>
                 <p className="text-[8px] font-bold uppercase tracking-widest text-center mt-1" style={{ color: '#F3E5AB' }}>Xác nhận<br/>tham dự</p>
               </div>
             </div>
@@ -270,7 +270,7 @@ export default function EInviteModal({ isOpen, onClose, event, guests }: EInvite
               
               <div className="flex items-center gap-6">
                 <div className="shrink-0 flex items-center">
-                  <QRCodeCanvas bgColor="transparent" fgColor="#FFFFFF" level="M" size="{52}" value="https://nkba.vn/su-kien"/>
+                  <QRCodeCanvas bgColor="transparent" fgColor="#FFFFFF" level="M" size={52} value="https://nkba.vn/su-kien"/>
                 </div>
 
                 <div className="w-px h-[52px] shrink-0" style={{ backgroundColor: 'rgba(255,255,255,0.1)' }}></div>
