@@ -2,38 +2,86 @@
 'use client';
 
 import { Suspense, useEffect, useState } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { useSearchParams, useRouter } from 'next/navigation';
 import { processCheckinAction } from '@/actions/checkin.actions';
 import Link from 'next/link';
+import { Html5QrcodeScanner } from 'html5-qrcode';
 
 function CheckinContent() {
   const searchParams = useSearchParams();
+  const router = useRouter();
   const token = searchParams.get('token');
 
   const [loading, setLoading] = useState(true);
   const [result, setResult] = useState<any>(null);
+  const [isScanning, setIsScanning] = useState(false);
 
+  // 1. Lắng nghe thay đổi Token để gọi API Check-in
   useEffect(() => {
-    // NẾU KHÔNG CÓ TOKEN -> HIỂN THỊ MÀN HÌNH CHỜ (STANDBY)
     if (!token) {
       setResult({ status: 'STANDBY' });
       setLoading(false);
       return;
     }
 
-    // CÓ TOKEN -> GỌI API KIỂM TRA
+    setLoading(true);
     processCheckinAction(token).then((res) => {
       setResult(res);
       setLoading(false);
     });
   }, [token]);
 
-  // HÀM MỞ CAMERA ĐIỆN THOẠI ĐỂ QUÉT
-  const handleOpenScanner = () => {
-    // Gọi app Zalo hoặc Trình quét QR mặc định của HĐH
-    window.location.href = 'intent://scan/#Intent;scheme=zxing;package=com.google.zxing.client.android;end';
-  };
+  // 2. Kích hoạt Camera Quét QR khi bật chế độ isScanning
+  useEffect(() => {
+    if (!isScanning) return;
 
+    // Khởi tạo máy quét
+    const scanner = new Html5QrcodeScanner(
+      "nkba-qr-reader",
+      {
+        fps: 10,
+        qrbox: { width: 250, height: 250 },
+        aspectRatio: 1.0,
+      },
+      false
+    );
+
+    scanner.render(
+      (decodedText) => {
+        // KHI QUÉT THÀNH CÔNG: Tắt camera và xử lý dữ liệu
+        scanner.clear();
+        setIsScanning(false);
+        setLoading(true);
+
+        try {
+          // Mã quét được là 1 đường link (vd: https://admin.nkba.vn/events/checkin?token=...)
+          const url = new URL(decodedText);
+          const scannedToken = url.searchParams.get('token');
+
+          if (scannedToken) {
+            // Đẩy token lên thanh địa chỉ để useEffect tự động chạy API
+            router.push(`/events/checkin?token=${scannedToken}`);
+          } else {
+            setResult({ success: false, message: 'Mã QR không thuộc hệ thống NKBA.' });
+            setLoading(false);
+          }
+        } catch (e) {
+          setResult({ success: false, message: 'Định dạng mã QR không hợp lệ.' });
+          setLoading(false);
+        }
+      },
+      (error) => {
+        // Bỏ qua các cảnh báo khi đang dò mã
+      }
+    );
+
+    // Dọn dẹp bộ nhớ và tắt đèn Camera khi thoát
+    return () => {
+      scanner.clear().catch((error) => console.error("Không thể tắt Camera", error));
+    };
+  }, [isScanning, router]);
+
+  // ================= MÀN HÌNH ĐANG XỬ LÝ =================
   if (loading) {
     return (
       <div className="flex flex-col items-center justify-center py-20 gap-4">
@@ -43,8 +91,31 @@ function CheckinContent() {
     );
   }
 
-  // ================= MÀN HÌNH CHỜ (KHI LỄ TÂN VỪA BẤM NÚT VÀO) =================
-  if (result.status === 'STANDBY') {
+  // ================= MÀN HÌNH CAMERA QUÉT MÃ =================
+  if (isScanning) {
+    return (
+      <div className="flex flex-col items-center justify-center py-10 max-w-md mx-auto animate-in zoom-in-95">
+        <div className="w-full bg-white p-4 rounded-3xl shadow-lg border border-slate-200">
+          <div className="flex justify-between items-center mb-4 px-2">
+            <h2 className="font-black text-[#002D62]"><i className="ph-bold ph-scan"></i> Đưa mã QR vào khung</h2>
+            <button onClick={() => setIsScanning(false)} className="w-8 h-8 flex items-center justify-center rounded-full bg-rose-100 text-rose-600 font-bold">
+              <i className="ph-bold ph-x"></i>
+            </button>
+          </div>
+          
+          {/* Thẻ div chứa luồng video từ Camera */}
+          <div id="nkba-qr-reader" className="w-full rounded-2xl overflow-hidden border-2 border-[#D4AF37]"></div>
+          
+          <p className="text-center text-xs text-slate-400 mt-4 font-medium">
+            Hệ thống sẽ tự động nhận diện vé của khách mời.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  // ================= MÀN HÌNH CHỜ (STANDBY) =================
+  if (result?.status === 'STANDBY') {
     return (
       <div className="flex flex-col items-center justify-center py-16 animate-in fade-in">
         <div className="w-28 h-28 bg-blue-50 rounded-full flex items-center justify-center text-[#002D62] mb-6 border-4 border-blue-100">
@@ -52,14 +123,14 @@ function CheckinContent() {
         </div>
         <h1 className="text-2xl font-black text-slate-800 mb-2">CHẾ ĐỘ LỄ TÂN</h1>
         <p className="text-slate-500 text-center font-medium max-w-sm mb-8">
-          Hệ thống đã sẵn sàng. Vui lòng sử dụng máy quét để Check-in khách mời VIP.
+          Hệ thống đã sẵn sàng. Vui lòng bật Camera để Check-in khách mời VIP.
         </p>
         
         <button 
-          onClick={handleOpenScanner}
+          onClick={() => setIsScanning(true)}
           className="px-8 py-4 bg-[#002D62] text-white font-black rounded-xl shadow-xl hover:bg-blue-900 transition-all flex items-center gap-3 text-lg"
         >
-          <i className="ph-bold ph-scan"></i> BẤM ĐỂ QUÉT VÉ
+          <i className="ph-bold ph-camera"></i> BẤM ĐỂ MỞ CAMERA
         </button>
         
         <Link href="/events" className="mt-6 text-slate-400 hover:text-slate-600 font-bold underline">
@@ -80,10 +151,10 @@ function CheckinContent() {
         <p className="text-slate-500 text-center font-medium">{result.message}</p>
         
         <div className="flex gap-4 mt-8">
-          <Link href="/events/checkin" className="px-5 py-3 bg-white border border-slate-200 text-slate-600 font-bold rounded-xl hover:bg-slate-50">
+          <Link href="/events" className="px-5 py-3 bg-white border border-slate-200 text-slate-600 font-bold rounded-xl hover:bg-slate-50">
             Hủy bỏ
           </Link>
-          <button onClick={handleOpenScanner} className="px-5 py-3 bg-[#002D62] text-white font-bold rounded-xl flex items-center gap-2">
+          <button onClick={() => { router.push('/events/checkin'); setIsScanning(true); }} className="px-5 py-3 bg-[#002D62] text-white font-bold rounded-xl flex items-center gap-2">
             <i className="ph-bold ph-camera"></i> Quét lại
           </button>
         </div>
@@ -128,11 +199,11 @@ function CheckinContent() {
       </div>
       
       <div className="flex gap-4 mt-8">
-        <Link href="/events/checkin" className="px-5 py-3 bg-white border border-slate-200 text-slate-600 font-bold rounded-xl hover:bg-slate-50 flex items-center gap-2">
+        <Link href="/events" className="px-5 py-3 bg-white border border-slate-200 text-slate-600 font-bold rounded-xl hover:bg-slate-50 flex items-center gap-2">
           Đóng
         </Link>
         <button 
-          onClick={handleOpenScanner}
+          onClick={() => { router.push('/events/checkin'); setIsScanning(true); }}
           className="px-5 py-3 bg-[#002D62] text-white font-bold rounded-xl shadow-md hover:bg-blue-900 flex items-center gap-2"
         >
           <i className="ph-bold ph-camera"></i> Quét khách tiếp
