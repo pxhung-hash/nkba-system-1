@@ -8,6 +8,8 @@ import { getEventDetails } from '@/actions/event.actions';
 import TicketModal from '@/components/events/TicketModal';
 import AddGuestModal from '@/components/events/AddGuestModal';
 import EInviteModal from '@/components/events/EInviteModal'; // <- Đã thêm Import Modal Thiệp VIP
+// Thêm dòng này vào đầu file page.tsx
+import { sendRsvpEmailsAction } from '@/actions/email.actions';
 
 export default function EventDetailPage() {
   const params = useParams();
