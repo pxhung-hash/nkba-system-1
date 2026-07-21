@@ -1,7 +1,7 @@
 // src/actions/email.actions.ts
 'use server';
 
-import { createAdminClient } from '@/utils/supabase/server';
+import { createAdminClient } from '@nkba/supabase/client';
 import { Resend } from 'resend';
 
 // Khởi tạo Resend với API Key từ file .env
@@ -39,37 +39,37 @@ export async function sendRsvpEmailsAction(eventId: string) {
       if (!guest.guest_info?.email) continue; // Bỏ qua nếu khách không có email
 
       const token = guest.tracking_token || guest.id;
-      // Trỏ về tên miền public-site của NKBA
+      // Đường dẫn trỏ tới trang RSVP public
       const rsvpLink = `${process.env.NEXT_PUBLIC_SITE_URL || 'https://nkba.vn'}/su-kien/rsvp?token=${token}`;
       const salutation = guest.salutation || 'Anh/Chị';
 
       // 4. Thiết kế nội dung thư (HTML Template)
       const htmlContent = `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #eee; border-radius: 12px; overflow: hidden;">
-          <div style="background-color: #002D62; padding: 24px; text-align: center;">
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden;">
+          <div style="background-color: #002D62; padding: 30px; text-align: center;">
             <h2 style="color: #D4AF37; margin: 0; font-size: 14px; text-transform: uppercase; letter-spacing: 2px;">THƯ MỜI VIP</h2>
-            <h1 style="color: #ffffff; margin: 10px 0 0 0;">${eventData.title}</h1>
+            <h1 style="color: #ffffff; margin: 10px 0 0 0; font-size: 24px;">${eventData.title}</h1>
           </div>
-          <div style="padding: 32px; background-color: #ffffff; color: #333;">
-            <p style="font-size: 16px;">Kính chào ${salutation} <strong>${guest.guest_info.name}</strong>,</p>
-            <p style="font-size: 15px; line-height: 1.6; color: #555;">Ban tổ chức Liên minh Xây dựng Việt Nhật (NKBA) trân trọng kính mời ${salutation} tham dự sự kiện đặc biệt của chúng tôi.</p>
-            <p style="font-size: 15px; line-height: 1.6; color: #555;">Vui lòng xác nhận sự hiện diện của ${salutation} để chúng tôi có thể chuẩn bị công tác đón tiếp chu đáo nhất.</p>
+          <div style="padding: 40px 30px; background-color: #ffffff; color: #334155;">
+            <p style="font-size: 16px;">Kính chào ${salutation} <strong style="color: #0f172a;">${guest.guest_info.name}</strong>,</p>
+            <p style="font-size: 15px; line-height: 1.6;">Ban tổ chức Liên minh Xây dựng Việt Nhật (NKBA) trân trọng kính mời ${salutation} tham dự sự kiện đặc biệt của chúng tôi.</p>
+            <p style="font-size: 15px; line-height: 1.6;">Vui lòng xác nhận sự hiện diện của ${salutation} để chúng tôi có thể chuẩn bị công tác đón tiếp chu đáo nhất.</p>
             
             <div style="text-align: center; margin: 40px 0;">
-              <a href="${rsvpLink}" style="background-color: #D4AF37; color: #ffffff; padding: 14px 32px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block;">
+              <a href="${rsvpLink}" style="background-color: #D4AF37; color: #ffffff; padding: 16px 36px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);">
                 MỞ THIỆP & XÁC NHẬN THAM DỰ
               </a>
             </div>
             
-            <hr style="border: none; border-top: 1px solid #eee; margin: 30px 0;" />
-            <p style="font-size: 13px; color: #888; text-align: center;">Thư này được gửi tự động từ hệ thống NKBA.</p>
+            <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 30px 0;" />
+            <p style="font-size: 13px; color: #94a3b8; text-align: center;">Thư này được gửi tự động từ hệ thống quản trị sự kiện NKBA.</p>
           </div>
         </div>
       `;
 
       // 5. Lệnh gửi thư qua Resend
       await resend.emails.send({
-        from: 'NKBA Events <no-reply@nkba.vn>', // Lưu ý: Tên miền nkba.vn cần được verify trên Resend
+        from: 'NKBA Events <px.hung@nkba.vn>',
         to: guest.guest_info.email,
         subject: `[NKBA] Kính mời tham dự - ${eventData.title}`,
         html: htmlContent,
