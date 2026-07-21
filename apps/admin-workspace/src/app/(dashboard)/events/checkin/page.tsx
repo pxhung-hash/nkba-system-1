@@ -5,7 +5,7 @@ import { Suspense, useEffect, useState } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { processCheckinAction } from '@/actions/checkin.actions';
 import Link from 'next/link';
-import { Html5QrcodeScanner } from 'html5-qrcode';
+import { Html5Qrcode } from 'html5-qrcode';
 
 function CheckinContent() {
   const searchParams = useSearchParams();
@@ -35,49 +35,56 @@ function CheckinContent() {
   useEffect(() => {
     if (!isScanning) return;
 
-    // Khởi tạo máy quét
-    const scanner = new Html5QrcodeScanner(
-      "nkba-qr-reader",
+    // Sử dụng bộ lõi Html5Qrcode để ép quyền kiểm soát Camera
+    const html5QrCode = new Html5Qrcode("nkba-qr-reader");
+
+    // Lệnh khởi động Camera
+    html5QrCode.start(
+      { facingMode: "environment" }, // 👉 BẮT BUỘC DÙNG CAMERA MẶT SAU
       {
         fps: 10,
         qrbox: { width: 250, height: 250 },
         aspectRatio: 1.0,
       },
-      false
-    );
-
-    scanner.render(
       (decodedText) => {
-        // KHI QUÉT THÀNH CÔNG: Tắt camera và xử lý dữ liệu
-        scanner.clear();
-        setIsScanning(false);
-        setLoading(true);
+        // KHI QUÉT THÀNH CÔNG: Tắt camera an toàn và xử lý dữ liệu
+        html5QrCode.stop().then(() => {
+          html5QrCode.clear();
+          setIsScanning(false);
+          setLoading(true);
 
-        try {
-          // Mã quét được là 1 đường link (vd: https://admin.nkba.vn/events/checkin?token=...)
-          const url = new URL(decodedText);
-          const scannedToken = url.searchParams.get('token');
+          try {
+            const url = new URL(decodedText);
+            const scannedToken = url.searchParams.get('token');
 
-          if (scannedToken) {
-            // Đẩy token lên thanh địa chỉ để useEffect tự động chạy API
-            router.push(`/events/checkin?token=${scannedToken}`);
-          } else {
-            setResult({ success: false, message: 'Mã QR không thuộc hệ thống NKBA.' });
+            if (scannedToken) {
+              router.push(`/events/checkin?token=${scannedToken}`);
+            } else {
+              setResult({ success: false, message: 'Mã QR không thuộc hệ thống NKBA.' });
+              setLoading(false);
+            }
+          } catch (e) {
+            setResult({ success: false, message: 'Định dạng mã QR không hợp lệ.' });
             setLoading(false);
           }
-        } catch (e) {
-          setResult({ success: false, message: 'Định dạng mã QR không hợp lệ.' });
-          setLoading(false);
-        }
+        }).catch((err) => console.error("Lỗi khi dừng camera", err));
       },
       (error) => {
-        // Bỏ qua các cảnh báo khi đang dò mã
+        // Bỏ qua các cảnh báo dò khung hình trống
       }
-    );
+    ).catch((err) => {
+      console.error("Không thể khởi động camera mặt sau:", err);
+      alert("Không thể mở Camera. Vui lòng cấp quyền truy cập Camera cho trình duyệt!");
+      setIsScanning(false);
+    });
 
-    // Dọn dẹp bộ nhớ và tắt đèn Camera khi thoát
+    // Dọn dẹp bộ nhớ và tắt đèn Camera khi người dùng ấn nút [X] đóng đột ngột
     return () => {
-      scanner.clear().catch((error) => console.error("Không thể tắt Camera", error));
+      if (html5QrCode.isScanning) {
+        html5QrCode.stop().then(() => {
+          html5QrCode.clear();
+        }).catch((error) => console.error("Lỗi khi tắt Camera", error));
+      }
     };
   }, [isScanning, router]);
 
