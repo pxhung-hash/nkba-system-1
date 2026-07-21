@@ -452,11 +452,31 @@ export const dict = {
         format: "Speech & Outdoor BBQ",
         agendaTitle: "Kịch bản Chương trình",
         agenda: [
-          { time: "14:30", title: "Đón khách & Networking sớm", desc: "Check-in, chụp hình tại Backdrop. Phục vụ Welcome Drinks. Ban lãnh đạo chủ động bắt chuyện giao lưu với khách." },
-          { time: "15:15", title: "Tuyên bố Khai mạc", desc: "Lời cảm ơn khách quý. Câu chuyện ra đời của NKBA và khát vọng kiến tạo một chuẩn mực mới cho ngành." },
-          { time: "15:30", title: "Trình bày Hệ sinh thái", desc: "Chi tiết về 3 trụ cột. Công bố YKK AP là đối tác bảo trợ kỹ thuật. Công bố quyền lợi gia nhập." },
-          { time: "16:00", title: "Lễ Ký kết & Kêu gọi", desc: "Ký MOU tượng trưng với đối tác chiến lược. Mời gọi khách tham dự đăng ký hội viên ngay trong buổi tối." },
-          { time: "16:15", title: "Tiệc nhẹ & Networking", desc: "Thưởng thức tiệc nhẹ và Giao lưu sâu (1-1) và hỗ trợ khách đăng ký." }
+          { 
+            time: "14:30", 
+            title: "Đón khách & Networking sớm", 
+            desc: "Đón tiếp quý khách, lưu lại khoảnh khắc tại khu vực Backdrop cùng thức uống chào mừng. Đại diện Ban Lãnh đạo NKBA trân trọng đón tiếp và giao lưu cùng quý khách mời." 
+          },
+          { 
+            time: "15:15", 
+            title: "Phát biểu Khai mạc", 
+            desc: "Lời tri ân đến quý khách quý đối tác. Chia sẻ hành trình hình thành NKBA và khát vọng kiến tạo chuẩn mực mới cho ngành." 
+          },
+          { 
+            time: "15:30", 
+            title: "Giới thiệu Hệ sinh thái", 
+            desc: "Giới thiệu Hệ sinh thái NKBA với 3 trụ cột chiến lược. Công bố YKK AP là Đối tác Bảo trợ Kỹ thuật chính thức. Công bố quyền lợi dành cho hội viên." 
+          },
+          { 
+            time: "16:00", 
+            title: "Lễ Ký kết & Kêu gọi", 
+            desc: "Nghi thức Ký kết Biên bản Ghi nhớ (MOU) cùng các đối tác chiến lược. Lời mời quý khách chính thức đồng hành cùng NKBA trong vai trò hội viên sáng lập." 
+          },
+          { 
+            time: "16:15", 
+            title: "Tiệc nhẹ & Networking", 
+            desc: "Tiệc nhẹ thân mật & Kết nối doanh nhân. Không gian dành cho các trao đổi hợp tác trực tiếp giữa quý khách và đội ngũ NKBA." 
+          }
         ]
       },
 
@@ -961,11 +981,31 @@ export const dict = {
         format: "スピーチ ＆ 屋外BBQ",
         agendaTitle: "プログラムのスケジュール",
         agenda: [
-          { time: "14:30", title: "受付 ＆ 早期ネットワーキング", desc: "チェックイン、バックドロップでの写真撮影。ウェルカムドリンクの提供。経営陣によるゲストとの積極的な交流。" },
-          { time: "15:15", title: "開会宣言", desc: "ゲストへの感謝の言葉。NKBA設立の背景と、業界の新たな基準を築くという私たちの熱意。" },
-          { time: "15:30", title: "エコシステムとソリューションのプレゼン", desc: "3つの柱の詳細。YKK APを技術後援パートナーとして発表。メンバーシップ特典の発表。" },
-          { time: "16:00", title: "調印式 ＆ コールトゥアクション", desc: "戦略的パートナーとのMOU調印。参加者にその晩のメンバー登録を呼びかけます。" },
-          { time: "16:15", title: "屋外BBQ ＆ ネットワーキング", desc: "日本庭園ZouenでBBQを楽しみながら、1対1の深い交流と登録サポートを実施します。" }
+          { 
+            time: "14:30", 
+            title: "受付 ＆ ネットワーキング", 
+            desc: "ご来賓の皆様をお迎えし、バックドロップでの記念撮影とウェルカムドリンクをご提供いたします。NKBA経営陣が皆様をご歓待し、交流を深めさせていただきます。" 
+          },
+          { 
+            time: "15:15", 
+            title: "開会の辞", 
+            desc: "ご来賓およびパートナーの皆様への感謝の辞。NKBA設立の歩みと、業界の新たな基準を創造するという私たちの志についてお話しします。" 
+          },
+          { 
+            time: "15:30", 
+            title: "エコシステムのご紹介", 
+            desc: "戦略的3本柱を持つNKBAエコシステムのご紹介。YKK APの公式技術後援パートナーとしての発表。会員向けの特典についてご説明します。" 
+          },
+          { 
+            time: "16:00", 
+            title: "提携調印式 ＆ ご案内", 
+            desc: "戦略的パートナーとの基本合意書（MOU）調印式。創立会員としてNKBAに正式にご参画いただくよう、皆様にご案内申し上げます。" 
+          },
+          { 
+            time: "16:15", 
+            title: "軽食 ＆ ネットワーキング", 
+            desc: "和やかな軽食とビジネスネットワーキング。ご来賓の皆様とNKBAチームが直接協力関係について語り合うための場をご提供します。" 
+          }
         ]
       },
 
