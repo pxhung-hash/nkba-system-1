@@ -441,7 +441,7 @@ export const dict = {
         subtitle: "Connecting Trust - Building Value",
         dateLabel: "Thời gian",
         date: "01/08/2026",
-        time: "16:30 - 21:00",
+        time: "14:30 - 18:00",
         locationLabel: "Địa điểm",
         location1: "Tầng 1",
         location2: "Viet Long House",
@@ -452,11 +452,11 @@ export const dict = {
         format: "Speech & Outdoor BBQ",
         agendaTitle: "Kịch bản Chương trình",
         agenda: [
-          { time: "16:30", title: "Đón khách & Networking sớm", desc: "Check-in, chụp hình tại Backdrop. Phục vụ Welcome Drinks. Ban lãnh đạo chủ động bắt chuyện giao lưu với khách." },
-          { time: "17:15", title: "Tuyên bố Khai mạc", desc: "Lời cảm ơn khách quý. Câu chuyện ra đời của NKBA và khát vọng kiến tạo một chuẩn mực mới cho ngành." },
-          { time: "17:30", title: "Trình bày Hệ sinh thái", desc: "Chi tiết về 3 trụ cột. Công bố YKK AP là đối tác bảo trợ kỹ thuật. Công bố quyền lợi gia nhập." },
-          { time: "18:00", title: "Lễ Ký kết & Kêu gọi", desc: "Ký MOU tượng trưng với đối tác chiến lược. Mời gọi khách tham dự đăng ký hội viên ngay trong buổi tối." },
-          { time: "18:15", title: "Tiệc nhẹ & Networking", desc: "Thưởng thức tiệc nhẹ và Giao lưu sâu (1-1) và hỗ trợ khách đăng ký." }
+          { time: "14:30", title: "Đón khách & Networking sớm", desc: "Check-in, chụp hình tại Backdrop. Phục vụ Welcome Drinks. Ban lãnh đạo chủ động bắt chuyện giao lưu với khách." },
+          { time: "15:15", title: "Tuyên bố Khai mạc", desc: "Lời cảm ơn khách quý. Câu chuyện ra đời của NKBA và khát vọng kiến tạo một chuẩn mực mới cho ngành." },
+          { time: "15:30", title: "Trình bày Hệ sinh thái", desc: "Chi tiết về 3 trụ cột. Công bố YKK AP là đối tác bảo trợ kỹ thuật. Công bố quyền lợi gia nhập." },
+          { time: "16:00", title: "Lễ Ký kết & Kêu gọi", desc: "Ký MOU tượng trưng với đối tác chiến lược. Mời gọi khách tham dự đăng ký hội viên ngay trong buổi tối." },
+          { time: "16:15", title: "Tiệc nhẹ & Networking", desc: "Thưởng thức tiệc nhẹ và Giao lưu sâu (1-1) và hỗ trợ khách đăng ký." }
         ]
       },
 
@@ -475,7 +475,7 @@ export const dict = {
       eventInfoTitle: "Thông Tin Sự Kiện",
       eventTitle: "Lễ Ra Mắt Liên Minh NKBA",
       eventDate: "01/08/2026",
-      eventTime: "16:30 - 21:00",
+      eventTime: "14:30 - 18:00",
       eventLocation: "Viet Long House (Tầng 1)",
       perksTitle: "Đặc quyền khi tham dự:",
       perk1: "Gặp gỡ trực tiếp 30 Chủ doanh nghiệp / C-Level ngành xây dựng Việt - Nhật.",
@@ -950,7 +950,7 @@ export const dict = {
         subtitle: "Connecting Trust - Building Value",
         dateLabel: "日時",
         date: "2026年08月01日",
-        time: "16:30 - 21:00",
+        time: "14:30 - 18:00",
         locationLabel: "会場",
         location1: "1階",
         location2: "Viet Long House",
@@ -961,11 +961,11 @@ export const dict = {
         format: "スピーチ ＆ 屋外BBQ",
         agendaTitle: "プログラムのスケジュール",
         agenda: [
-          { time: "16:30", title: "受付 ＆ 早期ネットワーキング", desc: "チェックイン、バックドロップでの写真撮影。ウェルカムドリンクの提供。経営陣によるゲストとの積極的な交流。" },
-          { time: "17:15", title: "開会宣言", desc: "ゲストへの感謝の言葉。NKBA設立の背景と、業界の新たな基準を築くという私たちの熱意。" },
-          { time: "17:30", title: "エコシステムとソリューションのプレゼン", desc: "3つの柱の詳細。YKK APを技術後援パートナーとして発表。メンバーシップ特典の発表。" },
-          { time: "18:00", title: "調印式 ＆ コールトゥアクション", desc: "戦略的パートナーとのMOU調印。参加者にその晩のメンバー登録を呼びかけます。" },
-          { time: "18:15", title: "屋外BBQ ＆ ネットワーキング", desc: "日本庭園ZouenでBBQを楽しみながら、1対1の深い交流と登録サポートを実施します。" }
+          { time: "14:30", title: "受付 ＆ 早期ネットワーキング", desc: "チェックイン、バックドロップでの写真撮影。ウェルカムドリンクの提供。経営陣によるゲストとの積極的な交流。" },
+          { time: "15:15", title: "開会宣言", desc: "ゲストへの感謝の言葉。NKBA設立の背景と、業界の新たな基準を築くという私たちの熱意。" },
+          { time: "15:30", title: "エコシステムとソリューションのプレゼン", desc: "3つの柱の詳細。YKK APを技術後援パートナーとして発表。メンバーシップ特典の発表。" },
+          { time: "16:00", title: "調印式 ＆ コールトゥアクション", desc: "戦略的パートナーとのMOU調印。参加者にその晩のメンバー登録を呼びかけます。" },
+          { time: "16:15", title: "屋外BBQ ＆ ネットワーキング", desc: "日本庭園ZouenでBBQを楽しみながら、1対1の深い交流と登録サポートを実施します。" }
         ]
       },
 
@@ -984,7 +984,7 @@ export const dict = {
       eventInfoTitle: "イベント情報",
       eventTitle: "NKBAアライアンス設立記念式典",
       eventDate: "2026年08月01日",
-      eventTime: "16:30 - 21:00",
+      eventTime: "14:30 - 18:00",
       eventLocation: "Viet Long House (1階)",
       perksTitle: "参加特典：",
       perk1: "日越建設業界の経営者・Cレベル30名と直接交流。",

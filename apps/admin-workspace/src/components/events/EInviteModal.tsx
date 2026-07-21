@@ -257,17 +257,17 @@ export default function EInviteModal({ isOpen, onClose, event, guests }: EInvite
                 
                 <div className="relative pl-5 flex items-center mb-3">
                   <div className="absolute w-2.5 h-2.5 border-2 rounded-full" style={{ backgroundColor: '#002D62', borderColor: '#60A5FA', left: '0px' }}></div>
-                  <p className="text-[11px] font-bold w-11 shrink-0" style={{ color: '#bfdbfe' }}>16:30</p>
+                  <p className="text-[11px] font-bold w-11 shrink-0" style={{ color: '#bfdbfe' }}>14:30</p>
                   <span className="text-[11px]" style={{ color: '#ffffff' }}>Đón khách & Welcome Drink</span>
                 </div>
                 <div className="relative pl-5 flex items-center mb-3">
                   <div className="absolute w-2.5 h-2.5 border-2 rounded-full" style={{ backgroundColor: '#002D62', borderColor: '#BE0027', left: '0px' }}></div>
-                  <p className="text-[11px] font-bold w-11 shrink-0" style={{ color: '#bfdbfe' }}>17:15</p>
+                  <p className="text-[11px] font-bold w-11 shrink-0" style={{ color: '#bfdbfe' }}>15:15</p>
                   <span className="text-[11px]" style={{ color: '#ffffff' }}>Keynote & Giới thiệu NKBA</span>
                 </div>
                 <div className="relative pl-5 flex items-center">
                   <div className="absolute w-2.5 h-2.5 rounded-full" style={{ backgroundColor: '#D4AF37', boxShadow: '0 0 8px #D4AF37', left: '0px' }}></div>
-                  <p className="text-[11px] font-bold w-11 shrink-0" style={{ color: '#D4AF37' }}>18:15</p>
+                  <p className="text-[11px] font-bold w-11 shrink-0" style={{ color: '#D4AF37' }}>16:15</p>
                   <span className="text-[11px] font-bold" style={{ color: '#ffffff' }}>Tiệc nhẹ & Networking</span>
                 </div>
               </div>
