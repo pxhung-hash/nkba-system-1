@@ -268,7 +268,7 @@ export default function EInviteModal({ isOpen, onClose, event, guests }: EInvite
                 <div className="relative pl-5 flex items-center">
                   <div className="absolute w-2.5 h-2.5 rounded-full" style={{ backgroundColor: '#D4AF37', boxShadow: '0 0 8px #D4AF37', left: '0px' }}></div>
                   <p className="text-[11px] font-bold w-11 shrink-0" style={{ color: '#D4AF37' }}>18:15</p>
-                  <span className="text-[11px] font-bold" style={{ color: '#ffffff' }}>Tiệc nướng BBQ & Networking</span>
+                  <span className="text-[11px] font-bold" style={{ color: '#ffffff' }}>Tiệc nhẹ & Networking</span>
                 </div>
               </div>
             </div>

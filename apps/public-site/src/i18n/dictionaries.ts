@@ -456,7 +456,7 @@ export const dict = {
           { time: "17:15", title: "Tuyên bố Khai mạc", desc: "Lời cảm ơn khách quý. Câu chuyện ra đời của NKBA và khát vọng kiến tạo một chuẩn mực mới cho ngành." },
           { time: "17:30", title: "Trình bày Hệ sinh thái", desc: "Chi tiết về 3 trụ cột. Công bố YKK AP là đối tác bảo trợ kỹ thuật. Công bố quyền lợi gia nhập." },
           { time: "18:00", title: "Lễ Ký kết & Kêu gọi", desc: "Ký MOU tượng trưng với đối tác chiến lược. Mời gọi khách tham dự đăng ký hội viên ngay trong buổi tối." },
-          { time: "18:15", title: "Tiệc nướng BBQ & Networking", desc: "Thưởng thức BBQ tại không gian Vườn Nhật Zouen. Giao lưu sâu (1-1) và hỗ trợ khách đăng ký." }
+          { time: "18:15", title: "Tiệc nhẹ & Networking", desc: "Thưởng thức tiệc nhẹ và Giao lưu sâu (1-1) và hỗ trợ khách đăng ký." }
         ]
       },
 
