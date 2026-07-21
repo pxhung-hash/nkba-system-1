@@ -234,7 +234,13 @@ export default function EInviteModal({ isOpen, onClose, event, guests }: EInvite
               </div>
 
               <div className="flex flex-col items-center justify-center gap-1.5 pl-4 border-l shrink-0" style={{ borderColor: 'rgba(255,255,255,0.1)' }}>
-                <QRCodeCanvas bgColor="transparent" fgColor="#FFFFFF" level="H" size={64} value="{generateRsvpUrl(activeGuest)}"/>
+                <QRCodeCanvas 
+                  bgColor="transparent" 
+                  fgColor="#FFFFFF" 
+                  level="H" 
+                  size={64} 
+                  value={generateRsvpUrl(activeGuest)} 
+                />
                 <p className="text-[8px] font-bold uppercase tracking-widest text-center mt-1" style={{ color: '#F3E5AB' }}>Xác nhận<br/>tham dự</p>
               </div>
             </div>
