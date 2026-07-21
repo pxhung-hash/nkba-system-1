@@ -43,6 +43,7 @@ export async function sendRsvpEmailsAction(eventId: string) {
     }
 
     let successCount = 0;
+    let failCount = 0;
 
     // 3. Vòng lặp gửi Email cho từng khách
     for (const guest of guests) {
@@ -61,7 +62,6 @@ export async function sendRsvpEmailsAction(eventId: string) {
       const token = guest.tracking_token || guest.id;
       // Đường dẫn trỏ tới trang RSVP public
       const rsvpLink = `${process.env.NEXT_PUBLIC_SITE_URL || 'https://nkba.vn'}/su-kien/rsvp?token=${token}`;
-      const salutation = guest.salutation || 'Anh/Chị';
 
       // 4. Thiết kế nội dung thư (HTML Template)
       const htmlContent = `
