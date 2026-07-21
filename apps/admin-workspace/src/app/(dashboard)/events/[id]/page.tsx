@@ -193,7 +193,9 @@ export default function EventDetailPage() {
               <tbody className="divide-y divide-slate-50">
                 {guests.map((guest) => (
                   <tr key={guest.id} className="hover:bg-slate-50/80 transition-colors">
-                    <td className="px-6 py-4 font-bold text-slate-900">{guest.guest_info?.name || '---'}</td>
+                    <td className="px-6 py-4 font-bold text-slate-900">
+                      {guest.salutation ? `${guest.salutation} ` : ''}{guest.guest_info?.name || '---'}` 
+                    </td>
                     <td className="px-6 py-4">
                       <p className="font-bold text-slate-700">{guest.guest_info?.company || '---'}</p>
                       <p className="text-xs text-slate-500 mt-0.5">{guest.guest_info?.position || '---'}</p>

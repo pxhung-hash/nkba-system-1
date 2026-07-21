@@ -124,6 +124,7 @@ export async function addEventGuestsAction(eventId: string, guestsData: any[]) {
     // 1. Chuyển đổi dữ liệu từ Client thành định dạng chuẩn của Database
     const inserts = guestsData.map((g) => ({
       event_id: eventId,
+      salutation: g.salutation || null, // 👇 Hứng trường Danh xưng để lưu vào DB
       guest_info: {
         name: g.name || '',
         email: g.email || '',

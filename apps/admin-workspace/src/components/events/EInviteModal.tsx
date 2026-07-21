@@ -5,6 +5,7 @@ import { useState, useRef, useEffect } from 'react';
 import html2canvas from 'html2canvas';
 import { jsPDF } from 'jspdf';
 import { QRCodeCanvas } from 'qrcode.react'; 
+import { QRCodeSVG } from 'qrcode.react';
 
 interface EInviteModalProps {
   isOpen: boolean;
@@ -188,7 +189,8 @@ export default function EInviteModal({ isOpen, onClose, event, guests }: EInvite
             <div className="border p-4 rounded-xl my-2 flex flex-col justify-center" style={{ backgroundColor: 'rgba(255,255,255,0.05)', borderColor: 'rgba(255,255,255,0.1)' }}>
               <p className="text-xs font-['Noto_Serif'] italic" style={{ color: '#bfdbfe', lineHeight: 1.2, marginBottom: '6px' }}>Trân trọng kính mời:</p>
               <h2 className="text-xl font-bold tracking-wide overflow-hidden whitespace-nowrap text-ellipsis" style={{ color: '#D4AF37', lineHeight: 1.5, paddingBottom: '6px' }}>
-                Anh/Chị {activeGuest?.guest_info?.name || '[Tên Khách VIP]'}
+                {/* HIỂN THỊ DANH XƯNG THỰC TẾ */}
+                {activeGuest?.salutation ? `${activeGuest.salutation} ` : ''}{activeGuest?.guest_info?.name || '[Tên Khách VIP]'}
               </h2>
               <div className="w-full h-px mt-1" style={{ background: 'linear-gradient(90deg, transparent, rgba(212,175,55,0.5), transparent)' }}></div>
             </div>
@@ -203,7 +205,7 @@ export default function EInviteModal({ isOpen, onClose, event, guests }: EInvite
                   </div>
                   <div className="flex flex-col">
                     <p className="text-[11px] font-bold tracking-widest uppercase mb-0.5" style={{ color: '#bfdbfe' }}>Thời gian</p>
-                    <p className="text-xs font-bold mb-0.5" style={{ color: '#ffffff' }}>17:00</p>
+                    <p className="text-xs font-bold mb-0.5" style={{ color: '#ffffff' }}>14:30</p>
                     <p className="text-[11px]" style={{ color: '#dbeafe' }}>
                       {event?.event_date ? new Date(event.event_date).toLocaleDateString('vi-VN') : 'Thứ Năm, 18/07/2026'}
                     </p>
@@ -234,11 +236,12 @@ export default function EInviteModal({ isOpen, onClose, event, guests }: EInvite
               </div>
 
               <div className="flex flex-col items-center justify-center gap-1.5 pl-4 border-l shrink-0" style={{ borderColor: 'rgba(255,255,255,0.1)' }}>
-                <QRCodeCanvas 
+                <QRCodeSVG 
                   bgColor="transparent" 
                   fgColor="#FFFFFF" 
                   level="H" 
-                  size={64} 
+                  size={256} 
+                  style={{ width: '64px', height: '64px' }} 
                   value={generateRsvpUrl(activeGuest)} 
                 />
                 <p className="text-[8px] font-bold uppercase tracking-widest text-center mt-1" style={{ color: '#F3E5AB' }}>Xác nhận<br/>tham dự</p>

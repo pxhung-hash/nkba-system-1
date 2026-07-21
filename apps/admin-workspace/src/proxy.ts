@@ -32,7 +32,9 @@ export async function proxy(request: NextRequest) {
 
   // 1. Danh sách các "Vùng xanh" (Không cần thẻ vẫn vào được)
   const publicRoutes = ['/login', '/signup', '/auth/callback'];
-  const isPublicRoute = publicRoutes.includes(path);
+  
+  // 👉 SỬA DÒNG NÀY: Chấp nhận các route tĩnh và mở cửa thêm toàn bộ đường dẫn bắt đầu bằng /su-kien
+  const isPublicRoute = publicRoutes.includes(path) || path.startsWith('/su-kien');
 
   console.log("\n=== 🕵️‍♂️ MIDDLEWARE BÁO CÁO ===");
   console.log("📍 Đang truy cập URL:", request.url);
@@ -40,7 +42,7 @@ export async function proxy(request: NextRequest) {
   console.log("================================\n");
 
   // 2. LOGIC 1: Đã login mà lảng vảng ở trang công khai (như /login) -> Mời vào Dashboard
-  if (user && isPublicRoute) {
+  if (user && publicRoutes.includes(path)) { // Chỉ redirect nếu là trang login/signup, không redirect trang /su-kien
     return NextResponse.redirect(new URL('/', request.url));
   }
 

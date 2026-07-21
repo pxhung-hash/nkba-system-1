@@ -78,6 +78,9 @@ function RsvpContent() {
     );
   }
 
+  // Khởi tạo danh xưng an toàn (Nếu không có dữ liệu thì mặc định là 'Anh/Chị')
+  const salutation = guest?.salutation || 'Anh/Chị';
+
   return (
     <div className="min-h-screen flex items-center justify-center p-4 font-['Montserrat']">
       <div className="bg-[#002D62] w-full max-w-lg rounded-[2rem] shadow-2xl overflow-hidden relative border border-[#D4AF37]/20">
@@ -108,7 +111,8 @@ function RsvpContent() {
 
           {/* Lời chào khách */}
           <div className="bg-white/10 backdrop-blur-md border border-white/20 w-full p-6 rounded-2xl mb-8 shadow-inner">
-            <p className="text-blue-200 text-sm mb-2 font-['Noto_Serif'] italic">Kính chào Anh/Chị,</p>
+            {/* ÁP DỤNG DANH XƯNG VÀO LỜI CHÀO */}
+            <p className="text-blue-200 text-sm mb-2 font-['Noto_Serif'] italic">Kính chào {salutation},</p>
             <p className="text-xl font-bold text-[#F3E5AB] tracking-wide mb-4 line-clamp-2">
               {guest.guest_info?.name || 'Khách VIP'}
             </p>
@@ -122,7 +126,7 @@ function RsvpContent() {
                 </div>
                 <div>
                   <p className="text-[11px] font-bold text-blue-200 uppercase tracking-widest">Thời gian</p>
-                  <p className="text-sm font-bold text-white">17:00, {event?.event_date ? new Date(event.event_date).toLocaleDateString('vi-VN') : 'Sắp tới'}</p>
+                  <p className="text-sm font-bold text-white">14:30, {event?.event_date ? new Date(event.event_date).toLocaleDateString('vi-VN') : 'Sắp tới'}</p>
                 </div>
               </div>
               <div className="flex items-start gap-3">
@@ -167,10 +171,11 @@ function RsvpContent() {
               <h3 className={`text-lg font-bold mb-1 ${guest.rsvp_status === 'CONFIRMED' ? 'text-[#34d399]' : 'text-slate-300'}`}>
                 {guest.rsvp_status === 'CONFIRMED' ? 'Đã xác nhận tham dự!' : 'Đã từ chối tham gia'}
               </h3>
-              <p className="text-xs text-blue-200">
+              {/* ÁP DỤNG DANH XƯNG VÀO LỜI CẢM ƠN */}
+              <p className="text-xs text-blue-200 mt-2 leading-relaxed">
                 {guest.rsvp_status === 'CONFIRMED' 
-                  ? 'Cảm ơn Anh/Chị. Rất mong được đón tiếp Anh/Chị tại sự kiện.' 
-                  : 'Rất tiếc vì sự vắng mặt của Anh/Chị. Hẹn gặp lại trong các sự kiện tới.'}
+                  ? `Cảm ơn ${salutation}. Rất mong được đón tiếp ${salutation} tại sự kiện.` 
+                  : `Rất tiếc vì sự vắng mặt của ${salutation}. Hẹn gặp lại trong các sự kiện tới.`}
               </p>
             </div>
           )}

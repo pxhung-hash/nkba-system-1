@@ -9,8 +9,8 @@ export default function AddGuestModal({ isOpen, onClose, eventId }: { isOpen: bo
   const [activeTab, setActiveTab] = useState<'MANUAL' | 'MEMBER' | 'EXCEL'>('MANUAL');
   const [isSubmitting, setIsSubmitting] = useState(false);
   
-  // State cho Tab: Thủ công
-  const [manualData, setManualData] = useState({ name: '', email: '', phone: '', company: '', position: '' });
+  // State cho Tab: Thủ công (Thêm trường salutation)
+  const [manualData, setManualData] = useState({ salutation: 'Ông', name: '', email: '', phone: '', company: '', position: '' });
   
   // State cho Tab: Hội viên
   const [members, setMembers] = useState<any[]>([]);
@@ -32,9 +32,10 @@ export default function AddGuestModal({ isOpen, onClose, eventId }: { isOpen: bo
 
   // 👇 HÀM TẠO VÀ TẢI TEMPLATE EXCEL 👇
   const handleDownloadTemplate = () => {
-    // 1. Tạo dữ liệu mẫu
+    // Thêm cột Danh xưng vào template
     const templateData = [
       {
+        'Danh xưng': 'Anh',
         'Tên': 'Nguyễn Văn A',
         'Email': 'nguyenvana@example.com',
         'SĐT': '0901234567',
@@ -42,6 +43,7 @@ export default function AddGuestModal({ isOpen, onClose, eventId }: { isOpen: bo
         'Chức vụ': 'Giám đốc'
       },
       {
+        'Danh xưng': 'Chị',
         'Tên': 'Trần Thị B',
         'Email': 'tranthib@example.com',
         'SĐT': '0912345678',
@@ -72,7 +74,7 @@ export default function AddGuestModal({ isOpen, onClose, eventId }: { isOpen: bo
       const data = XLSX.utils.sheet_to_json(ws);
       
       const formatted = data.map((row: any) => ({
-        // Lấy đúng theo header của template
+        salutation: row['Danh xưng'] || row['Salutation'] || '', // Hứng cột Danh xưng
         name: row['Tên'] || row['Name'] || '',
         email: row['Email'] || '',
         phone: row['SĐT'] || row['Phone'] || '',
@@ -100,6 +102,7 @@ export default function AddGuestModal({ isOpen, onClose, eventId }: { isOpen: bo
     else if (activeTab === 'MEMBER') {
       if (selectedMembers.length === 0) { alert('Chưa chọn hội viên nào!'); setIsSubmitting(false); return; }
       payload = members.filter(m => selectedMembers.includes(m.id)).map(m => ({
+        salutation: 'Ông/Bà', // Mặc định cho hội viên nếu bảng company không có
         name: m.name, email: m.email, phone: m.phone, company: m.name, source: 'MEMBER'
       }));
     }
@@ -107,7 +110,7 @@ export default function AddGuestModal({ isOpen, onClose, eventId }: { isOpen: bo
     const res = await addEventGuestsAction(eventId, payload);
     if (res.success) {
       alert(res.message);
-      setManualData({ name: '', email: '', phone: '', company: '', position: '' });
+      setManualData({ salutation: 'Anh', name: '', email: '', phone: '', company: '', position: '' });
       setExcelData([]);
       setSelectedMembers([]);
       setFileName('');
@@ -152,24 +155,40 @@ export default function AddGuestModal({ isOpen, onClose, eventId }: { isOpen: bo
           
           {/* TAB 1: THỦ CÔNG */}
           {activeTab === 'MANUAL' && (
-            <div className="grid grid-cols-2 gap-4">
-              <div className="col-span-2 space-y-1">
+            <div className="grid grid-cols-12 gap-4">
+              <div className="col-span-4 space-y-1">
+                <label className="text-xs font-bold text-slate-500">Danh xưng</label>
+                <select 
+                  value={manualData.salutation} 
+                  onChange={e => setManualData({...manualData, salutation: e.target.value})} 
+                  className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:border-[#002D62]"
+                >
+                  <option value="Ông">Ông</option>
+                  <option value="Bà">Bà</option>
+                  <option value="Anh">Anh</option>
+                  <option value="Chị">Chị</option>
+                  <option value="Mr">Mr.</option>
+                  <option value="Ms">Ms.</option>
+                  <option value="Dr">Dr.</option>
+                </select>
+              </div>
+              <div className="col-span-8 space-y-1">
                 <label className="text-xs font-bold text-slate-500">Họ và Tên *</label>
                 <input type="text" value={manualData.name} onChange={e => setManualData({...manualData, name: e.target.value})} className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-lg text-sm" placeholder="VD: Nguyễn Văn A"/>
               </div>
-              <div className="space-y-1">
+              <div className="col-span-6 space-y-1">
                 <label className="text-xs font-bold text-slate-500">Email</label>
                 <input type="email" value={manualData.email} onChange={e => setManualData({...manualData, email: e.target.value})} className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-lg text-sm" />
               </div>
-              <div className="space-y-1">
+              <div className="col-span-6 space-y-1">
                 <label className="text-xs font-bold text-slate-500">Số điện thoại</label>
                 <input type="text" value={manualData.phone} onChange={e => setManualData({...manualData, phone: e.target.value})} className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-lg text-sm" />
               </div>
-              <div className="space-y-1">
+              <div className="col-span-6 space-y-1">
                 <label className="text-xs font-bold text-slate-500">Đơn vị / Công ty</label>
                 <input type="text" value={manualData.company} onChange={e => setManualData({...manualData, company: e.target.value})} className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-lg text-sm" />
               </div>
-              <div className="space-y-1">
+              <div className="col-span-6 space-y-1">
                 <label className="text-xs font-bold text-slate-500">Chức vụ</label>
                 <input type="text" value={manualData.position} onChange={e => setManualData({...manualData, position: e.target.value})} className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-lg text-sm" />
               </div>
