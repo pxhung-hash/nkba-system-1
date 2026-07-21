@@ -53,13 +53,29 @@ export default function EventDetailPage() {
   const pendingCount = guests.filter(g => g.rsvp_status === 'PENDING').length;
   const declinedCount = guests.filter(g => g.rsvp_status === 'DECLINED').length;
 
-  const handleSendMassEmail = () => {
+  const handleSendMassEmail = async () => {
+    // 1. Hỏi xác nhận để tránh bấm nhầm
+    const isConfirmed = window.confirm(
+      `Hệ thống sẽ gửi email thư mời đến tất cả khách hàng đang CHỜ PHẢN HỒI.\nAnh/chị có chắc chắn muốn thực hiện?`
+    );
+    if (!isConfirmed) return;
+
     setIsSendingMail(true);
-    // Giả lập API gọi dịch vụ gửi mail (như Resend/SendGrid)
-    setTimeout(() => {
+    try {
+      // 2. Gọi Server Action thật qua Resend
+      const res = await sendRsvpEmailsAction(eventId);
+
+      if (res.success) {
+        alert(`🎉 ${res.message}`);
+      } else {
+        alert(`⚠️ Thông báo: ${res.message}`);
+      }
+    } catch (error) {
+      console.error('Lỗi gửi mail:', error);
+      alert('❌ Đã có lỗi xảy ra khi kết nối máy chủ gửi mail.');
+    } finally {
       setIsSendingMail(false);
-      alert('Đã kích hoạt gửi Email RSVP thành công đến các khách mời PENDING!');
-    }, 2000);
+    }
   };
 
   const handleCopyRsvpLink = (guest: any) => {
