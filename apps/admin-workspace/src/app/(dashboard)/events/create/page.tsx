@@ -46,8 +46,20 @@ export default function CreateEventPage() {
     e.preventDefault();
     setIsSubmitting(true);
     
-    // Gán trạng thái dựa trên nút bấm (Lưu nháp hay Xuất bản)
-    const finalData = { ...formData, status: submitStatus };
+    // XỬ LÝ CHUẨN HÓA MÚI GIỜ (Ép về chuẩn UTC +00 để lưu Database)
+    let isoDate = formData.event_date;
+    if (isoDate) {
+      // Khởi tạo Date object, trình duyệt sẽ tự hiểu chuỗi này đang là giờ Việt Nam
+      // Sau đó .toISOString() sẽ tự động trừ đi 7 tiếng để ra chuỗi UTC có đuôi 'Z'
+      isoDate = new Date(formData.event_date).toISOString(); 
+    }
+
+    // Gán trạng thái và ngày giờ đã chuẩn hóa
+    const finalData = { 
+      ...formData, 
+      status: submitStatus,
+      event_date: isoDate // Ghi đè lại bằng chuỗi UTC
+    };
 
     try {
       console.log('Đang gửi dữ liệu xuống Server Action...', finalData);
