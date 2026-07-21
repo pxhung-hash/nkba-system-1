@@ -149,6 +149,15 @@ export default function EventDetailPage() {
         </div>
       </div>
 
+          {/* 👇 Cột phải: NÚT CHỈNH SỬA THÊM VÀO ĐÂY 👇 */}
+          <Link 
+            href={`/events/${eventId}/edit`}
+            className="px-5 py-2.5 bg-white border border-slate-200 text-slate-700 text-sm font-bold rounded-xl hover:bg-slate-50 hover:text-[#002D62] hover:border-[#002D62] transition-all shadow-sm flex items-center gap-2 shrink-0"
+          >
+            <i className="ph-bold ph-pencil-simple text-lg"></i> Chỉnh sửa thông tin
+          </Link>
+          {/* 👆 KẾT THÚC PHẦN THÊM NÚT 👆 */}
+
       {/* TABLE GUESTS */}
       <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
         <div className="p-6 border-b border-slate-100 flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 bg-slate-50/50">

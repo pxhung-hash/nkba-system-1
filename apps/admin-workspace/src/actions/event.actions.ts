@@ -171,3 +171,50 @@ export async function getMembersForEvent() {
     return { success: false, data: [] };
   }
 }
+
+// src/actions/event.actions.ts
+
+export async function updateEventAction(eventId: string, formData: any) {
+  try {
+    const supabaseAdmin = createAdminClient();
+
+    // Gom nhóm dữ liệu phụ
+    const details = {
+      location: formData.location || '',
+      format: formData.format || '',
+      description: formData.description || '',
+    };
+
+    // Thực hiện Update
+    const { error } = await supabaseAdmin
+      .from('events')
+      .update({
+        event_code: formData.event_code.trim(),
+        title: formData.title.trim(),
+        status: formData.status,
+        event_date: formData.event_date ? new Date(formData.event_date).toISOString() : null,
+        capacity: formData.capacity || 0,
+        details: details,
+        updated_at: new Date().toISOString() // Cập nhật thời gian sửa đổi
+      })
+      .eq('id', eventId);
+
+    if (error) {
+      console.error('Supabase Update Error:', error);
+      if (error.code === '23505') {
+        throw new Error('Mã sự kiện (Event Code) này đã tồn tại ở một sự kiện khác.');
+      }
+      throw new Error(error.message);
+    }
+
+    // Xóa cache để làm mới dữ liệu
+    revalidatePath('/events');
+    revalidatePath(`/events/${eventId}`);
+
+    return { success: true, message: 'Cập nhật sự kiện thành công!' };
+
+  } catch (error: any) {
+    console.error('Lỗi Server Action (updateEventAction):', error);
+    return { success: false, message: error.message || 'Đã có lỗi xảy ra phía máy chủ.' };
+  }
+}
