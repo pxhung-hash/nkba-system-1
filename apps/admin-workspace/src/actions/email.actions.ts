@@ -9,6 +9,11 @@ const resend = new Resend(process.env.RESEND_API_KEY);
 
 export async function sendRsvpEmailsAction(eventId: string) {
   try {
+    // 1. Kiểm tra API Key
+    if (!process.env.RESEND_API_KEY) {
+      return { success: false, message: 'Thiếu RESEND_API_KEY trong file .env.local!' };
+    }
+
     const supabase = createAdminClient();
 
     // 1. Lấy thông tin Sự kiện
@@ -18,7 +23,9 @@ export async function sendRsvpEmailsAction(eventId: string) {
       .eq('id', eventId)
       .single();
 
-    if (eventError || !eventData) throw new Error('Không tìm thấy thông tin sự kiện.');
+    if (eventError || !eventData) {
+      return { success: false, message: `Lỗi Supabase: ${eventError?.message || 'Không tìm thấy sự kiện'}` };
+    }
 
     // 2. Lọc ra danh sách khách mời đang PENDING và có địa chỉ Email
     const { data: guests, error: guestError } = await supabase
@@ -27,7 +34,10 @@ export async function sendRsvpEmailsAction(eventId: string) {
       .eq('event_id', eventId)
       .eq('rsvp_status', 'PENDING');
 
-    if (guestError) throw guestError;
+    if (guestError) {
+      return { success: false, message: `Lỗi truy vấn khách mời: ${guestError.message}` };
+    }
+
     if (!guests || guests.length === 0) {
       return { success: false, message: 'Không có khách mời nào ở trạng thái Chờ phản hồi để gửi.' };
     }
@@ -67,13 +77,18 @@ export async function sendRsvpEmailsAction(eventId: string) {
         </div>
       `;
 
-      // 5. Lệnh gửi thư qua Resend
-      await resend.emails.send({
-        from: 'NKBA Events <px.hung@nkba.vn>',
+      // Bọc riêng lệnh gửi mail để bắt lỗi từ Resend
+      const { error: sendError } = await resend.emails.send({
+        from: 'NKBA Events <px.hung@nkba.vn>', 
         to: guest.guest_info.email,
         subject: `[NKBA] Kính mời tham dự - ${eventData.title}`,
         html: htmlContent,
       });
+
+      if (sendError) {
+        console.error('Lỗi Resend Chi tiết:', sendError);
+        return { success: false, message: `Lỗi Resend: ${sendError.message}` };
+      }
 
       successCount++;
     }
@@ -81,7 +96,7 @@ export async function sendRsvpEmailsAction(eventId: string) {
     return { success: true, message: `Đã gửi thành công thư mời đến ${successCount} khách.` };
 
   } catch (error: any) {
-    console.error('Lỗi gửi email hàng loạt:', error);
-    return { success: false, message: 'Đã có lỗi máy chủ khi gửi thư.' };
+    console.error('Lỗi hệ thống:', error);
+    return { success: false, message: `Lỗi Exception: ${error?.message || 'Lỗi không xác định'}` };
   }
 }
