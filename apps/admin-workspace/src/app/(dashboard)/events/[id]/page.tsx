@@ -95,6 +95,8 @@ export default function EventDetailPage() {
       {/* HEADER OVERVIEW */}
       <div className="bg-white p-8 rounded-3xl border border-slate-200 shadow-sm relative overflow-hidden">
         <div className="flex flex-col md:flex-row justify-between items-start gap-6 relative z-10">
+          
+          {/* CỘT TRÁI: Thông tin sự kiện */}
           <div>
             <div className="flex items-center gap-3 mb-3">
               <Link href="/events" className="text-slate-400 hover:text-[#002D62] transition-colors">
@@ -114,6 +116,24 @@ export default function EventDetailPage() {
               <i className="ph-fill ph-map-pin text-[#D4AF37]"></i> {event.details?.location || 'Chưa có địa điểm'}
             </p>
           </div>
+
+          {/* CỘT PHẢI: Chứa 2 nút thao tác ĐÃ ĐƯỢC ĐẶT VÀO ĐÚNG VỊ TRÍ VÀ ĐÓNG THẺ ĐẦY ĐỦ */}
+          <div className="flex items-center gap-3 shrink-0">
+            <Link 
+              href={`/events/${eventId}/edit`}
+              className="px-5 py-2.5 bg-white border border-slate-200 text-slate-700 text-sm font-bold rounded-xl hover:bg-slate-50 hover:text-[#002D62] hover:border-[#002D62] transition-all shadow-sm flex items-center gap-2"
+            >
+              <i className="ph-bold ph-pencil-simple text-lg"></i> Chỉnh sửa
+            </Link>
+
+            <Link 
+              href="/events/checkin"
+              className="px-5 py-2.5 bg-[#002D62] border border-[#002D62] text-white text-sm font-bold rounded-xl hover:bg-blue-900 transition-all shadow-md shadow-blue-900/20 flex items-center gap-2"
+            >
+              <i className="ph-bold ph-scan text-lg"></i> Chế độ Lễ tân
+            </Link>
+          </div>
+
         </div>
       </div>
 
@@ -149,14 +169,7 @@ export default function EventDetailPage() {
         </div>
       </div>
 
-          {/* 👇 Cột phải: NÚT CHỈNH SỬA THÊM VÀO ĐÂY 👇 */}
-          <Link 
-            href={`/events/${eventId}/edit`}
-            className="px-5 py-2.5 bg-white border border-slate-200 text-slate-700 text-sm font-bold rounded-xl hover:bg-slate-50 hover:text-[#002D62] hover:border-[#002D62] transition-all shadow-sm flex items-center gap-2 shrink-0"
-          >
-            <i className="ph-bold ph-pencil-simple text-lg"></i> Chỉnh sửa thông tin
-          </Link>
-          {/* 👆 KẾT THÚC PHẦN THÊM NÚT 👆 */}
+        
 
       {/* TABLE GUESTS */}
       <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
@@ -203,7 +216,7 @@ export default function EventDetailPage() {
                 {guests.map((guest) => (
                   <tr key={guest.id} className="hover:bg-slate-50/80 transition-colors">
                     <td className="px-6 py-4 font-bold text-slate-900">
-                      {guest.salutation ? `${guest.salutation} ` : ''}{guest.guest_info?.name || '---'}` 
+                      {guest.salutation ? `${guest.salutation} ` : ''}{guest.guest_info?.name || '---'}
                     </td>
                     <td className="px-6 py-4">
                       <p className="font-bold text-slate-700">{guest.guest_info?.company || '---'}</p>
@@ -264,6 +277,6 @@ export default function EventDetailPage() {
         guests={guests} 
       />
 
-    </div>
+    </div> 
   );
 }
