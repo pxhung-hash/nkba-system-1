@@ -65,24 +65,57 @@ export async function sendRsvpEmailsAction(eventId: string) {
 
       // 4. Thiết kế nội dung thư (HTML Template)
       const htmlContent = `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden;">
-          <div style="background-color: #002D62; padding: 30px; text-align: center;">
-            <h2 style="color: #D4AF37; margin: 0; font-size: 14px; text-transform: uppercase; letter-spacing: 2px;">THƯ MỜI VIP</h2>
-            <h1 style="color: #ffffff; margin: 10px 0 0 0; font-size: 24px;">${eventData.title}</h1>
-          </div>
-          <div style="padding: 32px 24px; color: #334155;">
-            <p style="font-size: 16px; margin-top: 0;">Kính chào ${salutation} <strong style="color: #002D62;">${guestName}</strong>,</p>
-            <p style="font-size: 15px; line-height: 1.6; color: #475569;">Ban tổ chức <strong>Liên minh Xây dựng Việt Nhật (NKBA)</strong> trân trọng kính mời ${salutation} tham dự sự kiện đặc biệt của chúng tôi.</p>
-            <p style="font-size: 15px; line-height: 1.6; color: #475569;">Vui lòng bấm vào nút bên dưới để xác nhận sự hiện diện và nhận Vé mời điện tử Check-in QR:</p>
+        <div style="background-color: #f1f5f9; padding: 40px 20px; font-family: 'Helvetica Neue', Arial, sans-serif; line-height: 1.6;">
+          <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.05);">
             
-            <div style="text-align: center; margin: 40px 0;">
-              <a href="${rsvpLink}" style="background-color: #D4AF37; color: #ffffff; padding: 16px 36px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);">
-                MỞ THIỆP & XÁC NHẬN THAM DỰ
-              </a>
+            <!-- Header -->
+            <div style="background-color: #002D62; padding: 40px 30px; text-align: center; border-bottom: 5px solid #D4AF37;">
+              <p style="color: #D4AF37; margin: 0 0 10px 0; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 3px;">
+                Thư Mời VIP • Liên Minh NKBA
+              </p>
+              <h1 style="color: #ffffff; margin: 0; font-size: 24px; font-weight: 800; line-height: 1.4;">
+                ${eventData.title}
+              </h1>
             </div>
             
-            <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 30px 0;" />
-            <p style="font-size: 13px; color: #94a3b8; text-align: center;">Thư này được gửi tự động từ hệ thống quản trị sự kiện NKBA.</p>
+            <!-- Body -->
+            <div style="padding: 40px 30px; color: #334155;">
+              <p style="font-size: 16px; margin-top: 0;">Kính chào ${salutation} <strong style="color: #002D62;">${guestName}</strong>,</p>
+              
+              <p style="font-size: 15px; color: #475569; margin-bottom: 24px;">
+                Ban tổ chức <strong>Liên minh Xây dựng Việt Nhật (NKBA)</strong> trân trọng kính mời ${salutation} tham dự sự kiện đặc biệt của chúng tôi.
+              </p>
+              
+              <!-- Box thông tin sự kiện -->
+              <div style="background-color: #f8fafc; border-left: 4px solid #002D62; padding: 20px; margin: 30px 0; border-radius: 0 8px 8px 0;">
+                <p style="margin: 0 0 10px 0; font-size: 14px;">
+                  <strong style="color: #0f172a;">⏰ Thời gian:</strong> 
+                  <span style="color: #475569;">${eventData.event_date ? new Date(eventData.event_date).toLocaleString('vi-VN') : 'Sắp diễn ra'}</span>
+                </p>
+                <p style="margin: 0; font-size: 14px;">
+                  <strong style="color: #0f172a;">📍 Địa điểm:</strong> 
+                  <span style="color: #475569;">${eventData.details?.location || 'Sẽ thông báo sau'}</span>
+                </p>
+              </div>
+
+              <p style="font-size: 15px; color: #475569; text-align: center; margin-bottom: 30px;">
+                Vui lòng xác nhận sự hiện diện để nhận <strong>Vé mời điện tử (Mã QR Check-in)</strong>:
+              </p>
+              
+              <!-- Nút bấm Call-to-Action -->
+              <div style="text-align: center; margin: 10px 0 30px 0;">
+                <a href="${rsvpLink}" style="background-color: #D4AF37; color: #002D62; padding: 16px 40px; text-decoration: none; border-radius: 8px; font-weight: 800; font-size: 14px; display: inline-block; text-transform: uppercase; letter-spacing: 1px;">
+                  Mở Thiệp & Xác Nhận
+                </a>
+              </div>
+              
+              <!-- Footer -->
+              <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 30px 0 20px 0;" />
+              <p style="font-size: 12px; color: #94a3b8; text-align: center; margin: 0; line-height: 1.5;">
+                Email này được gửi tự động từ Hệ thống Quản trị Sự kiện NKBA.<br/>
+                Vui lòng không trả lời email này.
+              </p>
+            </div>
           </div>
         </div>
       `;
