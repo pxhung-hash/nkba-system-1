@@ -10,6 +10,8 @@
   },
   "dependencies": {
     "@nkba/supabase": "workspace:*",
+    "@supabase/ssr": "^0.12.3",
+    "@supabase/supabase-js": "^2.110.8",
     "@swc/helpers": "^0.5.21",
     "aos": "^2.3.4",
     "html2canvas": "^1.4.1",
