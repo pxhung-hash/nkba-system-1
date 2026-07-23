@@ -13,13 +13,17 @@ function NewsEditorContent() {
   const [isSaving, setIsSaving] = useState(false);
   const [currentUserEmpId, setCurrentUserEmpId] = useState<string | null>(null);
   
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<any>({
     title: '',
     slug: '',
     excerpt: '',
     content: '',
     thumbnail_url: '',
-    status: 'DRAFT'
+    status: 'DRAFT',
+    published_at: null, // Thêm dòng này
+    author_id: null     // Thêm dòng này
+
+
   });
 
   // 1. Hàm chuyển Tiêu đề tiếng Việt thành Slug chuẩn SEO (VD: NKBA ra mắt -> nkba-ra-mat)
@@ -68,11 +72,11 @@ function NewsEditorContent() {
     const payload = {
       ...formData,
       status: status,
-      // Chỉ gán ngày publish nếu ấn nút Xuất bản và bài chưa từng publish
-      published_at: status === 'PUBLISHED' && !formData.published_at ? new Date().toISOString() : (formData as any).published_at,
+      // Đã gọi được formData.published_at một cách an toàn
+      published_at: status === 'PUBLISHED' && !formData.published_at ? new Date().toISOString() : formData.published_at,
       updated_at: new Date().toISOString(),
-      // Nếu tạo mới, gán tác giả là user hiện tại
-      author_id: editId ? (formData as any).author_id : currentUserEmpId
+      // Đã gọi được formData.author_id một cách an toàn
+      author_id: editId ? formData.author_id : currentUserEmpId
     };
 
     let error;
