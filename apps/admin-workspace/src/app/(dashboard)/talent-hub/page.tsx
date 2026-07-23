@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { createClient } from '@/utils/supabase/client';
+import PremiumCV from '@/components/profile/PremiumCV'; // <- ĐÃ THÊM IMPORT
 
 export default function TalentHubPage() {
   const supabase = createClient();
@@ -169,7 +170,7 @@ export default function TalentHubPage() {
         
         {/* MODAL BÚT PHÊ / FEEDBACK */}
         {feedbackModal.isOpen && (
-          <div className="absolute inset-0 z-[60] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 animate-in fade-in">
+          <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/70 backdrop-blur-md p-4 animate-in fade-in">
             <div className="bg-white w-full max-w-lg rounded-3xl shadow-2xl overflow-hidden animate-in zoom-in-95">
               <div className="p-6 bg-amber-50 border-b border-amber-100 flex items-center gap-3">
                 <i className="ph-fill ph-warning-circle text-2xl text-amber-500"></i>
@@ -235,17 +236,28 @@ export default function TalentHubPage() {
 
         {/* MODAL POPUP XEM CHI TIẾT & PHÊ DUYỆT CV */}
         {viewingTalent && (
-          <div className="absolute inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4 animate-in fade-in">
-            <div className="bg-white w-full max-w-3xl max-h-full rounded-[2rem] shadow-2xl overflow-hidden flex flex-col animate-in zoom-in-95">
+          <div className="absolute inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 animate-in fade-in">
+            <div className="bg-white w-full max-w-5xl h-[90vh] rounded-[2rem] shadow-2xl overflow-hidden flex flex-col animate-in zoom-in-95">
               
-              <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
-                <h3 className="text-xl font-black text-slate-900 flex items-center gap-2"><i className="ph-fill ph-identification-card text-indigo-500 text-2xl"></i> Chi tiết Hồ sơ Chuyên gia</h3>
-                <button onClick={() => setViewingTalent(null)} className="w-10 h-10 rounded-full bg-white border border-slate-200 flex items-center justify-center text-slate-400 hover:text-rose-500 hover:bg-rose-50"><i className="ph-bold ph-x text-lg"></i></button>
+              <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50 shrink-0">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-indigo-100 text-indigo-600 flex items-center justify-center text-xl shadow-inner"><i className="ph-fill ph-identification-card"></i></div>
+                  <div>
+                    <h3 className="text-lg font-black text-slate-900 leading-tight">Thẩm định Hồ sơ</h3>
+                    <p className="text-xs font-bold text-slate-500 tracking-wider uppercase mt-0.5">{viewingTalent.full_name}</p>
+                  </div>
+                  <span className={`ml-4 text-[10px] font-black px-2.5 py-1 rounded-md tracking-wider ${viewingTalent.status === 'VERIFIED' ? 'bg-emerald-100 text-emerald-700' : viewingTalent.status === 'REJECTED' ? 'bg-rose-100 text-rose-700' : 'bg-amber-100 text-amber-700'}`}>
+                    {viewingTalent.status === 'VERIFIED' ? 'ĐÃ DUYỆT (VERIFIED)' : viewingTalent.status === 'PENDING' ? 'CHỜ THẨM ĐỊNH' : 'BỊ TỪ CHỐI'}
+                  </span>
+                </div>
+                <button onClick={() => setViewingTalent(null)} className="w-10 h-10 rounded-full bg-white border border-slate-200 flex items-center justify-center text-slate-400 hover:text-rose-500 hover:bg-rose-50 transition-colors"><i className="ph-bold ph-x text-lg"></i></button>
               </div>
 
-              <div className="p-6 md:p-8 overflow-y-auto scroll-smooth space-y-8 flex-1">
+              {/* VÙNG CHỨA CV PREMIUM (CÓ THANH CUỘN MƯỢT) */}
+              <div className="flex-1 overflow-y-auto scroll-smooth bg-slate-200 p-6 md:p-8">
+                
                 {viewingTalent.admin_note && (
-                  <div className="bg-amber-50 border border-amber-200 p-4 rounded-xl flex items-start gap-3">
+                  <div className="bg-amber-50 border border-amber-200 p-4 rounded-xl flex items-start gap-3 mb-6 max-w-[210mm] mx-auto shadow-sm">
                     <i className="ph-fill ph-warning-circle text-amber-600 text-xl mt-0.5"></i>
                     <div>
                       <p className="text-xs font-black text-amber-800 uppercase tracking-widest mb-1">Ghi chú yêu cầu sửa đổi từ Admin</p>
@@ -254,45 +266,14 @@ export default function TalentHubPage() {
                   </div>
                 )}
 
-                <div className="flex flex-col md:flex-row gap-6 items-start">
-                  <div className="w-24 h-24 rounded-[2rem] bg-indigo-50 text-indigo-500 flex items-center justify-center text-3xl font-black shadow-inner border border-indigo-100 shrink-0">
-                    {viewingTalent.avatar_url ? <img src={viewingTalent.avatar_url} alt="Avatar" className="w-full h-full rounded-[2rem] object-cover" /> : viewingTalent.full_name.charAt(0)}
-                  </div>
-                  <div className="flex-1">
-                    <div className="flex flex-wrap items-center gap-3 mb-2">
-                      <h2 className="text-2xl font-black text-slate-900">{viewingTalent.full_name}</h2>
-                      <span className={`text-[10px] font-black px-2.5 py-1 rounded-md tracking-wider ${viewingTalent.status === 'VERIFIED' ? 'bg-emerald-100 text-emerald-700' : viewingTalent.status === 'REJECTED' ? 'bg-rose-100 text-rose-700' : 'bg-amber-100 text-amber-700'}`}>
-                        {viewingTalent.status === 'VERIFIED' ? 'ĐÃ DUYỆT (VERIFIED)' : viewingTalent.status === 'PENDING' ? 'CHỜ THẨM ĐỊNH' : 'BỊ TỪ CHỐI'}
-                      </span>
-                    </div>
-                    <p className="text-lg font-bold text-indigo-600 mb-4">{viewingTalent.title}</p>
-                    <div className="flex flex-wrap gap-x-6 gap-y-2 text-sm font-medium text-slate-600">
-                      <span className="flex items-center gap-2"><i className="ph-fill ph-envelope-simple text-slate-400"></i> {viewingTalent.email || '---'}</span>
-                      <span className="flex items-center gap-2"><i className="ph-fill ph-phone text-slate-400"></i> {viewingTalent.phone || '---'}</span>
-                    </div>
-                  </div>
+                {/* TÍCH HỢP COMPONENT PREMIUM CV */}
+                <div className="max-w-[210mm] mx-auto shadow-xl rounded-xl overflow-hidden border border-slate-200">
+                  <PremiumCV data={viewingTalent} />
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-slate-50 p-6 rounded-2xl border border-slate-100">
-                  <div><p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Số năm kinh nghiệm</p><p className="text-base font-black text-slate-800">{viewingTalent.experience_years} năm</p></div>
-                  <div><p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Mức lương mong muốn</p><p className="text-base font-black text-emerald-600">{viewingTalent.expected_salary || 'Thỏa thuận'}</p></div>
-                </div>
-
-                <div>
-                  <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3 border-b border-slate-100 pb-2">Kỹ năng chuyên môn</h4>
-                  <div className="flex flex-wrap gap-2">
-                    {viewingTalent.skills ? viewingTalent.skills.split(',').map((skill: string, idx: number) => (
-                      <span key={idx} className="bg-white border border-slate-200 text-slate-700 text-xs font-bold px-3 py-1.5 rounded-lg uppercase shadow-sm">{skill.trim()}</span>
-                    )) : <span className="text-sm italic text-slate-400">Chưa cập nhật kỹ năng</span>}
-                  </div>
-                </div>
-                <div>
-                  <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3 border-b border-slate-100 pb-2">Giới thiệu bản thân (Bio)</h4>
-                  <div className="bg-white border border-slate-200 p-5 rounded-2xl text-sm font-medium text-slate-700 whitespace-pre-line leading-relaxed shadow-sm">{viewingTalent.bio || <span className="italic text-slate-400">Chưa viết phần giới thiệu.</span>}</div>
-                </div>
               </div>
 
-              <div className="p-6 border-t border-slate-100 bg-slate-50/80 flex flex-wrap justify-end gap-3">
+              <div className="p-6 border-t border-slate-200 bg-white flex flex-wrap justify-end gap-3 shrink-0 shadow-[0_-10px_20px_-10px_rgba(0,0,0,0.05)]">
                 <button onClick={() => setViewingTalent(null)} className="h-11 px-6 bg-white text-slate-600 border border-slate-200 rounded-xl text-sm font-bold hover:bg-slate-100 transition-colors">ĐÓNG</button>
                 
                 {viewingTalent.status === 'VERIFIED' && (
@@ -306,7 +287,7 @@ export default function TalentHubPage() {
                   <>
                     <button onClick={() => handleRejectTalent(viewingTalent.id)} disabled={!!isProcessing} className="h-11 px-6 bg-rose-50 text-rose-600 border border-rose-200 rounded-xl text-sm font-black hover:bg-rose-100 transition-colors">TỪ CHỐI</button>
                     <button onClick={() => openFeedbackModal(viewingTalent.id)} disabled={!!isProcessing} className="h-11 px-6 bg-amber-50 text-amber-700 border border-amber-200 rounded-xl text-sm font-black hover:bg-amber-100 transition-colors">YÊU CẦU SỬA</button>
-                    <button onClick={() => handleVerifyTalent(viewingTalent.id)} disabled={!!isProcessing} className="h-11 px-8 bg-emerald-600 text-white rounded-xl text-sm font-black shadow-lg hover:bg-emerald-500 transition-colors flex items-center gap-2"><i className="ph-bold ph-check-circle text-lg"></i> CẤP TICK XANH</button>
+                    <button onClick={() => handleVerifyTalent(viewingTalent.id)} disabled={!!isProcessing} className="h-11 px-8 bg-emerald-600 text-white rounded-xl text-sm font-black shadow-lg shadow-emerald-600/20 hover:bg-emerald-500 transition-all flex items-center gap-2 hover:-translate-y-0.5"><i className="ph-bold ph-check-circle text-lg"></i> CẤP TICK XANH</button>
                   </>
                 )}
               </div>

@@ -8,6 +8,9 @@ export default function EmployeeRolesPage() {
   const supabase = createClient();
   const [employees, setEmployees] = useState<any[]>([]);
   const [departments, setDepartments] = useState<any[]>([]);
+  
+  // STATE MỚI ĐỂ LƯU DANH SÁCH VAI TRÒ ĐỘNG
+  const [systemRoles, setSystemRoles] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   // STATE CHO MODAL THÊM/SỬA
@@ -23,22 +26,19 @@ export default function EmployeeRolesPage() {
     role: 'STAFF'
   });
 
-  const SYSTEM_ROLES = [
-    { value: 'SUPER_ADMIN', label: 'Super Admin', color: 'bg-rose-100 text-rose-700' },
-    { value: 'ADMIN', label: 'Admin Tổng', color: 'bg-indigo-100 text-indigo-700' },
-    { value: 'STAFF', label: 'Nhân viên', color: 'bg-slate-100 text-slate-700' },
-    { value: 'ADMIN_BIZLINK', label: 'Quản lý Biz-Link', color: 'bg-amber-100 text-amber-700' },
-    { value: 'ADMIN_TALENT', label: 'Quản lý Nhân sự', color: 'bg-emerald-100 text-emerald-700' },
-  ];
-
   const fetchData = async () => {
     setLoading(true);
-    const [empRes, deptRes] = await Promise.all([
+    // GỌI THÊM BẢNG app_roles ĐỂ LẤY VAI TRÒ ĐỘNG
+    const [empRes, deptRes, rolesRes] = await Promise.all([
       supabase.from('employees').select('id, code, name, email, role, is_active, department_ids').order('created_at', { ascending: false }),
-      supabase.from('departments').select('id, name')
+      supabase.from('departments').select('id, name'),
+      supabase.from('app_roles').select('code, name, color').order('created_at', { ascending: true })
     ]);
+    
     if (empRes.data) setEmployees(empRes.data);
     if (deptRes.data) setDepartments(deptRes.data);
+    if (rolesRes.data) setSystemRoles(rolesRes.data);
+    
     setLoading(false);
   };
 
@@ -191,9 +191,10 @@ export default function EmployeeRolesPage() {
                       )}
                     </td>
                     <td className="px-6 py-4">
+                      {/* HIỂN THỊ BADGE VAI TRÒ DỰA TRÊN DỮ LIỆU ĐỘNG */}
                       {(() => {
-                        const roleObj = SYSTEM_ROLES.find(r => r.value === emp.role);
-                        return <span className={`px-3 py-1 rounded-md text-[10px] uppercase tracking-wider font-black border ${roleObj ? roleObj.color : 'bg-slate-50 border-slate-200'}`}>{roleObj ? roleObj.label : emp.role}</span>;
+                        const roleObj = systemRoles.find(r => r.code === emp.role);
+                        return <span className={`px-3 py-1 rounded-md text-[10px] uppercase tracking-wider font-black border ${roleObj?.color || 'bg-slate-50 text-slate-500 border-slate-200'}`}>{roleObj ? roleObj.name : emp.role}</span>;
                       })()}
                     </td>
                     <td className="px-6 py-4 text-center">
@@ -203,7 +204,7 @@ export default function EmployeeRolesPage() {
                     </td>
                     <td className="px-6 py-4 text-right">
                       <div className="flex items-center justify-end gap-2">
-                        {/* Đổi quyền nhanh */}
+                        {/* ĐỔI QUYỀN NHANH DỰA TRÊN DANH SÁCH ĐỘNG */}
                         <select
                           value={emp.role || ''}
                           onChange={(e) => handleRoleChange(emp.id, e.target.value)}
@@ -211,7 +212,7 @@ export default function EmployeeRolesPage() {
                           title="Đổi quyền nhanh"
                         >
                           <option value="" disabled>-- Đổi quyền --</option>
-                          {SYSTEM_ROLES.map(role => <option key={role.value} value={role.value}>{role.label}</option>)}
+                          {systemRoles.map(role => <option key={role.code} value={role.code}>{role.name}</option>)}
                         </select>
                         
                         {/* Nút Sửa */}
@@ -258,8 +259,9 @@ export default function EmployeeRolesPage() {
                 </div>
                 <div className="space-y-1.5">
                   <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Vai trò Hệ thống (*)</label>
+                  {/* CẬP NHẬT SELECT VAI TRÒ ĐỘNG TRONG MODAL */}
                   <select value={formData.role} onChange={e => setFormData({...formData, role: e.target.value})} className="w-full h-11 px-3 border border-slate-200 rounded-xl text-sm font-bold outline-none focus:border-[#002D62] focus:ring-4 focus:ring-blue-900/10 transition-all bg-white cursor-pointer">
-                    {SYSTEM_ROLES.map(r => <option key={r.value} value={r.value}>{r.label}</option>)}
+                    {systemRoles.map(r => <option key={r.code} value={r.code}>{r.name}</option>)}
                   </select>
                 </div>
               </div>
