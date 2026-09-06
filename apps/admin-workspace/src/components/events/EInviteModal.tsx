@@ -158,11 +158,12 @@ export default function EInviteModal({ isOpen, onClose, event, guests }: EInvite
           <div className="absolute inset-3 border rounded-xl pointer-events-none z-10" style={{ borderColor: 'rgba(212,175,55,0.3)' }}></div>
           <div className="absolute inset-4 border rounded-lg pointer-events-none z-10" style={{ borderColor: 'rgba(212,175,55,0.1)' }}></div>
 
-          <div className="relative z-20 flex-1 flex flex-col p-8 pt-10 pb-8 text-center h-full justify-between" style={{ color: '#ffffff' }}>
+          {/* Đã giảm pt-10 xuống pt-8 và pb-8 xuống pb-6 để tiết kiệm không gian */}
+          <div className="relative z-20 flex-1 flex flex-col px-8 pt-8 pb-6 text-center h-full justify-between" style={{ color: '#ffffff' }}>
             
             {/* BLOCK 1: LOGO THƯƠNG HIỆU */}
             <div className="flex flex-col items-center">
-              <div className="rounded-xl px-5 py-2.5 flex items-center justify-center mb-3 relative h-14" style={{ backgroundColor: '#ffffff', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.3)' }}>
+              <div className="rounded-xl px-5 py-2.5 flex items-center justify-center mb-2.5 relative h-14" style={{ backgroundColor: '#ffffff', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.3)' }}>
                 <img 
                   src="/logo-nkba.png" 
                   alt="NKBA Logo" 
@@ -170,34 +171,33 @@ export default function EInviteModal({ isOpen, onClose, event, guests }: EInvite
                 />
                 <div className="absolute -bottom-1 w-1/2 h-1.5 rounded-full" style={{ backgroundColor: '#BE0027', boxShadow: '0 1px 2px rgba(0,0,0,0.2)' }}></div>
               </div>
-              <div className="text-[10px] font-bold tracking-[0.3em] uppercase mb-1 mt-2" style={{ color: '#D4AF37', lineHeight: 1 }}>Thiệp mời Đặc quyền</div>
+              <div className="text-[10px] font-bold tracking-[0.3em] uppercase mb-1 mt-1" style={{ color: '#D4AF37', lineHeight: 1 }}>Thiệp mời Đặc quyền</div>
               <div className="h-px w-12 mx-auto" style={{ backgroundColor: 'rgba(212,175,55,0.5)' }}></div>
             </div>
 
             {/* BLOCK 2: TÊN SỰ KIỆN */}
-            <div className="my-2">
-              <h1 className="text-2xl font-black leading-tight tracking-wide uppercase mb-2" style={{ textShadow: '0 2px 4px rgba(0,0,0,0.5)' }}>
+            <div className="my-1.5">
+              <h1 className="text-2xl font-black leading-tight tracking-wide uppercase mb-1.5" style={{ textShadow: '0 2px 4px rgba(0,0,0,0.5)' }}>
                 {event?.title || 'Lễ Ra Mắt'} <br/> 
-                <span className="text-[10px] leading-snug block mt-2" style={{ color: '#F3E5AB', textShadow: '0 1px 2px rgba(0,0,0,0.5)' }}>
+                <span className="text-[10px] leading-snug block mt-1.5" style={{ color: '#F3E5AB', textShadow: '0 1px 2px rgba(0,0,0,0.5)' }}>
                   Nichietsu Kensetsu Business Alliance
                 </span>
               </h1>
-              <p className="text-[10px] font-medium tracking-widest uppercase mt-3" style={{ color: '#bfdbfe', lineHeight: 1 }}>Connecting Trust - Building Value</p>
+              <p className="text-[10px] font-medium tracking-widest uppercase mt-2.5" style={{ color: '#bfdbfe', lineHeight: 1 }}>Connecting Trust - Building Value</p>
             </div>
 
             {/* BLOCK 3: TÊN KHÁCH MỜI */}
-            <div className="border p-4 rounded-xl my-2 flex flex-col justify-center" style={{ backgroundColor: 'rgba(255,255,255,0.05)', borderColor: 'rgba(255,255,255,0.1)' }}>
-              <p className="text-xs font-['Noto_Serif'] italic" style={{ color: '#bfdbfe', lineHeight: 1.2, marginBottom: '6px' }}>Trân trọng kính mời:</p>
-              <h2 className="text-xl font-bold tracking-wide overflow-hidden whitespace-nowrap text-ellipsis" style={{ color: '#D4AF37', lineHeight: 1.5, paddingBottom: '6px' }}>
-                {/* HIỂN THỊ DANH XƯNG THỰC TẾ */}
+            <div className="border p-3 rounded-xl my-1.5 flex flex-col justify-center" style={{ backgroundColor: 'rgba(255,255,255,0.05)', borderColor: 'rgba(255,255,255,0.1)' }}>
+              <p className="text-xs font-['Noto_Serif'] italic" style={{ color: '#bfdbfe', lineHeight: 1.2, marginBottom: '4px' }}>Trân trọng kính mời:</p>
+              <h2 className="text-xl font-bold tracking-wide overflow-hidden whitespace-nowrap text-ellipsis" style={{ color: '#D4AF37', lineHeight: 1.5, paddingBottom: '4px' }}>
                 {activeGuest?.salutation ? `${activeGuest.salutation} ` : ''}{activeGuest?.guest_info?.name || '[Tên Khách VIP]'}
               </h2>
               <div className="w-full h-px mt-1" style={{ background: 'linear-gradient(90deg, transparent, rgba(212,175,55,0.5), transparent)' }}></div>
             </div>
 
             {/* BLOCK 4: THỜI GIAN, ĐỊA ĐIỂM & QR RSVP */}
-            <div className="flex items-center justify-between px-2 my-2 border-t border-b py-3" style={{ borderColor: 'rgba(255,255,255,0.1)' }}>
-              <div className="space-y-3 text-left w-full">
+            <div className="flex items-center justify-between px-2 my-1.5 border-t border-b py-2.5" style={{ borderColor: 'rgba(255,255,255,0.1)' }}>
+              <div className="space-y-2.5 text-left w-full">
                 
                 <div className="flex items-center gap-3.5">
                   <div className="w-7 h-7 rounded-full flex items-center justify-center shrink-0 border" style={{ backgroundColor: '#be002733', color: '#BE0027', borderColor: '#be00274d' }}>
@@ -212,7 +212,7 @@ export default function EInviteModal({ isOpen, onClose, event, guests }: EInvite
                   </div>
                 </div>
 
-                <div className="flex items-start gap-3.5 mt-3">
+                <div className="flex items-start gap-3.5 mt-2.5">
                   <div className="w-7 h-7 rounded-full flex items-center justify-center shrink-0 border mt-0.5" style={{ backgroundColor: '#d4af3733', color: '#D4AF37', borderColor: '#d4af3733' }}>
                     <i className="ph-fill ph-map-pin text-base"></i>
                   </div>
@@ -249,10 +249,11 @@ export default function EInviteModal({ isOpen, onClose, event, guests }: EInvite
             </div>
 
             {/* BLOCK 5: AGENDA */}
-            <div className="my-2 text-left px-2">
-              <p className="text-[11px] font-bold tracking-widest uppercase mb-3 text-center border-b pb-1.5" style={{ color: '#D4AF37', borderColor: '#d4af3733' }}>Agenda Sự kiện</p>
+            <div className="my-1.5 text-left px-2">
+              <p className="text-[11px] font-bold tracking-widest uppercase mb-2.5 text-center border-b pb-1.5" style={{ color: '#D4AF37', borderColor: '#d4af3733' }}>Agenda Sự kiện</p>
               
-              <div className="space-y-3 relative ml-2">
+              {/* ĐÃ XÓA space-y-3 ở dòng dưới để ngăn lặp khoảng trống */}
+              <div className="relative ml-2">
                 <div className="absolute inset-y-0 w-px" style={{ backgroundColor: 'rgba(255,255,255,0.2)', left: '4px' }}></div>
                 
                 <div className="relative pl-5 flex items-center mb-2.5">
@@ -288,7 +289,8 @@ export default function EInviteModal({ isOpen, onClose, event, guests }: EInvite
             </div>
 
             {/* BLOCK 6: FOOTER LIÊN HỆ & LANDING PAGE */}
-            <div className="mt-auto pt-4 pb-2 flex flex-col px-2">
+            {/* Giảm pt-4 xuống pt-2 */}
+            <div className="mt-auto pt-2 flex flex-col px-2">
               <p className="text-[8px] font-bold uppercase tracking-widest text-left mb-2" style={{ color: '#bfdbfe', lineHeight: 1 }}>Chi tiết sự kiện và Liên hệ</p>
               
               <div className="flex items-center gap-6">
