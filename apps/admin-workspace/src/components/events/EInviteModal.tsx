@@ -228,7 +228,7 @@ export default function EInviteModal({ isOpen, onClose, event, guests }: EInvite
                       {event?.details?.location || 'Vườn Nhật Zouen'}
                     </a>
                     <p className="text-[8.5px]" style={{ color: '#dbeafe', opacity: 0.85 }}>
-                      Tòa A, Lô CT-21B P. Đoàn Văn Tập, KĐT Việt Hưng, Hà Nội
+                      Đối diện ngõ 1, phố Phúc Lợi, phường Việt Hưng, TP Hà Nội
                     </p>
                   </div>
                 </div>
