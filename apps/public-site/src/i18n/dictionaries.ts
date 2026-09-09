@@ -440,11 +440,11 @@ export const dict = {
         title: "LỄ RA MẮT LIÊN MINH NKBA",
         subtitle: "Connecting Trust - Building Value",
         dateLabel: "Thời gian",
-        date: "01/08/2026",
-        time: "14:30 - 18:00",
+        date: "19/09/2026",
+        time: "17:00 - 21:00",
         locationLabel: "Địa điểm",
-        location1: "Tầng 1",
-        location2: "Viet Long House",
+        location1: "Khuôn viên",
+        location2: "Vườn Nhật Zouen",
         scaleLabel: "Quy mô",
         scale1: "30",
         scale2: " Khách mời VIP",
@@ -453,29 +453,29 @@ export const dict = {
         agendaTitle: "Kịch bản Chương trình",
         agenda: [
           { 
-            time: "14:30", 
+            time: "17:00~18:00", 
             title: "Đón khách & Networking sớm", 
             desc: "Đón tiếp quý khách, lưu lại khoảnh khắc tại khu vực Backdrop cùng thức uống chào mừng. Đại diện Ban Lãnh đạo NKBA trân trọng đón tiếp và giao lưu cùng quý khách mời." 
           },
           { 
-            time: "15:15", 
+            time: "18:00~18:15", 
             title: "Phát biểu Khai mạc", 
             desc: "Lời tri ân đến quý khách quý đối tác. Chia sẻ hành trình hình thành NKBA và khát vọng kiến tạo chuẩn mực mới cho ngành." 
           },
           { 
-            time: "15:30", 
+            time: "18:15~18:30", 
             title: "Giới thiệu Hệ sinh thái", 
             desc: "Giới thiệu Hệ sinh thái NKBA với 3 trụ cột chiến lược. Công bố YKK AP là Đối tác Bảo trợ Kỹ thuật chính thức. Công bố quyền lợi dành cho hội viên." 
           },
           { 
-            time: "16:00", 
+            time: "18:30~19:00", 
             title: "Lễ Ký kết & Kêu gọi", 
             desc: "Nghi thức Ký kết Biên bản Ghi nhớ (MOU) cùng các đối tác chiến lược. Lời mời quý khách chính thức đồng hành cùng NKBA trong vai trò hội viên sáng lập." 
           },
           { 
-            time: "16:15", 
-            title: "Tiệc nhẹ & Networking", 
-            desc: "Tiệc nhẹ thân mật & Kết nối doanh nhân. Không gian dành cho các trao đổi hợp tác trực tiếp giữa quý khách và đội ngũ NKBA." 
+            time: "19:00~", 
+            title: "Tiệc BBQ & Networking", 
+            desc: "Tiệc BBQ ngoài trời & Kết nối doanh nhân. Không gian dành cho các trao đổi hợp tác trực tiếp giữa quý khách và đội ngũ NKBA." 
           }
         ]
       },
@@ -494,13 +494,13 @@ export const dict = {
       subtitle: "Vui lòng điền thông tin để Ban Tổ Chức chuẩn bị đón tiếp chu đáo nhất.",
       eventInfoTitle: "Thông Tin Sự Kiện",
       eventTitle: "Lễ Ra Mắt Liên Minh NKBA",
-      eventDate: "01/08/2026",
-      eventTime: "14:30 - 18:00",
-      eventLocation: "Viet Long House (Tầng 1)",
+      eventDate: "19/09/2026",
+      eventTime: "17:00 - 21:00",
+      eventLocation: "Vườn Nhật Zouen",
       perksTitle: "Đặc quyền khi tham dự:",
       perk1: "Gặp gỡ trực tiếp 30 Chủ doanh nghiệp / C-Level ngành xây dựng Việt - Nhật.",
       perk2: "Cơ hội nhận gói tư vấn pháp lý thầu miễn phí.",
-      perk3: "Thưởng thức tiệc BBQ cao cấp tại không gian Vườn Nhật.",
+      perk3: "Thưởng thức tiệc BBQ tại không gian Vườn Nhật.",
       formName: "Họ và tên (*)",
       formCompany: "Tên doanh nghiệp (*)",
       formPosition: "Chức vụ (*)",
