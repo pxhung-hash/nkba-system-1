@@ -1028,7 +1028,7 @@ export const dict = {
       eventLocation: "ZOUEN GARDEN",
       perksTitle: "参加特典：",
       perk1: "日越建設業界の経営者・Cレベル30名と直接交流。",
-      perk2: "無料の法務コンサルティングパッケージを受け取るチャンス。"
+      perk2: "無料の法務コンサルティングパッケージを受け取るチャンス。",
       perk3: "日本庭園の空間で高級BBQを楽しむ。",
       formName: "氏名 (*)",
       formCompany: "企業名 (*)",
