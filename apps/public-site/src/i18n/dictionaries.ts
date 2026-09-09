@@ -970,10 +970,10 @@ export const dict = {
         subtitle: "Connecting Trust - Building Value",
         dateLabel: "日時",
         date: "2026年08月01日",
-        time: "14:30 - 18:00",
-        locationLabel: "会場",
-        location1: "1階",
-        location2: "Viet Long House",
+        time: "17:00 - 21:00",
+        locationLabel: "日本庭園の空間",
+        location1: "日本庭園",
+        location2: "ZOUEN GARDEN",
         scaleLabel: "規模",
         scale1: "30名",
         scale2: " のVIPゲスト",
@@ -982,27 +982,27 @@ export const dict = {
         agendaTitle: "プログラムのスケジュール",
         agenda: [
           { 
-            time: "14:30", 
+            time: "17:00~18:00", 
             title: "受付 ＆ ネットワーキング", 
             desc: "ご来賓の皆様をお迎えし、バックドロップでの記念撮影とウェルカムドリンクをご提供いたします。NKBA経営陣が皆様をご歓待し、交流を深めさせていただきます。" 
           },
           { 
-            time: "15:15", 
+            time: "18:00~18:15", 
             title: "開会の辞", 
             desc: "ご来賓およびパートナーの皆様への感謝の辞。NKBA設立の歩みと、業界の新たな基準を創造するという私たちの志についてお話しします。" 
           },
           { 
-            time: "15:30", 
+            time: "18:15~18:30", 
             title: "エコシステムのご紹介", 
             desc: "戦略的3本柱を持つNKBAエコシステムのご紹介。YKK APの公式技術後援パートナーとしての発表。会員向けの特典についてご説明します。" 
           },
           { 
-            time: "16:00", 
+            time: "18:30~19:00", 
             title: "提携調印式 ＆ ご案内", 
             desc: "戦略的パートナーとの基本合意書（MOU）調印式。創立会員としてNKBAに正式にご参画いただくよう、皆様にご案内申し上げます。" 
           },
           { 
-            time: "16:15", 
+            time: "19:00~21:00", 
             title: "軽食 ＆ ネットワーキング", 
             desc: "和やかな軽食とビジネスネットワーキング。ご来賓の皆様とNKBAチームが直接協力関係について語り合うための場をご提供します。" 
           }
@@ -1023,12 +1023,12 @@ export const dict = {
       subtitle: "事務局が最適な準備を行えるよう、以下の情報をご記入ください。",
       eventInfoTitle: "イベント情報",
       eventTitle: "NKBAアライアンス設立記念式典",
-      eventDate: "2026年08月01日",
-      eventTime: "14:30 - 18:00",
-      eventLocation: "Viet Long House (1階)",
+      eventDate: "2026年09月19日",
+      eventTime: "17:00 - 21:00",
+      eventLocation: "ZOUEN GARDEN",
       perksTitle: "参加特典：",
       perk1: "日越建設業界の経営者・Cレベル30名と直接交流。",
-      perk2: "無料の法務コンサルティングパッケージを受け取るチャンス。",
+      perk2: "無料の法務コンサルティングパッケージを受け取るチャンス。"
       perk3: "日本庭園の空間で高級BBQを楽しむ。",
       formName: "氏名 (*)",
       formCompany: "企業名 (*)",
