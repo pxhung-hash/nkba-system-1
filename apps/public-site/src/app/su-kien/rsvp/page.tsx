@@ -6,7 +6,7 @@ import { useSearchParams } from 'next/navigation';
 import { verifyRsvpToken, updateRsvpStatus } from '@/actions/rsvp.actions';
 import Link from 'next/link';
 import Image from 'next/image';
-import { QRCodeSVG } from 'qrcode.react'; // Thay QRCodeCanvas bằng QRCodeSVG
+import { QRCodeSVG } from 'qrcode.react'; 
 import html2canvas from 'html2canvas';
 
 function RsvpContent() {
@@ -21,6 +21,9 @@ function RsvpContent() {
   const [guest, setGuest] = useState<any>(null);
   const [event, setEvent] = useState<any>(null);
   
+  // State mới: Lưu trữ ảnh vé đã tạo để hiển thị cho Mobile
+  const [generatedTicketUrl, setGeneratedTicketUrl] = useState<string | null>(null);
+
   const ticketRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -62,17 +65,28 @@ function RsvpContent() {
     
     try {
       const canvas = await html2canvas(ticketRef.current, { 
-        scale: 3, // Tăng độ nét
+        scale: 3, 
         useCORS: true, 
         allowTaint: true,
         backgroundColor: '#ffffff',
-        scrollY: -window.scrollY // Fix lỗi cắt xén ảnh khi cuộn trang
+        scrollY: -window.scrollY 
       });
-      const link = document.createElement('a');
-      const safeName = (guest.guest_info?.name || 'Khach_VIP').replace(/[^a-zA-Z0-9]/g, '_');
-      link.download = `Ve_Su_Kien_NKBA_${safeName}.png`;
-      link.href = canvas.toDataURL('image/png', 1.0);
-      link.click();
+      const imgData = canvas.toDataURL('image/png', 1.0);
+
+      // NKBA FIX: Nhận diện thiết bị di động (Mobile)
+      const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+
+      if (isMobile) {
+        // Nếu là điện thoại -> Bật Modal chứa ảnh để khách "Nhấn giữ lưu"
+        setGeneratedTicketUrl(imgData);
+      } else {
+        // Nếu là máy tính -> Tự động tải về luôn
+        const link = document.createElement('a');
+        const safeName = (guest.guest_info?.name || 'Khach_VIP').replace(/[^a-zA-Z0-9]/g, '_');
+        link.download = `Ve_Su_Kien_NKBA_${safeName}.png`;
+        link.href = imgData;
+        link.click();
+      }
     } catch (error) {
       console.error('Lỗi tải vé:', error);
       alert('Có lỗi xảy ra khi tải vé. Vui lòng thử lại.');
@@ -244,6 +258,32 @@ function RsvpContent() {
           </div>
         </div>
       )}
+
+      {/* NKBA FIX: MODAL HIỂN THỊ ẢNH CHO ĐIỆN THOẠI NHẤN GIỮ LƯU */}
+      {generatedTicketUrl && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/90 backdrop-blur-sm animate-in fade-in">
+          <div className="bg-white rounded-3xl p-5 max-w-sm w-full text-center flex flex-col items-center animate-in zoom-in-95">
+            <div className="w-12 h-12 bg-blue-100 text-[#002D62] rounded-full flex items-center justify-center mb-3">
+              <i className="ph-bold ph-download-simple text-2xl"></i>
+            </div>
+            <h3 className="text-lg font-black text-slate-800 mb-1">Lưu vé điện tử</h3>
+            <p className="text-sm font-medium text-slate-500 mb-4">
+              Vui lòng <strong className="text-rose-500">NHẤN GIỮ</strong> vào ảnh bên dưới và chọn <strong className="text-[#002D62]">"Lưu hình ảnh"</strong>.
+            </p>
+            
+            {/* Ảnh vé sắc nét */}
+            <img src={generatedTicketUrl} alt="Vé NKBA" className="w-full h-auto rounded-2xl shadow-xl border border-slate-200 mb-5" />
+            
+            <button
+              onClick={() => setGeneratedTicketUrl(null)}
+              className="px-8 py-3 bg-slate-100 text-slate-700 font-bold rounded-xl hover:bg-slate-200 transition-colors"
+            >
+              Đóng
+            </button>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }
