@@ -265,8 +265,7 @@ export async function updateGuestAction(guestId: string, eventId: string, formDa
       .update({
         salutation: formData.salutation,
         rsvp_status: formData.rsvp_status,
-        guest_info: guestInfo,
-        updated_at: new Date().toISOString()
+        guest_info: guestInfo
       })
       .eq('id', guestId);
 
@@ -275,7 +274,9 @@ export async function updateGuestAction(guestId: string, eventId: string, formDa
       throw new Error(error.message);
     }
 
+    // 3. Ép Next.js xóa sạch cache của toàn bộ page Event Details để hiện data mới
     revalidatePath(`/events/${eventId}`);
+    revalidatePath('/events/[id]', 'page');
     
     return { success: true, message: 'Cập nhật thông tin khách mời thành công.' };
   } catch (error: any) {
