@@ -21,7 +21,7 @@ function RsvpContent() {
   const [guest, setGuest] = useState<any>(null);
   const [event, setEvent] = useState<any>(null);
   
-  // State mới: Lưu trữ ảnh vé đã tạo để hiển thị cho Mobile
+  // State lưu trữ ảnh vé đã tạo để hiển thị cho Mobile
   const [generatedTicketUrl, setGeneratedTicketUrl] = useState<string | null>(null);
 
   const ticketRef = useRef<HTMLDivElement>(null);
@@ -50,7 +50,6 @@ function RsvpContent() {
     
     const res = await updateRsvpStatus(token, status);
     if (res.success) {
-      // Cập nhật lại UI ngay lập tức
       setGuest({ ...guest, rsvp_status: status });
     } else {
       setErrorMsg(res.message || 'Đã có lỗi xảy ra. Vui lòng thử lại.');
@@ -64,23 +63,32 @@ function RsvpContent() {
     setIsDownloading(true);
     
     try {
+      // FIX 1: Lưu tọa độ cũ và cuộn lên đầu để Safari không bị ảo giác tọa độ
+      const originalScrollY = window.scrollY;
+      window.scrollTo({ top: 0, behavior: 'instant' });
+
+      // Đợi 200ms để DOM và Safari ổn định lại sau khi cuộn
+      await new Promise(resolve => setTimeout(resolve, 200));
+
       const canvas = await html2canvas(ticketRef.current, { 
-        scale: 3, 
+        scale: 2, // FIX 2: Hạ scale xuống 2 để an toàn cho RAM điện thoại
         useCORS: true, 
-        allowTaint: true,
+        // ❌ TUYỆT ĐỐI KHÔNG DÙNG allowTaint: true VÌ SẼ BỊ SAFARI CHẶN BẢO MẬT
         backgroundColor: '#ffffff',
-        scrollY: -window.scrollY 
       });
+      
       const imgData = canvas.toDataURL('image/png', 1.0);
 
-      // NKBA FIX: Nhận diện thiết bị di động (Mobile)
+      // Trả lại vị trí cuộn cũ cho người dùng
+      window.scrollTo({ top: originalScrollY, behavior: 'instant' });
+
       const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
 
       if (isMobile) {
-        // Nếu là điện thoại -> Bật Modal chứa ảnh để khách "Nhấn giữ lưu"
+        // Điện thoại: Hiển thị Modal để Nhấn giữ lưu ảnh
         setGeneratedTicketUrl(imgData);
       } else {
-        // Nếu là máy tính -> Tự động tải về luôn
+        // Máy tính: Tự động tải về
         const link = document.createElement('a');
         const safeName = (guest.guest_info?.name || 'Khach_VIP').replace(/[^a-zA-Z0-9]/g, '_');
         link.download = `Ve_Su_Kien_NKBA_${safeName}.png`;
@@ -89,7 +97,7 @@ function RsvpContent() {
       }
     } catch (error) {
       console.error('Lỗi tải vé:', error);
-      alert('Có lỗi xảy ra khi tải vé. Vui lòng thử lại.');
+      alert('Có lỗi xảy ra khi xử lý vé trên thiết bị này. Vui lòng thử lại hoặc chụp màn hình.');
     } finally {
       setIsDownloading(false);
     }
@@ -125,8 +133,6 @@ function RsvpContent() {
     <div className="min-h-screen flex items-center justify-center p-4 font-['Montserrat'] bg-slate-100">
       
       {guest.rsvp_status === 'CONFIRMED' ? (
-        
-        // ================= GIAO DIỆN KHI ĐÃ XÁC NHẬN -> HIỂN THỊ VÉ =================
         <div className="w-full max-w-md flex flex-col gap-4 animate-in fade-in zoom-in duration-500">
           
           <div className="text-center mb-2">
@@ -137,15 +143,14 @@ function RsvpContent() {
             <p className="text-sm text-slate-500 mt-1">Cảm ơn {salutation}. Dưới đây là vé điện tử của {salutation}.</p>
           </div>
 
+          {/* VÉ ĐIỆN TỬ */}
           <div ref={ticketRef} className="bg-white rounded-[24px] shadow-xl overflow-hidden border border-slate-200 relative">
             <div className="bg-[#002D62] p-6 text-center relative overflow-hidden">
-              {/* Thêm data-html2canvas-ignore để sửa lỗi khối vàng đặc */}
               <div data-html2canvas-ignore="true" className="absolute top-0 right-0 w-32 h-32 bg-[#D4AF37] rounded-full blur-[50px] opacity-20 -mr-10 -mt-10 pointer-events-none"></div>
               <p className="text-[#D4AF37] text-[10px] font-bold tracking-widest uppercase mb-1">VIP Invitation</p>
               <h2 className="text-xl font-black text-white">{event?.title}</h2>
             </div>
             
-            {/* Fix calc() thành % chuẩn */}
             <div className="absolute left-0 -ml-4 w-8 h-8 bg-slate-100 rounded-full" style={{ top: '45%' }}></div>
             <div className="absolute right-0 -mr-4 w-8 h-8 bg-slate-100 rounded-full" style={{ top: '45%' }}></div>
             
@@ -175,7 +180,6 @@ function RsvpContent() {
 
               <div className="flex justify-center mb-4">
                 <div className="p-3 bg-white border-2 border-slate-100 rounded-2xl shadow-sm">
-                  {/* Thay thế QRCodeCanvas bằng QRCodeSVG */}
                   <QRCodeSVG value={qrCheckinUrl} size={160} level="H" fgColor="#002D62" />
                 </div>
               </div>
@@ -194,7 +198,6 @@ function RsvpContent() {
 
       ) : (
 
-        // ================= GIAO DIỆN CHƯA XÁC NHẬN HOẶC TỪ CHỐI =================
         <div className="bg-[#002D62] w-full max-w-lg rounded-[2rem] shadow-2xl overflow-hidden relative border border-[#D4AF37]/20">
           <div className="absolute inset-0 z-0 opacity-10 pointer-events-none bg-[radial-gradient(circle_at_top_right,_#ffffff,_transparent_50%)]"></div>
           <div className="absolute -top-24 -right-24 w-48 h-48 bg-[#D4AF37] rounded-full blur-[80px] opacity-20"></div>
@@ -259,9 +262,9 @@ function RsvpContent() {
         </div>
       )}
 
-      {/* NKBA FIX: MODAL HIỂN THỊ ẢNH CHO ĐIỆN THOẠI NHẤN GIỮ LƯU */}
+      {/* MODAL HIỂN THỊ ẢNH CHO ĐIỆN THOẠI NHẤN GIỮ LƯU */}
       {generatedTicketUrl && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/90 backdrop-blur-sm animate-in fade-in">
+        <div className="fixed inset-0 z-[999] flex items-center justify-center p-4 bg-slate-900/90 backdrop-blur-md animate-in fade-in">
           <div className="bg-white rounded-3xl p-5 max-w-sm w-full text-center flex flex-col items-center animate-in zoom-in-95">
             <div className="w-12 h-12 bg-blue-100 text-[#002D62] rounded-full flex items-center justify-center mb-3">
               <i className="ph-bold ph-download-simple text-2xl"></i>
@@ -276,7 +279,7 @@ function RsvpContent() {
             
             <button
               onClick={() => setGeneratedTicketUrl(null)}
-              className="px-8 py-3 bg-slate-100 text-slate-700 font-bold rounded-xl hover:bg-slate-200 transition-colors"
+              className="w-full py-3 bg-slate-100 text-slate-700 font-bold rounded-xl hover:bg-slate-200 transition-colors"
             >
               Đóng
             </button>
@@ -288,7 +291,6 @@ function RsvpContent() {
   );
 }
 
-// Bọc Component trong Suspense để Next.js không báo lỗi khi dùng useSearchParams
 export default function RsvpPage() {
   return (
     <Suspense fallback={
