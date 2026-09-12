@@ -104,7 +104,7 @@ export default function EditGuestModal({ isOpen, onClose, onSuccess, guest, even
                 name="rsvp_status" 
                 value={formData.rsvp_status} 
                 onChange={handleChange}
-                className="bg-white border border-slate-300 rounded-lg px-4 py-2 font-bold text-sm focus:outline-none focus:border-[#D4AF37]"
+                className="bg-white text-black border border-slate-300 rounded-lg px-4 py-2 font-bold text-sm focus:outline-none focus:border-[#D4AF37]"
               >
                 <option value="PENDING">Chờ phản hồi (Pending)</option>
                 <option value="CONFIRMED">Đã xác nhận (Confirmed)</option>
@@ -118,7 +118,7 @@ export default function EditGuestModal({ isOpen, onClose, onSuccess, guest, even
                 name="salutation" 
                 value={formData.salutation} 
                 onChange={handleChange}
-                className="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm font-medium focus:outline-none focus:border-[#002D62] bg-slate-50 focus:bg-white"
+                className="w-full text-black border border-slate-200 rounded-xl px-4 py-3 text-sm font-medium focus:outline-none focus:border-[#002D62] bg-slate-50 focus:bg-white"
               >
                 <option value="Anh">Anh</option>
                 <option value="Chị">Chị</option>
@@ -138,7 +138,7 @@ export default function EditGuestModal({ isOpen, onClose, onSuccess, guest, even
                 value={formData.name} 
                 onChange={handleChange}
                 placeholder="Nguyễn Văn A"
-                className="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm font-medium focus:outline-none focus:border-[#002D62] bg-slate-50 focus:bg-white"
+                className="w-full text-black placeholder-slate-400 border border-slate-200 rounded-xl px-4 py-3 text-sm font-medium focus:outline-none focus:border-[#002D62] bg-slate-50 focus:bg-white"
               />
             </div>
 
@@ -150,7 +150,7 @@ export default function EditGuestModal({ isOpen, onClose, onSuccess, guest, even
                 value={formData.phone} 
                 onChange={handleChange}
                 placeholder="09xx..."
-                className="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm font-medium focus:outline-none focus:border-[#002D62] bg-slate-50 focus:bg-white"
+                className="w-full text-black placeholder-slate-400 border border-slate-200 rounded-xl px-4 py-3 text-sm font-medium focus:outline-none focus:border-[#002D62] bg-slate-50 focus:bg-white"
               />
             </div>
 
@@ -162,7 +162,7 @@ export default function EditGuestModal({ isOpen, onClose, onSuccess, guest, even
                 value={formData.email} 
                 onChange={handleChange}
                 placeholder="email@company.com"
-                className="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm font-medium focus:outline-none focus:border-[#002D62] bg-slate-50 focus:bg-white"
+                className="w-full text-black placeholder-slate-400 border border-slate-200 rounded-xl px-4 py-3 text-sm font-medium focus:outline-none focus:border-[#002D62] bg-slate-50 focus:bg-white"
               />
             </div>
 
@@ -174,7 +174,7 @@ export default function EditGuestModal({ isOpen, onClose, onSuccess, guest, even
                 value={formData.company} 
                 onChange={handleChange}
                 placeholder="Công ty CP Xây dựng..."
-                className="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm font-medium focus:outline-none focus:border-[#002D62] bg-slate-50 focus:bg-white"
+                className="w-full text-black placeholder-slate-400 border border-slate-200 rounded-xl px-4 py-3 text-sm font-medium focus:outline-none focus:border-[#002D62] bg-slate-50 focus:bg-white"
               />
             </div>
 
@@ -186,7 +186,7 @@ export default function EditGuestModal({ isOpen, onClose, onSuccess, guest, even
                 value={formData.position} 
                 onChange={handleChange}
                 placeholder="Giám đốc, CEO..."
-                className="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm font-medium focus:outline-none focus:border-[#002D62] bg-slate-50 focus:bg-white"
+                className="w-full text-black placeholder-slate-400 border border-slate-200 rounded-xl px-4 py-3 text-sm font-medium focus:outline-none focus:border-[#002D62] bg-slate-50 focus:bg-white"
               />
             </div>
           </div>
