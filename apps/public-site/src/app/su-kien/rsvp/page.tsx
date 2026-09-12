@@ -6,7 +6,7 @@ import { useSearchParams } from 'next/navigation';
 import { verifyRsvpToken, updateRsvpStatus } from '@/actions/rsvp.actions';
 import Link from 'next/link';
 import Image from 'next/image';
-import { QRCodeCanvas } from 'qrcode.react';
+import { QRCodeSVG } from 'qrcode.react'; // Thay QRCodeCanvas bằng QRCodeSVG
 import html2canvas from 'html2canvas';
 
 function RsvpContent() {
@@ -59,16 +59,19 @@ function RsvpContent() {
   const handleDownloadTicket = async () => {
     if (!ticketRef.current) return;
     setIsDownloading(true);
+    
     try {
       const canvas = await html2canvas(ticketRef.current, { 
-        scale: 2, 
+        scale: 3, // Tăng độ nét
         useCORS: true, 
-        backgroundColor: '#ffffff' 
+        allowTaint: true,
+        backgroundColor: '#ffffff',
+        scrollY: -window.scrollY // Fix lỗi cắt xén ảnh khi cuộn trang
       });
       const link = document.createElement('a');
       const safeName = (guest.guest_info?.name || 'Khach_VIP').replace(/[^a-zA-Z0-9]/g, '_');
       link.download = `Ve_Su_Kien_NKBA_${safeName}.png`;
-      link.href = canvas.toDataURL('image/png');
+      link.href = canvas.toDataURL('image/png', 1.0);
       link.click();
     } catch (error) {
       console.error('Lỗi tải vé:', error);
@@ -120,20 +123,18 @@ function RsvpContent() {
             <p className="text-sm text-slate-500 mt-1">Cảm ơn {salutation}. Dưới đây là vé điện tử của {salutation}.</p>
           </div>
 
-          {/* VÉ ĐIỆN TỬ (Tương tự hình ảnh anh gửi) */}
           <div ref={ticketRef} className="bg-white rounded-[24px] shadow-xl overflow-hidden border border-slate-200 relative">
-            {/* Header Vé */}
             <div className="bg-[#002D62] p-6 text-center relative overflow-hidden">
-              <div className="absolute top-0 right-0 w-32 h-32 bg-[#D4AF37] rounded-full blur-[50px] opacity-20 -mr-10 -mt-10 pointer-events-none"></div>
+              {/* Thêm data-html2canvas-ignore để sửa lỗi khối vàng đặc */}
+              <div data-html2canvas-ignore="true" className="absolute top-0 right-0 w-32 h-32 bg-[#D4AF37] rounded-full blur-[50px] opacity-20 -mr-10 -mt-10 pointer-events-none"></div>
               <p className="text-[#D4AF37] text-[10px] font-bold tracking-widest uppercase mb-1">VIP Invitation</p>
-              <h2 className="text-xl font-black text-white line-clamp-2">{event?.title}</h2>
+              <h2 className="text-xl font-black text-white">{event?.title}</h2>
             </div>
             
-            {/* Vòng tròn cắt mép */}
-            <div className="absolute left-0 -ml-4 w-8 h-8 bg-slate-100 rounded-full" style={{ top: 'calc(45%)' }}></div>
-            <div className="absolute right-0 -mr-4 w-8 h-8 bg-slate-100 rounded-full" style={{ top: 'calc(45%)' }}></div>
+            {/* Fix calc() thành % chuẩn */}
+            <div className="absolute left-0 -ml-4 w-8 h-8 bg-slate-100 rounded-full" style={{ top: '45%' }}></div>
+            <div className="absolute right-0 -mr-4 w-8 h-8 bg-slate-100 rounded-full" style={{ top: '45%' }}></div>
             
-            {/* Nội dung Vé */}
             <div className="p-8 text-center bg-white relative">
               <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Kính mời</p>
               <h3 className="text-2xl font-black text-[#002D62] mb-1">{salutation} {guest.guest_info?.name}</h3>
@@ -156,13 +157,12 @@ function RsvpContent() {
                 </div>
               </div>
 
-              {/* Đường đứt nét */}
               <div className="w-full border-t-2 border-dashed border-slate-200 my-6"></div>
 
-              {/* QR Code */}
               <div className="flex justify-center mb-4">
                 <div className="p-3 bg-white border-2 border-slate-100 rounded-2xl shadow-sm">
-                  <QRCodeCanvas value={qrCheckinUrl} size={160} level="H" fgColor="#002D62" />
+                  {/* Thay thế QRCodeCanvas bằng QRCodeSVG */}
+                  <QRCodeSVG value={qrCheckinUrl} size={160} level="H" fgColor="#002D62" />
                 </div>
               </div>
               <p className="text-[11px] font-medium text-slate-400">Vui lòng xuất trình mã QR này tại quầy Lễ tân<br/>để tiến hành Check-in tự động.</p>
