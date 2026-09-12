@@ -218,3 +218,68 @@ export async function updateEventAction(eventId: string, formData: any) {
     return { success: false, message: error.message || 'Đã có lỗi xảy ra phía máy chủ.' };
   }
 }
+
+// ==========================================
+// NKBA ADDED: CHỨC NĂNG XÓA VÀ SỬA KHÁCH MỜI
+// ==========================================
+
+export async function deleteGuestAction(guestId: string, eventId: string) {
+  try {
+    const supabaseAdmin = createAdminClient();
+
+    const { error } = await supabaseAdmin
+      .from('event_guests')
+      .delete()
+      .eq('id', guestId);
+
+    if (error) {
+      console.error('Supabase Delete Guest Error:', error);
+      throw new Error(error.message);
+    }
+
+    revalidatePath(`/events/${eventId}`);
+    
+    return { success: true, message: 'Đã xóa khách mời thành công.' };
+  } catch (error: any) {
+    console.error('[DELETE_GUEST_ERROR]', error);
+    return { success: false, message: error.message || 'Hệ thống bận, không thể xóa khách mời lúc này.' };
+  }
+}
+
+export async function updateGuestAction(guestId: string, eventId: string, formData: any) {
+  try {
+    const supabaseAdmin = createAdminClient();
+
+    // 1. Tổ chức lại dữ liệu guest_info (JSONB)
+    const guestInfo = {
+      name: formData.name || '',
+      email: formData.email || '',
+      phone: formData.phone || '',
+      company: formData.company || '',
+      position: formData.position || ''
+    };
+
+    // 2. Thực hiện update
+    const { error } = await supabaseAdmin
+      .from('event_guests')
+      .update({
+        salutation: formData.salutation,
+        rsvp_status: formData.rsvp_status,
+        guest_info: guestInfo,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', guestId);
+
+    if (error) {
+      console.error('Supabase Update Guest Error:', error);
+      throw new Error(error.message);
+    }
+
+    revalidatePath(`/events/${eventId}`);
+    
+    return { success: true, message: 'Cập nhật thông tin khách mời thành công.' };
+  } catch (error: any) {
+    console.error('[UPDATE_GUEST_ERROR]', error);
+    return { success: false, message: error.message || 'Lỗi khi lưu thông tin cập nhật.' };
+  }
+}
