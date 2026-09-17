@@ -1,8 +1,10 @@
+// src/app/(dashboard)/biz-link/[id]/page.tsx
 'use client';
 
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { createClient } from '@/utils/supabase/client';
+import Link from 'next/link';
 
 export default function ProjectDetailPage() {
   const params = useParams();
@@ -11,22 +13,47 @@ export default function ProjectDetailPage() {
 
   const [supabase] = useState(() => createClient());
   const [project, setProject] = useState<any>(null);
+  const [author, setAuthor] = useState<any>(null); // Người đăng dự án
+  const [currentUser, setCurrentUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const fetchProject = async () => {
+    const fetchProjectAndUser = async () => {
       if (!id) return;
       try {
-        // Lấy chi tiết dự án từ database
-        const { data, error: fetchError } = await supabase
+        // 1. Lấy thông tin user đang đăng nhập
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          const { data: profile } = await supabase
+            .from('individuals')
+            .select('id, full_name, individual_tiers!individuals_tier_id_fkey(name, code)')
+            .eq('user_auth_id', user.id)
+            .single();
+          setCurrentUser(profile);
+        }
+
+        // 2. Lấy chi tiết dự án
+        const { data: projData, error: fetchError } = await supabase
           .from('projects')
           .select('*')
           .eq('id', id)
           .single();
 
         if (fetchError) throw fetchError;
-        setProject(data);
+        setProject(projData);
+
+        // 3. Lấy thông tin Người Đăng (Mô phỏng hook sang bảng individuals)
+        // Nếu DB Sếp thiết lập Foreign Key chuẩn, có thể dùng join. Ở đây tách query cho an toàn.
+        if (projData.member_id) {
+          const { data: authorData } = await supabase
+            .from('individuals')
+            .select('full_name, email, phone, corporates(name)')
+            .eq('id', projData.member_id)
+            .single();
+          if (authorData) setAuthor(authorData);
+        }
+
       } catch (err: any) {
         console.error('Lỗi tải dự án:', err);
         setError('Không tìm thấy thông tin dự án hoặc dự án đã bị xóa.');
@@ -35,86 +62,242 @@ export default function ProjectDetailPage() {
       }
     };
 
-    fetchProject();
+    fetchProjectAndUser();
   }, [id, supabase]);
 
   // Format tiền tệ
   const formatMoney = (amount: number) => amount ? amount.toLocaleString('vi-VN') + ' VNĐ' : 'Thỏa thuận';
 
+  // Kiểm tra xem User hiện tại có phải là chủ dự án không
+  const isOwner = currentUser?.id === project?.member_id;
+
   if (loading) {
     return (
-      <div className="flex h-[60vh] items-center justify-center text-slate-400 font-bold">
-        <i className="ph-bold ph-spinner animate-spin text-3xl mr-3 text-[#002D62]"></i> Đang tải dữ liệu dự án...
+      <div className="flex h-[70vh] flex-col items-center justify-center text-slate-500 font-bold gap-4">
+        <i className="ph-bold ph-spinner animate-spin text-4xl text-[#002D62]"></i> 
+        <p className="animate-pulse">Đang giải mã hồ sơ dự án...</p>
       </div>
     );
   }
 
   if (error || !project) {
     return (
-      <div className="flex flex-col h-[60vh] items-center justify-center text-center animate-in fade-in duration-500">
-        <i className="ph-fill ph-warning-circle text-5xl text-rose-500 mb-4"></i>
-        <h1 className="text-xl font-bold text-slate-800 mb-6">{error || 'Dự án không tồn tại'}</h1>
-        <button onClick={() => router.back()} className="px-6 py-3 bg-[#002D62] text-white rounded-xl font-bold hover:bg-blue-900 transition-colors">
-          Quay lại sàn giao dịch
+      <div className="flex flex-col h-[70vh] items-center justify-center text-center animate-in fade-in duration-500">
+        <div className="w-24 h-24 bg-rose-50 text-rose-500 rounded-full flex items-center justify-center mb-6">
+          <i className="ph-fill ph-file-x text-5xl"></i>
+        </div>
+        <h1 className="text-2xl font-black text-slate-800 mb-2">Hồ sơ không tồn tại</h1>
+        <p className="text-slate-500 mb-8 max-w-md">{error}</p>
+        <button onClick={() => router.push('/biz-link')} className="px-8 py-3.5 bg-[#002D62] text-white rounded-xl font-bold hover:bg-blue-900 transition-all shadow-lg hover:shadow-xl hover:-translate-y-1">
+          Quay lại Sàn Giao Dịch
         </button>
       </div>
     );
   }
 
+  // Phân loại nhãn dán
+  const getCategoryLabel = (cat: string) => {
+    const cats: Record<string, { label: string, color: string, icon: string }> = {
+      'CONSTRUCTION': { label: 'Thi Công Xây Lắp', color: 'text-emerald-700 bg-emerald-50 border-emerald-200', icon: 'ph-crane' },
+      'DESIGN': { label: 'Thiết Kế / Kiến Trúc', color: 'text-purple-700 bg-purple-50 border-purple-200', icon: 'ph-pen-nib' },
+      'MATERIAL': { label: 'Cung Cấp Vật Tư', color: 'text-amber-700 bg-amber-50 border-amber-200', icon: 'ph-truck' }
+    };
+    return cats[cat] || { label: cat, color: 'text-slate-600 bg-slate-100 border-slate-200', icon: 'ph-tag' };
+  };
+
+  const catInfo = getCategoryLabel(project.category);
+
   return (
-    <div className="max-w-4xl mx-auto px-4 md:px-8 py-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+    <div className="max-w-7xl mx-auto px-4 md:px-8 py-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
       
-      {/* Nút quay lại */}
-      <button 
-        onClick={() => router.back()} 
-        className="flex items-center gap-2 text-slate-500 hover:text-[#002D62] font-bold mb-6 transition-colors"
-      >
-        <i className="ph-bold ph-arrow-left text-lg"></i> Quay lại
-      </button>
+      {/* BREADCRUMB & NÚT QUAY LẠI */}
+      <div className="flex items-center gap-3 text-sm font-bold text-slate-400 mb-8">
+        <Link href="/biz-link" className="hover:text-[#002D62] transition-colors flex items-center gap-2">
+          <i className="ph-bold ph-arrow-left"></i> Sàn B2B
+        </Link>
+        <i className="ph-bold ph-caret-right text-slate-300"></i>
+        <span className="text-slate-700 truncate max-w-[200px] md:max-w-md">{project.title}</span>
+      </div>
 
-      {/* Box thông tin chi tiết */}
-      <div className="bg-white rounded-3xl p-6 md:p-10 border border-slate-200 shadow-sm relative overflow-hidden">
-        {/* Nhãn trạng thái */}
-        <div className="flex justify-between items-start mb-6">
-          <span className="text-[10px] font-black px-3 py-1.5 rounded-lg bg-blue-50 text-blue-600 border border-blue-200 uppercase tracking-widest">
-            {project.category}
-          </span>
-          <span className={`text-[10px] font-black px-3 py-1.5 rounded-lg uppercase tracking-widest ${project.status === 'PENDING' ? 'bg-amber-50 text-amber-600 border border-amber-200' : project.status === 'OPEN' ? 'bg-emerald-50 text-emerald-600 border border-emerald-200' : 'bg-slate-100 text-slate-500 border border-slate-200'}`}>
-            {project.status === 'PENDING' ? 'ĐANG CHỜ DUYỆT' : project.status}
-          </span>
+      {/* HEADER DỰ ÁN (BANNER) */}
+      <div className="bg-gradient-to-r from-[#002D62] to-blue-900 rounded-[2rem] p-8 md:p-12 text-white relative overflow-hidden shadow-xl mb-8">
+        <div className="absolute top-0 right-0 w-96 h-96 bg-white/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/3 pointer-events-none"></div>
+        
+        <div className="relative z-10 flex flex-col md:flex-row justify-between items-start gap-8">
+          <div className="flex-1">
+            <div className="flex flex-wrap items-center gap-3 mb-5">
+              <span className={`px-4 py-1.5 rounded-lg text-xs font-black uppercase tracking-widest border flex items-center gap-2 ${catInfo.color.replace('bg-', 'bg-white/90 ')}`}>
+                <i className={`ph-bold ${catInfo.icon} text-base`}></i> {catInfo.label}
+              </span>
+              <span className={`px-4 py-1.5 rounded-lg text-xs font-black uppercase tracking-widest border ${project.status === 'PENDING' ? 'bg-amber-500/20 text-amber-300 border-amber-500/50' : 'bg-emerald-500/20 text-emerald-300 border-emerald-500/50'}`}>
+                {project.status === 'PENDING' ? 'ĐANG CHỜ DUYỆT' : 'ĐANG MỞ THẦU'}
+              </span>
+            </div>
+            
+            <h1 className="text-3xl md:text-4xl font-black mb-4 leading-tight">
+              {project.title}
+            </h1>
+            
+            <div className="flex flex-wrap items-center gap-6 text-sm font-medium text-blue-200">
+              <div className="flex items-center gap-2"><i className="ph-fill ph-map-pin"></i> {project.location || 'Toàn quốc'}</div>
+              <div className="flex items-center gap-2"><i className="ph-fill ph-clock"></i> Đăng ngày: {new Date(project.created_at).toLocaleDateString('vi-VN')}</div>
+              <div className="flex items-center gap-2"><i className="ph-fill ph-eye"></i> 124 lượt xem (Mô phỏng)</div>
+            </div>
+          </div>
+
+          <div className="bg-white/10 backdrop-blur-md border border-white/20 p-6 rounded-3xl shrink-0 w-full md:w-auto text-center md:text-right">
+            <p className="text-blue-200 text-xs font-bold uppercase tracking-widest mb-1">Ngân sách dự kiến</p>
+            <p className="text-2xl md:text-3xl font-black text-[#F3E5AB]">{formatMoney(project.budget_max)}</p>
+          </div>
+        </div>
+      </div>
+
+      {/* NỘI DUNG CHÍNH - GRID 2 CỘT */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        
+        {/* CỘT TRÁI: CHI TIẾT DỰ ÁN */}
+        <div className="lg:col-span-2 space-y-8">
+          
+          {/* Box Mô tả */}
+          <div className="bg-white rounded-3xl p-8 border border-slate-200 shadow-sm">
+            <h3 className="text-xl font-black text-slate-900 mb-6 flex items-center gap-3 border-b border-slate-100 pb-4">
+              <i className="ph-fill ph-article text-[#002D62] text-2xl"></i> Chi tiết yêu cầu (Scope of Work)
+            </h3>
+            <div className="prose prose-slate max-w-none">
+              <p className="text-slate-700 leading-loose whitespace-pre-wrap font-medium">
+                {project.description || 'Chủ đầu tư chưa cung cấp mô tả chi tiết cho hạng mục này.'}
+              </p>
+            </div>
+          </div>
+
+          {/* Box Yêu cầu năng lực (Mock data đắp thịt) */}
+          <div className="bg-white rounded-3xl p-8 border border-slate-200 shadow-sm">
+            <h3 className="text-xl font-black text-slate-900 mb-6 flex items-center gap-3 border-b border-slate-100 pb-4">
+              <i className="ph-fill ph-medal text-amber-500 text-2xl"></i> Yêu cầu đối với Nhà thầu / Đối tác
+            </h3>
+            <ul className="space-y-4 text-slate-700 font-medium">
+              <li className="flex items-start gap-3">
+                <i className="ph-bold ph-check-circle text-emerald-500 text-xl mt-0.5 shrink-0"></i>
+                Có giấy phép kinh doanh hợp lệ và kinh nghiệm tối thiểu 3 năm trong lĩnh vực tương đương.
+              </li>
+              <li className="flex items-start gap-3">
+                <i className="ph-bold ph-check-circle text-emerald-500 text-xl mt-0.5 shrink-0"></i>
+                Hồ sơ năng lực (Profile) chứng minh đã từng thực hiện ít nhất 2 dự án có quy mô và tính chất tương tự.
+              </li>
+              <li className="flex items-start gap-3">
+                <i className="ph-bold ph-check-circle text-emerald-500 text-xl mt-0.5 shrink-0"></i>
+                Tuân thủ nghiêm ngặt các tiêu chuẩn an toàn lao động và chất lượng theo chuẩn Nhật Bản (JIS) (Nếu có).
+              </li>
+            </ul>
+          </div>
+
+          {/* Box Tài liệu đính kèm (Mock data đắp thịt) */}
+          <div className="bg-white rounded-3xl p-8 border border-slate-200 shadow-sm">
+            <h3 className="text-xl font-black text-slate-900 mb-6 flex items-center gap-3 border-b border-slate-100 pb-4">
+              <i className="ph-fill ph-paperclip text-blue-500 text-2xl"></i> Tài liệu đính kèm
+            </h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="flex items-center gap-4 p-4 rounded-2xl border border-slate-200 hover:border-blue-300 hover:bg-blue-50 cursor-pointer transition-colors group">
+                <div className="w-12 h-12 rounded-xl bg-rose-100 text-rose-600 flex items-center justify-center shrink-0">
+                  <i className="ph-fill ph-file-pdf text-2xl"></i>
+                </div>
+                <div className="overflow-hidden">
+                  <p className="font-bold text-slate-800 text-sm truncate group-hover:text-[#002D62]">Ban_Ve_Thiet_Ke_So_Bo.pdf</p>
+                  <p className="text-xs text-slate-500 mt-0.5">2.4 MB • Đã tải lên</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-4 p-4 rounded-2xl border border-slate-200 hover:border-blue-300 hover:bg-blue-50 cursor-pointer transition-colors group">
+                <div className="w-12 h-12 rounded-xl bg-emerald-100 text-emerald-600 flex items-center justify-center shrink-0">
+                  <i className="ph-fill ph-file-xls text-2xl"></i>
+                </div>
+                <div className="overflow-hidden">
+                  <p className="font-bold text-slate-800 text-sm truncate group-hover:text-[#002D62]">BOQ_Khoi_Luong_Du_Toan.xlsx</p>
+                  <p className="text-xs text-slate-500 mt-0.5">1.1 MB • Đã tải lên</p>
+                </div>
+              </div>
+            </div>
+            <p className="text-xs text-slate-400 mt-4 font-medium italic">* Nhấp vào để tải xuống. Vui lòng bảo mật thông tin tài liệu.</p>
+          </div>
+
         </div>
 
-        {/* Tiêu đề dự án */}
-        <h1 className="text-2xl md:text-3xl font-black text-slate-900 mb-6 leading-snug">
-          {project.title}
-        </h1>
+        {/* CỘT PHẢI: THÔNG TIN LIÊN HỆ & NÚT CTA */}
+        <div className="space-y-6">
+          
+          {/* Bảng Hành Động Báo Giá */}
+          <div className="bg-white rounded-3xl p-6 border border-slate-200 shadow-xl relative overflow-hidden">
+            <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-amber-400 to-[#002D62]"></div>
+            
+            <h3 className="font-black text-slate-900 mb-2 mt-2">Hạn chót nộp hồ sơ</h3>
+            <div className="flex items-center gap-3 text-rose-600 font-black text-lg bg-rose-50 p-4 rounded-xl border border-rose-100 mb-6">
+              <i className="ph-fill ph-clock-countdown text-2xl"></i> Còn 14 Ngày (Mô phỏng)
+            </div>
 
-        {/* Các thông số tóm tắt */}
-        <div className="flex flex-wrap items-center gap-x-6 gap-y-4 text-sm font-bold text-slate-600 mb-8 pb-8 border-b border-slate-100">
-          <div className="flex items-center gap-2">
-            <i className="ph-fill ph-map-pin text-slate-400 text-lg"></i> 
-            {project.location || 'Chưa cập nhật địa điểm'}
+            {isOwner ? (
+              <div className="space-y-3">
+                <button className="w-full py-4 bg-slate-100 text-slate-700 rounded-xl font-black hover:bg-slate-200 transition-colors flex items-center justify-center gap-2">
+                  <i className="ph-bold ph-pencil-simple"></i> Chỉnh sửa Dự Án
+                </button>
+                <button className="w-full py-4 bg-[#002D62] text-white rounded-xl font-black hover:bg-blue-900 transition-all shadow-md flex items-center justify-center gap-2">
+                  <i className="ph-bold ph-folder-open"></i> Quản lý Báo Giá Đã Nhận (0)
+                </button>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                <button className="w-full py-4 bg-[#002D62] text-white rounded-xl font-black hover:bg-blue-900 transition-all shadow-lg hover:shadow-xl hover:-translate-y-1 flex items-center justify-center gap-2">
+                  <i className="ph-bold ph-paper-plane-right"></i> NỘP HỒ SƠ / BÁO GIÁ
+                </button>
+                <button className="w-full py-4 bg-white border-2 border-slate-200 text-slate-700 rounded-xl font-black hover:border-[#002D62] hover:text-[#002D62] transition-colors flex items-center justify-center gap-2">
+                  <i className="ph-bold ph-bookmark-simple"></i> Lưu vào Yêu thích
+                </button>
+              </div>
+            )}
+            <p className="text-xs text-center text-slate-400 font-medium mt-4">Nền tảng NKBA đảm bảo tính minh bạch và bảo mật thông tin gói thầu.</p>
           </div>
-          <div className="flex items-center gap-2 text-emerald-600 bg-emerald-50 px-3 py-1.5 rounded-lg border border-emerald-100">
-            <i className="ph-fill ph-coins text-lg"></i> 
-            Ngân sách: {formatMoney(project.budget_max)}
-          </div>
-          <div className="flex items-center gap-2">
-            <i className="ph-fill ph-calendar-blank text-slate-400 text-lg"></i> 
-            Đăng ngày: {new Date(project.created_at).toLocaleDateString('vi-VN')}
-          </div>
-        </div>
 
-        {/* Nội dung mô tả */}
-        <div className="space-y-4">
-          <h3 className="text-lg font-black text-slate-800 flex items-center gap-2">
-            <i className="ph-fill ph-article text-[#002D62]"></i> Mô tả chi tiết yêu cầu
-          </h3>
-          <div className="bg-slate-50 p-6 rounded-2xl border border-slate-100">
-            <p className="text-slate-700 leading-loose whitespace-pre-wrap font-medium">
-              {project.description || 'Dự án này chưa có mô tả chi tiết.'}
-            </p>
+          {/* Thông tin Chủ đầu tư / Người đăng */}
+          <div className="bg-slate-50 rounded-3xl p-6 border border-slate-200">
+            <h3 className="font-black text-slate-800 mb-6 flex items-center gap-2 text-sm uppercase tracking-widest">
+              <i className="ph-fill ph-buildings text-lg"></i> Đơn vị Mời thầu
+            </h3>
+            
+            <div className="flex items-center gap-4 mb-6">
+              <div className="w-16 h-16 bg-white border border-slate-200 rounded-full flex items-center justify-center shadow-sm shrink-0">
+                <i className="ph-fill ph-buildings text-3xl text-slate-300"></i>
+              </div>
+              <div>
+                <h4 className="font-black text-slate-900 text-lg leading-tight line-clamp-2">
+                  {author?.corporates?.name || 'Doanh nghiệp ẩn danh'}
+                </h4>
+                <p className="text-sm font-bold text-slate-500 mt-1 flex items-center gap-1">
+                  <i className="ph-fill ph-user-circle"></i> Đăng bởi: {author?.full_name || 'Admin / Thành viên'}
+                </p>
+              </div>
+            </div>
+
+            {/* Khối liên hệ ẩn/hiện tùy quyền (Mock logic quyền) */}
+            <div className="bg-white p-5 rounded-2xl border border-slate-200 space-y-3">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
+                  <i className="ph-fill ph-envelope-simple"></i>
+                </div>
+                <div className="truncate">
+                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Email liên hệ</p>
+                  <p className="text-sm font-bold text-slate-800 truncate">{author?.email || 'Đã ẩn (Cần tài khoản VIP)'}</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
+                  <i className="ph-fill ph-phone-call"></i>
+                </div>
+                <div>
+                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Số điện thoại</p>
+                  <p className="text-sm font-bold text-slate-800">{author?.phone || '*** **** ***'}</p>
+                </div>
+              </div>
+            </div>
           </div>
+
         </div>
 
       </div>
