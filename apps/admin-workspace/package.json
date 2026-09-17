@@ -11,7 +11,7 @@
   "dependencies": {
     "@nkba/supabase": "workspace:*",
     "@supabase/ssr": "^0.10.2",
-    "@supabase/supabase-js": "^2.103.1",
+    "@supabase/supabase-js": "^2.116.0",
     "html2canvas": "^1.4.1",
     "html5-qrcode": "^2.3.8",
     "jspdf": "^4.2.1",

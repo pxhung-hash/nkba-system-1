@@ -8,6 +8,6 @@
     "lint": "eslint ."
   },
   "dependencies": {
-    "@supabase/supabase-js": "^2.100.0"
+    "@supabase/supabase-js": "^2.116.0"
   }
 }
