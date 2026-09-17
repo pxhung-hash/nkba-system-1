@@ -50,9 +50,9 @@ export default function AccountSettingsPage() {
         });
 
         setMetadata({
-          corporate_name: profile.corporates?.name || 'Thành viên Độc lập',
+          corporate_name: profile.corporates?.[0]?.name || 'Thành viên Độc lập',
           tier_name: Array.isArray(profile.individual_tiers) ? profile.individual_tiers[0]?.name : (profile.individual_tiers as any)?.name || 'Hội viên Tiêu chuẩn',
-          title_name: profile.individual_titles?.name || 'Chưa cập nhật',
+          title_name: profile.individual_titles?.[0]?.name || 'Chưa cập nhật',
           join_date: profile.join_date ? new Date(profile.join_date).toLocaleDateString('vi-VN') : '---',
           status: profile.status
         });
