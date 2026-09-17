@@ -14,6 +14,7 @@ export default function MemberBizLinkPage() {
   const [formData, setFormData] = useState({ title: '', description: '', category: 'CONSTRUCTION', budget_max: '', location: '' });
   
   const [myProjects, setMyProjects] = useState<any[]>([]);
+  const [error, setError] = useState<string | null>(null);
 
   // ĐIỀN ĐƯỜNG DẪN TRANG UPGRADE BÊN PUBLIC-SITE VÀO ĐÂY
   // Ví dụ: Nếu public site của bạn là nkba.vn, điền 'https://nkba.vn/upgrade'
@@ -207,7 +208,12 @@ export default function MemberBizLinkPage() {
                     </div>
                   ) : (
                     myProjects.map(p => (
-                      <div key={p.id} className="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm flex flex-col hover:border-blue-300 hover:shadow-md transition-all group relative overflow-hidden">
+                      // BỌC THẺ LINK Ở ĐÂY ĐỂ CLICK ĐƯỢC VÀO CHI TIẾT
+                      <Link 
+                        href={`/biz-link/${p.id}`} 
+                        key={p.id} 
+                        className="block bg-white border border-slate-200 rounded-3xl p-6 shadow-sm flex flex-col hover:border-blue-300 hover:shadow-md transition-all group relative overflow-hidden cursor-pointer"
+                      >
                         <div className="flex justify-between items-start mb-4 relative z-10">
                           <span className={`text-[9px] font-black px-3 py-1.5 rounded-lg uppercase tracking-widest ${p.status === 'PENDING' ? 'bg-amber-50 text-amber-600 border border-amber-200' : p.status === 'OPEN' ? 'bg-blue-50 text-blue-600 border border-blue-200' : 'bg-slate-100 text-slate-500 border border-slate-200'}`}>{p.status === 'PENDING' ? 'CHỜ DUYỆT' : p.status}</span>
                           <span className="w-8 h-8 rounded-full bg-slate-50 border border-slate-100 flex items-center justify-center text-slate-400 group-hover:text-[#002D62] transition-colors"><i className="ph-bold ph-arrow-up-right"></i></span>
@@ -220,7 +226,7 @@ export default function MemberBizLinkPage() {
                         <div className="mt-auto pt-5 border-t border-slate-100 flex justify-between items-end relative z-10">
                           <div><p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Ngân sách</p><p className="text-base font-black text-emerald-600">{formatMoney(p.budget_max)}</p></div>
                         </div>
-                      </div>
+                      </Link>
                     ))
                   )}
                 </div>
