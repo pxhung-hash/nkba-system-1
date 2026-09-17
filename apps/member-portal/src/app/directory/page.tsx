@@ -3,60 +3,89 @@
 import { useEffect, useState } from 'react';
 import { createClient } from '@/utils/supabase/client';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation'; // Thêm router để chuyển hướng
 
 export default function MemberDirectoryPage() {
   const [supabase] = useState(() => createClient());
+  const router = useRouter();
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [members, setMembers] = useState<any[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   const UPGRADE_URL = "/upgrade"; // ĐƯỜNG DẪN NÂNG CẤP
 
   useEffect(() => {
     const fetchDirectory = async () => {
-      setLoading(true);
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
+      try {
+        setLoading(true);
+        setErrorMsg(null);
 
-      const { data: profile } = await supabase
-        .from('individuals')
-        .select('id, individual_tiers!individuals_tier_id_fkey(name, code)')
-        .eq('user_auth_id', user.id)
-        .single();
+        // 1. Kiểm tra xác thực
+        const { data: { user }, error: authError } = await supabase.auth.getUser();
+        
+        // Nếu không có user hoặc lỗi auth, đá về trang đăng nhập
+        if (authError || !user) {
+          console.warn('User not authenticated, redirecting to login...');
+          router.push('/login');
+          return;
+        }
 
-      if (profile) {
-        const tierCode = Array.isArray(profile.individual_tiers) 
-          ? profile.individual_tiers[0]?.code 
-          : (profile.individual_tiers as any)?.code;
-        setCurrentUser({ ...profile, tier_code: tierCode });
-      } else {
-        setCurrentUser({ tier_code: 'VIP', is_admin: true });
+        // 2. Lấy thông tin cá nhân của User hiện tại
+        const { data: profile, error: profileError } = await supabase
+          .from('individuals')
+          .select('id, individual_tiers!individuals_tier_id_fkey(name, code)')
+          .eq('user_auth_id', user.id)
+          .single();
+
+        if (profileError && profileError.code !== 'PGRST116') {
+          throw profileError;
+        }
+
+        if (profile) {
+          const tierCode = Array.isArray(profile.individual_tiers) 
+            ? profile.individual_tiers[0]?.code 
+            : (profile.individual_tiers as any)?.code;
+          setCurrentUser({ ...profile, tier_code: tierCode });
+        } else {
+          // Fallback nếu không có profile (ví dụ acc Admin)
+          setCurrentUser({ tier_code: 'VIP', is_admin: true });
+        }
+
+        // 3. Tải danh bạ toàn bộ hệ thống
+        const { data: directoryData, error: dirError } = await supabase
+          .from('individuals')
+          .select(`
+            id, full_name, email, phone,
+            individual_tiers!individuals_tier_id_fkey(name, code),
+            corporates(name, tax_code)
+          `)
+          .eq('status', 'ACTIVE');
+
+        if (dirError) throw dirError;
+
+        if (directoryData) {
+          // Sắp xếp theo thứ bậc thẻ từ cao xuống thấp
+          const sortedData = directoryData.sort((a, b) => {
+            const tierA = Array.isArray(a.individual_tiers) ? a.individual_tiers[0]?.code : (a.individual_tiers as any)?.code;
+            const tierB = Array.isArray(b.individual_tiers) ? b.individual_tiers[0]?.code : (b.individual_tiers as any)?.code;
+            const score = { 'VIP': 4, 'TITANIUM': 3, 'GOLD': 2, 'STANDARD': 1, 'PUBLIC': 0 };
+            return (score[tierB as keyof typeof score] || 0) - (score[tierA as keyof typeof score] || 0);
+          });
+          setMembers(sortedData);
+        }
+      } catch (err: any) {
+        console.error('Lỗi tải trang Danh bạ:', err);
+        setErrorMsg('Không thể kết nối đến máy chủ. Vui lòng kiểm tra mạng và tải lại trang.');
+      } finally {
+        // Đảm bảo luôn tắt loading dù code thành công hay bị lỗi
+        setLoading(false);
       }
-
-      const { data: directoryData } = await supabase
-        .from('individuals')
-        .select(`
-          id, full_name, email, phone,
-          individual_tiers!individuals_tier_id_fkey(name, code),
-          corporates(name, tax_code)
-        `)
-        .eq('status', 'ACTIVE');
-
-      if (directoryData) {
-        const sortedData = directoryData.sort((a, b) => {
-          const tierA = Array.isArray(a.individual_tiers) ? a.individual_tiers[0]?.code : (a.individual_tiers as any)?.code;
-          const tierB = Array.isArray(b.individual_tiers) ? b.individual_tiers[0]?.code : (b.individual_tiers as any)?.code;
-          const score = { 'VIP': 4, 'TITANIUM': 3, 'GOLD': 2, 'STANDARD': 1, 'PUBLIC': 0 };
-          return (score[tierB as keyof typeof score] || 0) - (score[tierA as keyof typeof score] || 0);
-        });
-        setMembers(sortedData);
-      }
-      setLoading(false);
     };
 
     fetchDirectory();
-  }, [supabase]);
+  }, [supabase, router]);
 
   const filteredMembers = members.filter(m => 
     m.full_name.toLowerCase().includes(searchQuery.toLowerCase()) || 
@@ -65,7 +94,25 @@ export default function MemberDirectoryPage() {
 
   const canViewContact = (tierCode: string) => ['PREMIUM', 'TITANIUM', 'VIP', 'GOLD'].includes(tierCode);
 
-  if (loading) return <div className="flex h-[60vh] items-center justify-center text-slate-400 font-bold"><i className="ph-bold ph-spinner animate-spin text-3xl mr-3 text-emerald-600"></i> Đang tải Mạng lưới...</div>;
+  // Màn hình lỗi mạng (Mới thêm)
+  if (errorMsg) {
+    return (
+      <div className="flex flex-col h-[60vh] items-center justify-center text-center">
+        <i className="ph-fill ph-warning-circle text-5xl text-rose-500 mb-4"></i>
+        <p className="text-slate-600 font-bold mb-4">{errorMsg}</p>
+        <button onClick={() => window.location.reload()} className="px-6 py-2 bg-[#002D62] text-white rounded-xl font-bold">Tải lại trang</button>
+      </div>
+    );
+  }
+
+  if (loading) {
+    return (
+      <div className="flex h-[60vh] items-center justify-center text-slate-400 font-bold">
+        <i className="ph-bold ph-spinner animate-spin text-3xl mr-3 text-[#002D62]"></i> 
+        Đang tải Mạng lưới...
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-7xl mx-auto px-4 md:px-8 py-8 space-y-10 animate-in fade-in duration-500">
