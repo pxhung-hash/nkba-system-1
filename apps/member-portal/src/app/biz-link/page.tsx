@@ -11,14 +11,28 @@ export default function MemberBizLinkPage() {
   
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showForm, setShowForm] = useState(false);
-  const [formData, setFormData] = useState({ title: '', description: '', category: 'CONSTRUCTION', budget_max: '', location: '' });
-  
   const [myProjects, setMyProjects] = useState<any[]>([]);
-  const [error, setError] = useState<string | null>(null);
-
-  // ĐIỀN ĐƯỜNG DẪN TRANG UPGRADE BÊN PUBLIC-SITE VÀO ĐÂY
-  // Ví dụ: Nếu public site của bạn là nkba.vn, điền 'https://nkba.vn/upgrade'
+  
   const UPGRADE_URL = "/upgrade"; 
+
+  // --- STATE MỚI CHO FORM ĐẮP THỊT ---
+  const [formData, setFormData] = useState({
+    title: '',
+    category: 'CONSTRUCTION',
+    custom_category: '', // Cho phép tự nhập Lĩnh vực
+    project_type: 'RESIDENTIAL',
+    custom_project_type: '', // Cho phép tự nhập Loại dự án
+    budget_max: '', // Sẽ lưu dạng số thuần túy
+    location: '',
+    description: '',
+    investor_name: '',
+    is_investor_hidden: false,
+    requirements: '',
+    contact_name: '',
+    contact_phone: '',
+    contact_email: '',
+    images: [] as string[] // Lưu mảng Base64 của ảnh đã nén
+  });
 
   useEffect(() => {
     const fetchUserAndProjects = async () => {
@@ -27,56 +41,117 @@ export default function MemberBizLinkPage() {
 
       const { data: profile } = await supabase
         .from('individuals')
-        .select('id, full_name, individual_tiers!individuals_tier_id_fkey(name, code)')
+        .select('id, full_name, email, phone, individual_tiers!individuals_tier_id_fkey(name, code)')
         .eq('user_auth_id', user.id)
         .single();
 
       if (profile) {
-        const tierCode = Array.isArray(profile.individual_tiers) 
-          ? profile.individual_tiers[0]?.code 
-          : (profile.individual_tiers as any)?.code;
+        const tierCode = Array.isArray(profile.individual_tiers) ? profile.individual_tiers[0]?.code : (profile.individual_tiers as any)?.code;
 
-        // LẤY CHÙM CHÌA KHÓA TÍNH NĂNG TỪ DATABASE
         let allowedFeatures: string[] = [];
         if (tierCode === 'VIP') {
           allowedFeatures = ['VIEW_MARKET_BUDGET', 'VIEW_MARKET_CONTACT', 'POST_PROJECT', 'VIEW_TALENT_CONTACT', 'POST_JOB', 'REQUEST_CUSTOM_DATA'];
         } else {
-          const { data: features } = await supabase
-            .from('tier_features')
-            .select('feature_code')
-            .eq('tier_code', tierCode)
-            .eq('can_access', true);
-            
+          const { data: features } = await supabase.from('tier_features').select('feature_code').eq('tier_code', tierCode).eq('can_access', true);
           if (features) allowedFeatures = features.map(f => f.feature_code);
         }
 
         setCurrentUser({ ...profile, tier_code: tierCode, allowedFeatures });
         
-        const { data: projs } = await supabase
-          .from('projects')
-          .select('*')
-          .eq('member_id', profile.id)
-          .order('created_at', { ascending: false });
-          
+        // Tự động điền thông tin liên hệ của user
+        setFormData(prev => ({
+          ...prev,
+          contact_name: profile.full_name || '',
+          contact_phone: profile.phone || '',
+          contact_email: profile.email || ''
+        }));
+        
+        const { data: projs } = await supabase.from('projects').select('*').eq('member_id', profile.id).order('created_at', { ascending: false });
         if (projs) setMyProjects(projs);
       }
     };
     fetchUserAndProjects();
   }, [supabase]);
 
+  // --- HÀM 1: XỬ LÝ FORMAT TIỀN TỆ KHI NHẬP ---
+  const handleBudgetChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const rawValue = e.target.value.replace(/\D/g, ''); // Chỉ lấy số, loại bỏ chữ/kí tự
+    setFormData(prev => ({ ...prev, budget_max: rawValue }));
+  };
+  const displayBudget = formData.budget_max ? new Intl.NumberFormat('vi-VN').format(Number(formData.budget_max)) : '';
+
+  // --- HÀM 2: THUẬT TOÁN TỰ ĐỘNG NÉN ẢNH (CANVAS API) ---
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files) return;
+
+    Array.from(files).forEach(file => {
+      if (!file.type.startsWith('image/')) return alert('Chỉ hỗ trợ file hình ảnh!');
+      
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = (event) => {
+        const img = new Image();
+        img.src = event.target?.result as string;
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          const MAX_WIDTH = 1200; // Chiều ngang tối đa
+          let width = img.width;
+          let height = img.height;
+
+          // Tính toán lại tỷ lệ nếu ảnh to hơn MAX_WIDTH
+          if (width > MAX_WIDTH) {
+            height = Math.round((height * MAX_WIDTH) / width);
+            width = MAX_WIDTH;
+          }
+
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          ctx?.drawImage(img, 0, 0, width, height);
+
+          // Nén với chất lượng 70%
+          const compressedBase64 = canvas.toDataURL('image/jpeg', 0.7);
+          setFormData(prev => ({ ...prev, images: [...prev.images, compressedBase64] }));
+        };
+      };
+    });
+  };
+
+  const removeImage = (index: number) => {
+    setFormData(prev => ({ ...prev, images: prev.images.filter((_, i) => i !== index) }));
+  };
+
+  // --- HÀM 3: XỬ LÝ SUBMIT LÊN DATABASE ---
   const handleSubmitProject = async () => {
     if (!formData.title || !formData.budget_max) return alert('Vui lòng nhập Tên dự án và Ngân sách dự kiến!');
-    if (!currentUser) return alert('Lỗi xác thực người dùng!');
     
     setIsSubmitting(true);
+    
+    // Gộp Lĩnh vực và Loại dự án (Nếu chọn Khác thì lấy text tự nhập)
+    const finalCategory = formData.category === 'OTHER' ? formData.custom_category : formData.category;
+    const finalProjectType = formData.project_type === 'OTHER' ? formData.custom_project_type : formData.project_type;
+
     const payload = {
       member_id: currentUser.id, 
       title: formData.title, 
       description: formData.description,
-      category: formData.category, 
+      category: finalCategory, 
       budget_max: parseFloat(formData.budget_max), 
       location: formData.location,
-      status: 'PENDING'
+      status: 'PENDING',
+      details: { // Toàn bộ dữ liệu đắp thịt được nhét vào JSONB
+        project_type: finalProjectType,
+        investor_name: formData.investor_name,
+        is_investor_hidden: formData.is_investor_hidden,
+        requirements: formData.requirements,
+        contact: {
+          name: formData.contact_name,
+          phone: formData.contact_phone,
+          email: formData.contact_email
+        },
+        images: formData.images
+      }
     };
 
     const { error } = await supabase.from('projects').insert([payload]);
@@ -84,19 +159,22 @@ export default function MemberBizLinkPage() {
     else {
       alert('✅ Đăng dự án thành công! Đang chờ Admin Liên minh phê duyệt.');
       setShowForm(false);
-      setFormData({ title: '', description: '', category: 'CONSTRUCTION', budget_max: '', location: '' });
-      
+      // Reset form
+      setFormData({
+        title: '', category: 'CONSTRUCTION', custom_category: '', project_type: 'RESIDENTIAL', custom_project_type: '',
+        budget_max: '', location: '', description: '', investor_name: '', is_investor_hidden: false, requirements: '',
+        contact_name: currentUser.full_name || '', contact_phone: currentUser.phone || '', contact_email: currentUser.email || '', images: []
+      });
       const { data } = await supabase.from('projects').select('*').eq('member_id', currentUser.id).order('created_at', { ascending: false });
       if (data) setMyProjects(data);
     }
     setIsSubmitting(false);
   };
 
-  const formatMoney = (amount: number) => amount ? amount.toLocaleString('vi-VN') + ' VNĐ' : 'Thỏa thuận';
+  const formatMoneyCard = (amount: number) => amount ? amount.toLocaleString('vi-VN') + ' VNĐ' : 'Thỏa thuận';
 
   if (!currentUser) return <div className="flex h-[60vh] items-center justify-center text-slate-400 font-bold"><i className="ph-bold ph-spinner animate-spin text-3xl mr-3 text-[#002D62]"></i> Đang nạp hệ thống...</div>;
 
-  // KIỂM TRA QUYỀN ĐỘNG TỪ DATABASE
   const canViewMarketBudget = currentUser?.allowedFeatures?.includes('VIEW_MARKET_BUDGET');
   const canViewMarketContact = currentUser?.allowedFeatures?.includes('VIEW_MARKET_CONTACT');
   const canPostProject = currentUser?.allowedFeatures?.includes('POST_PROJECT');
@@ -125,8 +203,6 @@ export default function MemberBizLinkPage() {
       {/* TAB 1: MARKET */}
       {activeTab === 'market' && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 animate-in slide-in-from-bottom-4 duration-500">
-          
-          {/* NẾU KHÔNG CÓ QUYỀN VIEW_MARKET_BUDGET HOẶC CONTACT -> ĐÒI TIỀN UPSELL CHỖ NÀY */}
           {(!canViewMarketBudget || !canViewMarketContact) ? (
             <div className="bg-gradient-to-br from-amber-50 to-white border border-amber-100 rounded-3xl p-10 text-center flex flex-col items-center shadow-sm relative overflow-hidden group">
               <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10"></div>
@@ -137,14 +213,11 @@ export default function MemberBizLinkPage() {
               <p className="text-sm text-slate-600 leading-relaxed relative z-10 mb-8">
                 Không gian giao thương khép kín. Nâng cấp thẻ để tiếp cận danh sách thầu nội bộ, xem dự toán chi tiết và liên hệ Chủ đầu tư.
               </p>
-              
-              {/* NÚT ĐÃ ĐƯỢC CHUYỂN THÀNH LINK */}
               <Link href={UPGRADE_URL} className="mt-auto px-8 py-3.5 bg-gradient-to-r from-amber-500 to-amber-600 text-white rounded-2xl font-black shadow-lg hover:shadow-amber-500/30 hover:-translate-y-1 transition-all relative z-10 flex items-center gap-2">
                 NÂNG CẤP THẺ NGAY <i className="ph-bold ph-arrow-right"></i>
               </Link>
             </div>
           ) : (
-             // NẾU CÓ QUYỀN THÌ HIỆN DANH SÁCH DỰ ÁN PUBLIC TẠI ĐÂY (PHẦN NÀY SAU NÀY MÓC TỪ DATABASE)
              <div className="bg-white border border-slate-200 rounded-3xl p-10 text-center text-slate-400 font-bold">
                [Danh sách dự án của hệ thống sẽ hiện ở đây]
              </div>
@@ -163,7 +236,6 @@ export default function MemberBizLinkPage() {
               VÀO MẠNG LƯỚI THÀNH VIÊN <i className="ph-bold ph-arrow-right"></i>
             </Link>
           </div>
-
         </div>
       )}
 
@@ -180,69 +252,170 @@ export default function MemberBizLinkPage() {
                   <p className="text-blue-200 text-sm font-medium">Bạn đang tìm thầu phụ thi công hay nhà cung cấp vật tư? Hãy đưa dự án lên sàn để mạng lưới đối tác NKBA tiếp cận.</p>
                 </div>
                 <button onClick={() => setShowForm(!showForm)} className={`relative z-10 shrink-0 h-14 px-8 rounded-2xl text-sm font-black shadow-lg transition-all flex items-center gap-2 ${showForm ? 'bg-slate-800 text-white hover:bg-slate-900 border border-slate-700' : 'bg-white text-[#002D62] hover:bg-blue-50 hover:scale-105'}`}>
-                  <i className={`ph-bold ${showForm ? 'ph-x' : 'ph-plus'} text-lg`}></i> {showForm ? 'HỦY ĐĂNG' : 'TẠO DỰ ÁN MỚI'}
+                  <i className={`ph-bold ${showForm ? 'ph-x' : 'ph-plus'} text-lg`}></i> {showForm ? 'ĐÓNG FORM' : 'TẠO DỰ ÁN MỚI'}
                 </button>
               </div>
 
+              {/* FORM KHAI BÁO DỰ ÁN (FULL) */}
               {showForm && (
                 <div className="bg-white border border-slate-200 p-8 rounded-3xl shadow-sm animate-in zoom-in-95 duration-300">
-                  <h3 className="text-xl font-black text-slate-900 mb-6 flex items-center gap-2"><i className="ph-fill ph-pencil-line text-[#002D62]"></i> Khai báo Thông tin Dự án</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-slate-50 p-6 rounded-2xl border border-slate-100">
-                    <div className="col-span-2 md:col-span-2 space-y-2">
-                      <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Tên Dự án (*)</label>
-                      <input 
-                        type="text" 
-                        value={formData.title} 
-                        onChange={e => setFormData({...formData, title: e.target.value})} 
-                        className="w-full h-12 px-4 bg-white border border-slate-200 rounded-xl text-sm font-bold text-slate-900 placeholder-slate-400 outline-none focus:border-blue-400 focus:ring-4 focus:ring-blue-500/10 transition-all" 
-                        placeholder="VD: Tìm thầu phụ thi công Cơ Điện (MEP)..." 
-                      />
+                  <h3 className="text-2xl font-black text-slate-900 mb-8 flex items-center gap-3">
+                    <i className="ph-fill ph-pencil-line text-[#002D62]"></i> Khai báo Thông tin Dự án
+                  </h3>
+                  
+                  <div className="space-y-8">
+                    {/* SECTION 1: THÔNG TIN CƠ BẢN */}
+                    <div className="bg-slate-50 p-6 md:p-8 rounded-[2rem] border border-slate-100">
+                      <h4 className="text-sm font-black text-[#002D62] uppercase tracking-widest mb-6 flex items-center gap-2">
+                        <span className="w-6 h-6 rounded-full bg-blue-100 flex items-center justify-center">1</span> Thông tin cơ bản
+                      </h4>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        
+                        <div className="col-span-2 space-y-2">
+                          <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Tên Dự án / Gói thầu (*)</label>
+                          <input type="text" value={formData.title} onChange={e => setFormData({...formData, title: e.target.value})} className="w-full h-12 px-4 bg-white border border-slate-200 rounded-xl text-sm font-bold text-slate-900 placeholder-slate-400 outline-none focus:border-blue-400 focus:ring-4 focus:ring-blue-500/10 transition-all" placeholder="VD: Tìm thầu phụ thi công Cơ Điện (MEP) Showroom Hà Nội..." />
+                        </div>
+                        
+                        {/* Lĩnh vực */}
+                        <div className="space-y-2">
+                          <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Lĩnh vực</label>
+                          <div className="flex flex-col gap-2">
+                            <select value={formData.category} onChange={e => setFormData({...formData, category: e.target.value})} className="w-full h-12 px-4 bg-white border border-slate-200 rounded-xl text-sm font-bold text-slate-900 outline-none cursor-pointer focus:border-blue-400 transition-all">
+                              <option value="CONSTRUCTION">Thi công (Construction)</option>
+                              <option value="DESIGN">Thiết kế (Design)</option>
+                              <option value="MATERIAL">Cung cấp vật tư (Material)</option>
+                              <option value="OTHER">Khác (Tự nhập...)</option>
+                            </select>
+                            {formData.category === 'OTHER' && (
+                              <input type="text" value={formData.custom_category} onChange={e => setFormData({...formData, custom_category: e.target.value})} className="w-full h-12 px-4 bg-blue-50 border border-blue-200 rounded-xl text-sm font-bold text-blue-900 placeholder-blue-300 outline-none focus:border-blue-400" placeholder="Nhập tên lĩnh vực..." autoFocus />
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Loại dự án */}
+                        <div className="space-y-2">
+                          <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Loại công trình</label>
+                          <div className="flex flex-col gap-2">
+                            <select value={formData.project_type} onChange={e => setFormData({...formData, project_type: e.target.value})} className="w-full h-12 px-4 bg-white border border-slate-200 rounded-xl text-sm font-bold text-slate-900 outline-none cursor-pointer focus:border-blue-400 transition-all">
+                              <option value="RESIDENTIAL">Nhà ở / Biệt thự</option>
+                              <option value="APARTMENT">Chung cư</option>
+                              <option value="OFFICE">Văn phòng (Office)</option>
+                              <option value="FACTORY">Nhà xưởng / Khu công nghiệp</option>
+                              <option value="COMMERCIAL">Thương mại / Showroom</option>
+                              <option value="OTHER">Khác (Tự nhập...)</option>
+                            </select>
+                            {formData.project_type === 'OTHER' && (
+                              <input type="text" value={formData.custom_project_type} onChange={e => setFormData({...formData, custom_project_type: e.target.value})} className="w-full h-12 px-4 bg-blue-50 border border-blue-200 rounded-xl text-sm font-bold text-blue-900 placeholder-blue-300 outline-none focus:border-blue-400" placeholder="Nhập loại công trình..." autoFocus />
+                            )}
+                          </div>
+                        </div>
+                        
+                        <div className="space-y-2">
+                          <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Ngân sách dự kiến (VNĐ)</label>
+                          <input 
+                            type="text" // Dùng text để hiển thị được dấu phẩy
+                            value={displayBudget} 
+                            onChange={handleBudgetChange} 
+                            className="w-full h-12 px-4 bg-white border border-slate-200 rounded-xl text-sm font-bold text-slate-900 placeholder-slate-400 outline-none focus:border-blue-400 focus:ring-4 focus:ring-blue-500/10 transition-all" 
+                            placeholder="VD: 5,000,000,000" 
+                          />
+                        </div>
+                        
+                        <div className="space-y-2">
+                          <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Địa điểm dự án</label>
+                          <input type="text" value={formData.location} onChange={e => setFormData({...formData, location: e.target.value})} className="w-full h-12 px-4 bg-white border border-slate-200 rounded-xl text-sm font-bold text-slate-900 placeholder-slate-400 outline-none focus:border-blue-400 focus:ring-4 focus:ring-blue-500/10 transition-all" placeholder="VD: KCN VSIP, Bắc Ninh" />
+                        </div>
+                      </div>
                     </div>
-                    <div className="space-y-2">
-                      <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Lĩnh vực</label>
-                      <select 
-                        value={formData.category} 
-                        onChange={e => setFormData({...formData, category: e.target.value})} 
-                        className="w-full h-12 px-4 bg-white border border-slate-200 rounded-xl text-sm font-bold text-slate-900 outline-none cursor-pointer focus:border-blue-400 transition-all"
-                      >
-                        <option value="CONSTRUCTION">Thi công (Construction)</option>
-                        <option value="DESIGN">Thiết kế (Design)</option>
-                        <option value="MATERIAL">Cung cấp vật tư (Material)</option>
-                      </select>
+
+                    {/* SECTION 2: CHI TIẾT & CHỦ ĐẦU TƯ */}
+                    <div className="bg-slate-50 p-6 md:p-8 rounded-[2rem] border border-slate-100">
+                      <h4 className="text-sm font-black text-[#002D62] uppercase tracking-widest mb-6 flex items-center gap-2">
+                        <span className="w-6 h-6 rounded-full bg-blue-100 flex items-center justify-center">2</span> Chi tiết & Pháp lý
+                      </h4>
+                      <div className="grid grid-cols-1 gap-6">
+                        
+                        <div className="space-y-3 bg-white p-5 rounded-2xl border border-slate-200">
+                          <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Tên Chủ đầu tư / Đơn vị thầu chính</label>
+                          <input type="text" value={formData.investor_name} onChange={e => setFormData({...formData, investor_name: e.target.value})} className="w-full h-12 px-4 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-900 placeholder-slate-400 outline-none focus:border-blue-400 transition-all" placeholder="VD: Công ty TNHH ABC..." />
+                          <label className="flex items-center gap-2 cursor-pointer w-fit group">
+                            <input type="checkbox" checked={formData.is_investor_hidden} onChange={e => setFormData({...formData, is_investor_hidden: e.target.checked})} className="w-5 h-5 rounded text-[#002D62] cursor-pointer" />
+                            <span className="text-sm font-bold text-slate-600 group-hover:text-slate-900 select-none">Ẩn tên Chủ đầu tư (Bảo mật thông tin dự án)</span>
+                          </label>
+                        </div>
+
+                        <div className="space-y-2">
+                          <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Mô tả Yêu cầu chi tiết (Scope of work)</label>
+                          <textarea value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} className="w-full h-32 p-4 bg-white border border-slate-200 rounded-xl text-sm font-medium text-slate-900 placeholder-slate-400 outline-none resize-none focus:border-blue-400 focus:ring-4 focus:ring-blue-500/10 transition-all" placeholder="Diễn giải chi tiết các hạng mục công việc cần làm..." />
+                        </div>
+
+                        <div className="space-y-2">
+                          <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Yêu cầu năng lực Nhà thầu (Requirements)</label>
+                          <textarea value={formData.requirements} onChange={e => setFormData({...formData, requirements: e.target.value})} className="w-full h-24 p-4 bg-white border border-slate-200 rounded-xl text-sm font-medium text-slate-900 placeholder-slate-400 outline-none resize-none focus:border-blue-400 focus:ring-4 focus:ring-blue-500/10 transition-all" placeholder="VD: Yêu cầu chứng chỉ JIS, kinh nghiệm 3 năm..." />
+                        </div>
+
+                      </div>
                     </div>
-                    <div className="space-y-2">
-                      <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Ngân sách dự kiến (VNĐ)</label>
-                      <input 
-                        type="number" 
-                        value={formData.budget_max} 
-                        onChange={e => setFormData({...formData, budget_max: e.target.value})} 
-                        className="w-full h-12 px-4 bg-white border border-slate-200 rounded-xl text-sm font-bold text-slate-900 placeholder-slate-400 outline-none focus:border-blue-400 focus:ring-4 focus:ring-blue-500/10 transition-all" 
-                        placeholder="VD: 5000000000" 
-                      />
-                    </div>
-                    <div className="col-span-2 space-y-2">
-                      <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Địa điểm dự án</label>
-                      <input 
-                        type="text" 
-                        value={formData.location} 
-                        onChange={e => setFormData({...formData, location: e.target.value})} 
-                        className="w-full h-12 px-4 bg-white border border-slate-200 rounded-xl text-sm font-bold text-slate-900 placeholder-slate-400 outline-none focus:border-blue-400 focus:ring-4 focus:ring-blue-500/10 transition-all" 
-                        placeholder="VD: KCN VSIP, Bắc Ninh" 
-                      />
-                    </div>
-                    <div className="col-span-2 space-y-2">
-                      <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Mô tả Yêu cầu chi tiết</label>
-                      <textarea 
-                        value={formData.description} 
-                        onChange={e => setFormData({...formData, description: e.target.value})} 
-                        className="w-full h-32 p-4 bg-white border border-slate-200 rounded-xl text-sm font-medium text-slate-900 placeholder-slate-400 outline-none resize-none focus:border-blue-400 focus:ring-4 focus:ring-blue-500/10 transition-all" 
-                        placeholder="Yêu cầu chi tiết về năng lực, tiêu chuẩn vật tư, tiến độ..." 
-                      />
+
+                    {/* SECTION 3: LIÊN HỆ & ĐÍNH KÈM */}
+                    <div className="bg-slate-50 p-6 md:p-8 rounded-[2rem] border border-slate-100">
+                      <h4 className="text-sm font-black text-[#002D62] uppercase tracking-widest mb-6 flex items-center gap-2">
+                        <span className="w-6 h-6 rounded-full bg-blue-100 flex items-center justify-center">3</span> Liên hệ & Đính kèm
+                      </h4>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        
+                        {/* Người liên hệ */}
+                        <div className="col-span-2 md:col-span-2 grid grid-cols-1 md:grid-cols-3 gap-4">
+                          <div className="space-y-2">
+                            <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Người liên hệ</label>
+                            <input type="text" value={formData.contact_name} onChange={e => setFormData({...formData, contact_name: e.target.value})} className="w-full h-12 px-4 bg-white border border-slate-200 rounded-xl text-sm font-bold text-slate-900 placeholder-slate-400 outline-none focus:border-blue-400 transition-all" placeholder="Tên người phụ trách" />
+                          </div>
+                          <div className="space-y-2">
+                            <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Số điện thoại</label>
+                            <input type="tel" value={formData.contact_phone} onChange={e => setFormData({...formData, contact_phone: e.target.value})} className="w-full h-12 px-4 bg-white border border-slate-200 rounded-xl text-sm font-bold text-slate-900 placeholder-slate-400 outline-none focus:border-blue-400 transition-all" placeholder="09xx..." />
+                          </div>
+                          <div className="space-y-2">
+                            <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Email</label>
+                            <input type="email" value={formData.contact_email} onChange={e => setFormData({...formData, contact_email: e.target.value})} className="w-full h-12 px-4 bg-white border border-slate-200 rounded-xl text-sm font-bold text-slate-900 placeholder-slate-400 outline-none focus:border-blue-400 transition-all" placeholder="email@company.com" />
+                          </div>
+                        </div>
+
+                        {/* Upload Hình ảnh */}
+                        <div className="col-span-2 space-y-3 mt-4">
+                          <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Hình ảnh minh họa / Phối cảnh (Tự động nén)</label>
+                          <div className="flex items-center justify-center w-full">
+                            <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-slate-300 border-dashed rounded-2xl cursor-pointer bg-white hover:bg-slate-50 transition-colors">
+                              <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                                <i className="ph-bold ph-upload-simple text-3xl text-slate-400 mb-2"></i>
+                                <p className="text-sm font-bold text-slate-600">Nhấn để chọn ảnh đính kèm</p>
+                                <p className="text-xs text-slate-400 font-medium">Hỗ trợ JPG, PNG (Hệ thống tự động giảm dung lượng)</p>
+                              </div>
+                              <input type="file" className="hidden" multiple accept="image/*" onChange={handleImageUpload} />
+                            </label>
+                          </div>
+                          
+                          {/* Khu vực Preview Ảnh */}
+                          {formData.images.length > 0 && (
+                            <div className="flex gap-4 overflow-x-auto py-2">
+                              {formData.images.map((imgBase64, idx) => (
+                                <div key={idx} className="relative shrink-0">
+                                  <img src={imgBase64} alt={`Preview ${idx}`} className="w-24 h-24 object-cover rounded-xl border border-slate-200 shadow-sm" />
+                                  <button type="button" onClick={() => removeImage(idx)} className="absolute -top-2 -right-2 w-6 h-6 bg-rose-500 text-white rounded-full flex items-center justify-center shadow-md hover:scale-110 transition-transform">
+                                    <i className="ph-bold ph-x text-xs"></i>
+                                  </button>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+
+                      </div>
                     </div>
                   </div>
-                  <div className="mt-8 flex justify-end">
-                    <button onClick={handleSubmitProject} disabled={isSubmitting} className="h-14 px-10 bg-[#002D62] text-white rounded-2xl text-sm font-black shadow-lg hover:bg-blue-900 transition-colors disabled:opacity-50 flex items-center gap-2">
-                      {isSubmitting ? <><i className="ph-bold ph-spinner animate-spin"></i> ĐANG XỬ LÝ...</> : <><i className="ph-bold ph-paper-plane-right"></i> ĐƯA LÊN SÀN GIAO DỊCH</>}
+
+                  <div className="mt-8 flex justify-end border-t border-slate-100 pt-6">
+                    <button onClick={handleSubmitProject} disabled={isSubmitting} className="h-14 px-12 bg-[#002D62] text-white rounded-2xl text-sm font-black shadow-lg hover:bg-blue-900 transition-all hover:-translate-y-1 disabled:opacity-50 disabled:hover:translate-y-0 flex items-center gap-2">
+                      {isSubmitting ? <><i className="ph-bold ph-spinner animate-spin"></i> ĐANG XỬ LÝ...</> : <><i className="ph-bold ph-paper-plane-right text-lg"></i> ĐƯA LÊN SÀN GIAO DỊCH</>}
                     </button>
                   </div>
                 </div>
@@ -258,7 +431,6 @@ export default function MemberBizLinkPage() {
                     </div>
                   ) : (
                     myProjects.map(p => (
-                      // BỌC THẺ LINK Ở ĐÂY ĐỂ CLICK ĐƯỢC VÀO CHI TIẾT
                       <Link 
                         href={`/biz-link/${p.id}`} 
                         key={p.id} 
@@ -274,7 +446,7 @@ export default function MemberBizLinkPage() {
                           <div className="flex items-center gap-2 mt-3 text-xs font-bold text-slate-500 bg-slate-50 w-fit px-3 py-1.5 rounded-lg border border-slate-100"><i className="ph-fill ph-map-pin"></i> {p.location || 'Chưa cập nhật'}</div>
                         </div>
                         <div className="mt-auto pt-5 border-t border-slate-100 flex justify-between items-end relative z-10">
-                          <div><p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Ngân sách</p><p className="text-base font-black text-emerald-600">{formatMoney(p.budget_max)}</p></div>
+                          <div><p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Ngân sách</p><p className="text-base font-black text-emerald-600">{formatMoneyCard(p.budget_max)}</p></div>
                         </div>
                       </Link>
                     ))
@@ -283,8 +455,6 @@ export default function MemberBizLinkPage() {
               </div>
             </>
           ) : (
-            
-            /* NẾU KHÔNG CÓ QUYỀN ĐĂNG DỰ ÁN -> HIỆN BANNER KHÓA ĐÒI NÂNG CẤP */
             <div className="bg-gradient-to-br from-amber-50 to-white border border-amber-200 rounded-[3rem] p-12 md:p-20 text-center flex flex-col items-center shadow-lg relative overflow-hidden group">
               <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10"></div>
               <div className="w-24 h-24 bg-white rounded-full flex items-center justify-center mb-8 shadow-xl border border-amber-100 relative z-10 group-hover:scale-110 transition-transform duration-500">
@@ -294,13 +464,10 @@ export default function MemberBizLinkPage() {
               <p className="text-base text-slate-600 max-w-lg leading-relaxed relative z-10 mb-8">
                 Bạn đang sử dụng hạng thẻ <strong className="text-slate-900">{currentUser.tier_code}</strong>. <br/>Vui lòng nâng cấp để mở khóa quyền đưa dự án lên sàn giao dịch và nhận báo giá từ mạng lưới đối tác NKBA.
               </p>
-              
-              {/* NÚT ĐÃ ĐƯỢC CHUYỂN THÀNH LINK */}
               <Link href={UPGRADE_URL} className="px-10 py-4 bg-gradient-to-r from-amber-500 to-amber-600 text-white rounded-2xl font-black shadow-lg hover:shadow-amber-500/30 hover:-translate-y-1 transition-all relative z-10 flex items-center gap-2">
                 NÂNG CẤP THẺ NGAY <i className="ph-bold ph-arrow-right"></i>
               </Link>
             </div>
-
           )}
         </div>
       )}
