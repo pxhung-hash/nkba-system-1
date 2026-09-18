@@ -35,8 +35,18 @@ export default function ProjectDetailPage() {
     contact_name: '',
     contact_phone: '',
     contact_email: '',
-    images: [] as string[]
+    images: [] as string[],
+    status: 'OPEN' // Thêm trường quản lý trạng thái dự án
   });
+
+  // --- STATE CHO MODAL XEM YÊU CẦU QUAN TÂM ---
+  const [showQuotesModal, setShowQuotesModal] = useState(false);
+
+  // Dữ liệu mô phỏng danh sách nhà thầu quan tâm
+  const mockQuotes = [
+    { id: 1, company: "Công ty CP Kỹ thuật Cơ điện lạnh ABC", phone: "0901xxx567", email: "contact@abcmep.vn", date: "15/09/2026", price: "4,850,000,000 VNĐ", status: "Chờ xem xét" },
+    { id: 2, company: "Nhà thầu Cơ điện Hưng Yên (MEP HY)", phone: "0987xxx321", email: "info@mephungyen.com", date: "16/09/2026", price: "Thỏa thuận", status: "Đang đàm phán" },
+  ];
 
   useEffect(() => {
     const fetchProjectAndUser = async () => {
@@ -134,8 +144,6 @@ export default function ProjectDetailPage() {
   const openEditModal = () => {
     const details = project.details || {};
     const contact = details.contact || {};
-    
-    // Xử lý ngược logic Custom Category / Custom Project Type
     const isStandardCat = ['CONSTRUCTION', 'DESIGN', 'MATERIAL'].includes(project.category);
     const isStandardType = ['RESIDENTIAL', 'APARTMENT', 'OFFICE', 'FACTORY', 'COMMERCIAL'].includes(details.project_type);
 
@@ -154,7 +162,8 @@ export default function ProjectDetailPage() {
       contact_name: contact.name || '',
       contact_phone: contact.phone || '',
       contact_email: contact.email || '',
-      images: details.images || []
+      images: details.images || [],
+      status: project.status || 'OPEN'
     });
     setIsEditing(true);
   };
@@ -194,7 +203,8 @@ export default function ProjectDetailPage() {
           budget_max: parseFloat(editFormData.budget_max),
           location: editFormData.location,
           description: editFormData.description,
-          details: updatedDetails
+          details: updatedDetails,
+          status: editFormData.status // Lưu trạng thái mới
         })
         .eq('id', project.id);
 
@@ -209,7 +219,8 @@ export default function ProjectDetailPage() {
         budget_max: parseFloat(editFormData.budget_max),
         location: editFormData.location,
         description: editFormData.description,
-        details: updatedDetails
+        details: updatedDetails,
+        status: editFormData.status
       });
       setIsEditing(false);
     } catch (err: any) {
@@ -262,6 +273,17 @@ export default function ProjectDetailPage() {
     return types[type] || type || 'Chưa phân loại';
   };
 
+  // Hàm render Badge trạng thái
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case 'OPEN': return <span className="px-4 py-1.5 rounded-lg text-xs font-black uppercase tracking-widest border bg-emerald-500/20 text-emerald-300 border-emerald-500/50">ĐANG MỞ THẦU</span>;
+      case 'CLOSED': return <span className="px-4 py-1.5 rounded-lg text-xs font-black uppercase tracking-widest border bg-rose-500/20 text-rose-300 border-rose-500/50">ĐÃ ĐÓNG THẦU</span>;
+      case 'COMPLETED': return <span className="px-4 py-1.5 rounded-lg text-xs font-black uppercase tracking-widest border bg-blue-500/20 text-blue-300 border-blue-500/50">ĐÃ HOÀN THÀNH</span>;
+      case 'CANCELED': return <span className="px-4 py-1.5 rounded-lg text-xs font-black uppercase tracking-widest border bg-slate-500/40 text-slate-300 border-slate-500/50">ĐÃ HỦY BỎ</span>;
+      default: return <span className="px-4 py-1.5 rounded-lg text-xs font-black uppercase tracking-widest border bg-amber-500/20 text-amber-300 border-amber-500/50">ĐANG CHỜ DUYỆT</span>;
+    }
+  };
+
   const catInfo = getCategoryLabel(project.category);
   const details = project.details || {};
   const contact = details.contact || {};
@@ -290,9 +312,7 @@ export default function ProjectDetailPage() {
               <span className="px-4 py-1.5 rounded-lg text-xs font-black uppercase tracking-widest border bg-white/10 text-white border-white/20">
                 <i className="ph-fill ph-buildings mr-1"></i> {getProjectTypeLabel(details.project_type)}
               </span>
-              <span className={`px-4 py-1.5 rounded-lg text-xs font-black uppercase tracking-widest border ${project.status === 'PENDING' ? 'bg-amber-500/20 text-amber-300 border-amber-500/50' : 'bg-emerald-500/20 text-emerald-300 border-emerald-500/50'}`}>
-                {project.status === 'PENDING' ? 'ĐANG CHỜ DUYỆT' : 'ĐANG MỞ THẦU'}
-              </span>
+              {getStatusBadge(project.status)}
             </div>
             
             <h1 className="text-3xl md:text-4xl font-black mb-4 leading-tight">{project.title}</h1>
@@ -365,23 +385,29 @@ export default function ProjectDetailPage() {
             <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-amber-400 to-[#002D62]"></div>
             
             <h3 className="font-black text-slate-900 mb-2 mt-2">Hạn chót nộp hồ sơ</h3>
-            <div className="flex items-center gap-3 text-rose-600 font-black text-lg bg-rose-50 p-4 rounded-xl border border-rose-100 mb-6">
-              <i className="ph-fill ph-clock-countdown text-2xl"></i> Đang mở thầu
-            </div>
+            {project.status === 'OPEN' ? (
+              <div className="flex items-center gap-3 text-rose-600 font-black text-lg bg-rose-50 p-4 rounded-xl border border-rose-100 mb-6">
+                <i className="ph-fill ph-clock-countdown text-2xl"></i> Đang mở thầu
+              </div>
+            ) : (
+              <div className="flex items-center gap-3 text-slate-500 font-black text-lg bg-slate-100 p-4 rounded-xl border border-slate-200 mb-6">
+                <i className="ph-fill ph-lock-key text-2xl"></i> Đã đóng thầu / Kết thúc
+              </div>
+            )}
 
             {isOwner ? (
               <div className="space-y-3">
                 <button onClick={openEditModal} className="w-full py-4 bg-slate-100 text-slate-700 rounded-xl font-black hover:bg-slate-200 transition-colors flex items-center justify-center gap-2">
                   <i className="ph-bold ph-pencil-simple"></i> Chỉnh sửa Dự Án
                 </button>
-                <button className="w-full py-4 bg-[#002D62] text-white rounded-xl font-black hover:bg-blue-900 transition-all shadow-md flex items-center justify-center gap-2">
-                  <i className="ph-bold ph-folder-open"></i> Quản lý Báo Giá Đã Nhận (0)
+                <button onClick={() => setShowQuotesModal(true)} className="w-full py-4 bg-[#002D62] text-white rounded-xl font-black hover:bg-blue-900 transition-all shadow-md flex items-center justify-center gap-2">
+                  <i className="ph-bold ph-folder-open"></i> Quản lý Báo Giá Đã Nhận ({mockQuotes.length})
                 </button>
               </div>
             ) : (
               <div className="space-y-3">
-                <button className="w-full py-4 bg-[#002D62] text-white rounded-xl font-black hover:bg-blue-900 transition-all shadow-lg hover:shadow-xl hover:-translate-y-1 flex items-center justify-center gap-2">
-                  <i className="ph-bold ph-paper-plane-right"></i> NỘP HỒ SƠ / BÁO GIÁ
+                <button disabled={project.status !== 'OPEN'} className="w-full py-4 bg-[#002D62] text-white rounded-xl font-black hover:bg-blue-900 transition-all shadow-lg hover:shadow-xl hover:-translate-y-1 flex items-center justify-center gap-2 disabled:opacity-50 disabled:hover:translate-y-0">
+                  <i className="ph-bold ph-paper-plane-right"></i> {project.status === 'OPEN' ? 'NỘP HỒ SƠ / BÁO GIÁ' : 'KHÔNG THỂ NỘP HỒ SƠ'}
                 </button>
                 <button className="w-full py-4 bg-white border-2 border-slate-200 text-slate-700 rounded-xl font-black hover:border-[#002D62] hover:text-[#002D62] transition-colors flex items-center justify-center gap-2">
                   <i className="ph-bold ph-bookmark-simple"></i> Lưu vào Yêu thích
@@ -435,11 +461,10 @@ export default function ProjectDetailPage() {
               </div>
             </div>
           </div>
-
         </div>
       </div>
 
-      {/* --- MODAL CHỈNH SỬA DỰ ÁN (FULL TRƯỜNG DỮ LIỆU) --- */}
+      {/* --- MODAL CHỈNH SỬA DỰ ÁN --- */}
       {isEditing && (
         <div className="fixed inset-0 z-[999] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in">
           <div className="bg-white w-full max-w-4xl rounded-[2rem] shadow-2xl overflow-hidden max-h-[90vh] flex flex-col animate-in zoom-in-95">
@@ -458,8 +483,21 @@ export default function ProjectDetailPage() {
                 
                 {/* SECTION 1: CƠ BẢN */}
                 <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
-                  <h4 className="text-sm font-black text-[#002D62] uppercase tracking-widest mb-6 flex items-center gap-2 border-b border-slate-100 pb-3">1. Thông tin cơ bản</h4>
+                  <h4 className="text-sm font-black text-[#002D62] uppercase tracking-widest mb-6 flex items-center gap-2 border-b border-slate-100 pb-3">1. Trạng thái & Cơ bản</h4>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+
+                    {/* Khối chỉnh sửa tình trạng */}
+                    <div className="col-span-2 space-y-2 bg-blue-50 p-4 rounded-xl border border-blue-100">
+                      <label className="text-xs font-bold text-[#002D62] uppercase tracking-widest">Tình trạng dự án hiện tại</label>
+                      <select value={editFormData.status} onChange={e => setEditFormData({...editFormData, status: e.target.value})} className="w-full h-12 px-4 bg-white border border-blue-200 rounded-xl text-sm font-bold text-slate-900 outline-none cursor-pointer focus:border-[#002D62] transition-all">
+                        <option value="OPEN">Đang mở thầu / Đang tìm kiếm</option>
+                        <option value="CLOSED">Đã đóng thầu</option>
+                        <option value="COMPLETED">Đã hoàn thành</option>
+                        <option value="CANCELED">Đã hủy bỏ</option>
+                        <option value="PENDING">Chờ duyệt (Đưa về trạng thái chờ)</option>
+                      </select>
+                    </div>
+
                     <div className="col-span-2 space-y-2">
                       <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Tên Dự án (*)</label>
                       <input type="text" required value={editFormData.title} onChange={e => setEditFormData({...editFormData, title: e.target.value})} className="w-full h-12 px-4 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-900 placeholder-slate-400 outline-none focus:bg-white focus:border-blue-400 focus:ring-4 focus:ring-blue-500/10 transition-all" />
@@ -588,7 +626,72 @@ export default function ProjectDetailPage() {
                 {isSubmitting ? <><i className="ph-bold ph-spinner animate-spin"></i> ĐANG LƯU...</> : <><i className="ph-bold ph-floppy-disk"></i> LƯU THAY ĐỔI</>}
               </button>
             </div>
+          </div>
+        </div>
+      )}
 
+      {/* --- MODAL QUẢN LÝ BÁO GIÁ QUAN TÂM --- */}
+      {showQuotesModal && (
+        <div className="fixed inset-0 z-[999] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in">
+          <div className="bg-white w-full max-w-5xl rounded-[2rem] shadow-2xl overflow-hidden max-h-[90vh] flex flex-col animate-in zoom-in-95">
+            
+            {/* Header Modal */}
+            <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50 shrink-0">
+              <div>
+                <h3 className="text-xl font-black text-[#002D62] flex items-center gap-2 mb-1">
+                  <i className="ph-fill ph-folder-open"></i> Quản lý Báo giá / Hồ sơ Quan tâm
+                </h3>
+                <p className="text-xs font-bold text-slate-500 uppercase tracking-widest">Dự án: {project.title}</p>
+              </div>
+              <button onClick={() => setShowQuotesModal(false)} className="w-10 h-10 flex items-center justify-center bg-slate-200 rounded-full text-slate-600 hover:bg-rose-100 hover:text-rose-600 transition-colors">
+                <i className="ph-bold ph-x"></i>
+              </button>
+            </div>
+
+            {/* Nội dung danh sách */}
+            <div className="p-6 md:p-8 overflow-y-auto bg-white">
+              <div className="border border-slate-200 rounded-2xl overflow-hidden">
+                <table className="w-full text-left border-collapse">
+                  <thead>
+                    <tr className="bg-slate-50 border-b border-slate-200 text-xs font-black text-slate-500 uppercase tracking-widest">
+                      <th className="p-4">Nhà thầu / Đối tác</th>
+                      <th className="p-4">Liên hệ</th>
+                      <th className="p-4">Ngày gửi</th>
+                      <th className="p-4">Giá đề xuất</th>
+                      <th className="p-4 text-center">Trạng thái</th>
+                      <th className="p-4 text-center">Thao tác</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {mockQuotes.map((quote) => (
+                      <tr key={quote.id} className="hover:bg-blue-50/50 transition-colors">
+                        <td className="p-4">
+                          <p className="font-bold text-[#002D62]">{quote.company}</p>
+                        </td>
+                        <td className="p-4">
+                          <p className="text-sm font-medium text-slate-700"><i className="ph-fill ph-phone-call text-emerald-500 mr-1"></i>{quote.phone}</p>
+                          <p className="text-sm font-medium text-slate-700"><i className="ph-fill ph-envelope-simple text-blue-500 mr-1"></i>{quote.email}</p>
+                        </td>
+                        <td className="p-4 text-sm font-bold text-slate-600">{quote.date}</td>
+                        <td className="p-4 text-sm font-black text-[#D4AF37]">{quote.price}</td>
+                        <td className="p-4 text-center">
+                          <span className={`px-3 py-1 text-[10px] font-black uppercase tracking-widest rounded-lg border ${quote.status === 'Chờ xem xét' ? 'bg-amber-50 text-amber-600 border-amber-200' : 'bg-blue-50 text-blue-600 border-blue-200'}`}>
+                            {quote.status}
+                          </span>
+                        </td>
+                        <td className="p-4 text-center">
+                          <button className="px-4 py-2 bg-white border border-slate-200 text-[#002D62] rounded-lg text-xs font-bold hover:bg-[#002D62] hover:text-white transition-colors">
+                            Xem chi tiết
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <p className="text-xs text-center text-slate-400 mt-6 font-medium italic">* Đây là giao diện hiển thị danh sách hồ sơ báo giá (Sẽ được tích hợp dữ liệu thực tế ở giai đoạn sau).</p>
+            </div>
+            
           </div>
         </div>
       )}
