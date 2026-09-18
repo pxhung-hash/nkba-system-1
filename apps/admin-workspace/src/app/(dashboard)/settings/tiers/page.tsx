@@ -76,7 +76,7 @@ export default function TiersConfigPage() {
     setIsLoading(false);
   };
 
-  useEffect(() => { fetchData(); }, []);
+  useEffect(() => { fetchData(); }, [supabase]); // Sửa cảnh báo hook lint
 
   // ====================================================
   // LOGIC CRUD GÓI CÁ NHÂN (THÊM / SỬA / XÓA)
@@ -84,33 +84,38 @@ export default function TiersConfigPage() {
   const handleSaveIndTier = async () => {
     if (!newIndTier.code || !newIndTier.name) return alert('Vui lòng nhập đủ Mã và Tên gói cá nhân!');
     
-    if (editingIndTierId) {
-      // CẬP NHẬT
-      const { error } = await supabase.from('individual_tiers').update({
-        code: newIndTier.code.toUpperCase().replace(/\s+/g, '_'),
-        name: newIndTier.name,
-        annual_fee: newIndTier.annual_fee
-      }).eq('id', editingIndTierId);
-      
-      if (error) alert('Lỗi cập nhật: ' + error.message);
-      else {
+    const sanitizedCode = newIndTier.code.trim().toUpperCase().replace(/\s+/g, '_');
+    
+    try {
+      if (editingIndTierId) {
+        // CẬP NHẬT
+        const { error } = await supabase.from('individual_tiers').update({
+          code: sanitizedCode,
+          name: newIndTier.name,
+          annual_fee: newIndTier.annual_fee
+        }).eq('id', editingIndTierId);
+        
+        if (error) throw error;
         alert('✅ Đã cập nhật gói thành công!');
-        setEditingIndTierId(null);
-        setNewIndTier({ code: '', name: '', annual_fee: 0 });
-        fetchData();
-      }
-    } else {
-      // THÊM MỚI
-      const { error } = await supabase.from('individual_tiers').insert([{
-        ...newIndTier, 
-        code: newIndTier.code.toUpperCase().replace(/\s+/g, '_')
-      }]);
-      
-      if (error) alert('Lỗi: ' + (error.code === '23505' ? 'Mã gói này đã tồn tại!' : error.message));
-      else {
+      } else {
+        // THÊM MỚI
+        const { error } = await supabase.from('individual_tiers').insert([{
+          ...newIndTier, 
+          code: sanitizedCode
+        }]);
+        
+        if (error) throw error;
         alert('✅ Đã thêm gói Cá nhân mới!');
-        setNewIndTier({ code: '', name: '', annual_fee: 0 });
-        fetchData();
+      }
+      
+      setEditingIndTierId(null);
+      setNewIndTier({ code: '', name: '', annual_fee: 0 });
+      fetchData();
+    } catch (err: any) {
+      if (err.code === '23505' || err.message.includes('unique constraint')) {
+        alert(`❌ Lỗi: Mã gói cá nhân "${sanitizedCode}" đã tồn tại! Vui lòng đặt mã khác.`);
+      } else {
+        alert('Lỗi lưu gói: ' + err.message);
       }
     }
   };
@@ -130,36 +135,41 @@ export default function TiersConfigPage() {
   const handleSaveCorpTier = async () => {
     if (!newCorpTier.code || !newCorpTier.name) return alert('Vui lòng nhập đủ Mã và Tên gói doanh nghiệp!');
     
-    if (editingCorpTierId) {
-      // CẬP NHẬT
-      const { error } = await supabase.from('corporate_tiers').update({
-        code: newCorpTier.code.toUpperCase().replace(/\s+/g, '_'),
-        name: newCorpTier.name,
-        annual_fee: newCorpTier.annual_fee,
-        quota_silver: newCorpTier.quota_silver,
-        quota_gold: newCorpTier.quota_gold,
-        quota_titanium: newCorpTier.quota_titanium
-      }).eq('id', editingCorpTierId);
+    const sanitizedCode = newCorpTier.code.trim().toUpperCase().replace(/\s+/g, '_');
 
-      if (error) alert('Lỗi cập nhật: ' + error.message);
-      else {
+    try {
+      if (editingCorpTierId) {
+        // CẬP NHẬT
+        const { error } = await supabase.from('corporate_tiers').update({
+          code: sanitizedCode,
+          name: newCorpTier.name,
+          annual_fee: newCorpTier.annual_fee,
+          quota_silver: newCorpTier.quota_silver,
+          quota_gold: newCorpTier.quota_gold,
+          quota_titanium: newCorpTier.quota_titanium
+        }).eq('id', editingCorpTierId);
+
+        if (error) throw error;
         alert('✅ Đã cập nhật gói Doanh nghiệp thành công!');
-        setEditingCorpTierId(null);
-        setNewCorpTier({ code: '', name: '', annual_fee: 0, quota_silver: 0, quota_gold: 0, quota_titanium: 0 });
-        fetchData();
-      }
-    } else {
-      // THÊM MỚI
-      const { error } = await supabase.from('corporate_tiers').insert([{
-        ...newCorpTier,
-        code: newCorpTier.code.toUpperCase().replace(/\s+/g, '_')
-      }]);
-      
-      if (error) alert('Lỗi: ' + (error.code === '23505' ? 'Mã gói này đã tồn tại!' : error.message));
-      else {
+      } else {
+        // THÊM MỚI
+        const { error } = await supabase.from('corporate_tiers').insert([{
+          ...newCorpTier,
+          code: sanitizedCode
+        }]);
+        
+        if (error) throw error;
         alert('✅ Đã thêm gói Doanh nghiệp mới!');
-        setNewCorpTier({ code: '', name: '', annual_fee: 0, quota_silver: 0, quota_gold: 0, quota_titanium: 0 });
-        fetchData();
+      }
+
+      setEditingCorpTierId(null);
+      setNewCorpTier({ code: '', name: '', annual_fee: 0, quota_silver: 0, quota_gold: 0, quota_titanium: 0 });
+      fetchData();
+    } catch (err: any) {
+      if (err.code === '23505' || err.message.includes('unique constraint')) {
+        alert(`❌ Lỗi: Mã gói doanh nghiệp "${sanitizedCode}" đã tồn tại! Vui lòng đặt mã khác.`);
+      } else {
+        alert('Lỗi lưu gói: ' + err.message);
       }
     }
   };
@@ -238,7 +248,7 @@ export default function TiersConfigPage() {
             <div className="space-y-5">
               <div>
                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Mã gói (Code)</label>
-                <input type="text" value={newIndTier.code} onChange={e => setNewIndTier({...newIndTier, code: e.target.value.toUpperCase()})} placeholder="VD: SILVER, GOLD..." className="w-full h-11 px-4 bg-slate-50 border border-slate-200 rounded-xl mt-1.5 font-bold text-slate-700 outline-none focus:border-amber-400 focus:bg-white focus:ring-4 focus:ring-amber-500/10 transition-all" />
+                <input type="text" value={newIndTier.code} onChange={e => setNewIndTier({...newIndTier, code: e.target.value.toUpperCase()})} placeholder="VD: SILVER, GOLD..." className="w-full h-11 px-4 bg-slate-50 border border-slate-200 rounded-xl mt-1.5 font-bold text-slate-700 outline-none focus:border-amber-400 focus:bg-white focus:ring-4 focus:ring-amber-500/10 transition-all uppercase font-mono" />
               </div>
               <div>
                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Tên gói hiển thị</label>
@@ -313,7 +323,7 @@ export default function TiersConfigPage() {
             <div className="space-y-5">
               <div>
                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Mã gói (Code)</label>
-                <input type="text" value={newCorpTier.code} onChange={e => setNewCorpTier({...newCorpTier, code: e.target.value.toUpperCase()})} placeholder="VD: PREMIUM" className="w-full h-11 px-4 bg-slate-50 border border-slate-200 rounded-xl mt-1.5 font-bold text-slate-700 outline-none focus:border-blue-400 focus:bg-white transition-all" />
+                <input type="text" value={newCorpTier.code} onChange={e => setNewCorpTier({...newCorpTier, code: e.target.value.toUpperCase()})} placeholder="VD: PREMIUM" className="w-full h-11 px-4 bg-slate-50 border border-slate-200 rounded-xl mt-1.5 font-bold text-slate-700 outline-none focus:border-blue-400 focus:bg-white transition-all uppercase font-mono" />
               </div>
               <div>
                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Tên gói hiển thị</label>
@@ -329,15 +339,15 @@ export default function TiersConfigPage() {
                 <div className="grid grid-cols-3 gap-3">
                   <div className="text-center">
                     <label className="text-[10px] font-bold text-slate-500 uppercase block mb-1">Silver</label>
-                    <input type="number" value={newCorpTier.quota_silver || ''} onChange={e => setNewCorpTier({...newCorpTier, quota_silver: Number(e.target.value)})} placeholder="0" className="w-full h-10 border border-slate-200 rounded-lg text-center text-sm font-black text-slate-700 focus:border-blue-400 outline-none" />
+                    <input type="number" min="0" value={newCorpTier.quota_silver || ''} onChange={e => setNewCorpTier({...newCorpTier, quota_silver: Number(e.target.value)})} placeholder="0" className="w-full h-10 border border-slate-200 rounded-lg text-center text-sm font-black text-slate-700 focus:border-blue-400 outline-none" />
                   </div>
                   <div className="text-center">
                     <label className="text-[10px] font-bold text-slate-500 uppercase block mb-1">Gold</label>
-                    <input type="number" value={newCorpTier.quota_gold || ''} onChange={e => setNewCorpTier({...newCorpTier, quota_gold: Number(e.target.value)})} placeholder="0" className="w-full h-10 border border-slate-200 rounded-lg text-center text-sm font-black text-slate-700 focus:border-blue-400 outline-none" />
+                    <input type="number" min="0" value={newCorpTier.quota_gold || ''} onChange={e => setNewCorpTier({...newCorpTier, quota_gold: Number(e.target.value)})} placeholder="0" className="w-full h-10 border border-slate-200 rounded-lg text-center text-sm font-black text-slate-700 focus:border-blue-400 outline-none" />
                   </div>
                   <div className="text-center">
                     <label className="text-[10px] font-bold text-slate-500 uppercase block mb-1">Titanium</label>
-                    <input type="number" value={newCorpTier.quota_titanium || ''} onChange={e => setNewCorpTier({...newCorpTier, quota_titanium: Number(e.target.value)})} placeholder="0" className="w-full h-10 border border-slate-200 rounded-lg text-center text-sm font-black text-slate-700 focus:border-blue-400 outline-none" />
+                    <input type="number" min="0" value={newCorpTier.quota_titanium || ''} onChange={e => setNewCorpTier({...newCorpTier, quota_titanium: Number(e.target.value)})} placeholder="0" className="w-full h-10 border border-slate-200 rounded-lg text-center text-sm font-black text-slate-700 focus:border-blue-400 outline-none" />
                   </div>
                 </div>
               </div>
