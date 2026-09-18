@@ -123,7 +123,7 @@ export default function MemberBizLinkPage() {
   };
 
   const handleSubmitProject = async () => {
-    if (!formData.title || !formData.budget_max) return alert('Vui lòng nhập Tên dự án và Ngân sách dự kiến!');
+    if (!formData.title || !formData.budget_max) return alert('Vui lòng nhập Tên/Tiêu đề và Ngân sách dự kiến!');
     setIsSubmitting(true);
     
     const finalCategory = formData.category === 'OTHER' ? formData.custom_category : formData.category;
@@ -141,7 +141,7 @@ export default function MemberBizLinkPage() {
     const { error } = await supabase.from('projects').insert([payload]);
     if (error) alert('Lỗi đăng bài: ' + error.message);
     else {
-      alert('✅ Đăng dự án thành công! Đang chờ Admin Liên minh phê duyệt.');
+      alert('✅ Đăng thành công! Đang chờ Admin Liên minh phê duyệt.');
       setShowForm(false);
       setFormData({
         title: '', category: 'CONSTRUCTION', custom_category: '', project_type: 'RESIDENTIAL', custom_project_type: '',
@@ -160,6 +160,18 @@ export default function MemberBizLinkPage() {
   const canViewMarketContact = currentUser?.allowedFeatures?.includes('VIEW_MARKET_CONTACT');
   const canPostProject = currentUser?.allowedFeatures?.includes('POST_PROJECT');
 
+  // Biến check form động
+  const isPartnershipForm = formData.category === 'PARTNERSHIP';
+
+  // Label UI hiển thị List
+  const getProjectTypeLabel = (type: string) => {
+    const types: Record<string, string> = { 
+      'RESIDENTIAL': 'Nhà ở / Biệt thự', 'APARTMENT': 'Chung cư', 'OFFICE': 'Văn phòng', 'FACTORY': 'Nhà xưởng / KCN', 'COMMERCIAL': 'Thương mại / Showroom',
+      'DISTRIBUTION': 'Đại lý / Phân phối', 'R_AND_D': 'Nghiên cứu & Phát triển', 'FRANCHISE': 'Nhượng quyền', 'JOINT_VENTURE': 'Liên doanh / Đầu tư'
+    };
+    return types[type] || type || 'Chưa phân loại';
+  };
+
   return (
     <div className="max-w-7xl mx-auto px-4 md:px-8 py-8 space-y-8 animate-in fade-in duration-500">
       
@@ -171,7 +183,7 @@ export default function MemberBizLinkPage() {
             <h1 className="text-3xl font-black text-slate-900 tracking-tight flex items-center gap-3">
               <i className="ph-fill ph-handshake text-[#002D62]"></i> Sàn Giao Dịch B2B
             </h1>
-            <p className="text-sm font-medium text-slate-500 mt-2 ml-10">Nơi khởi nguồn của những hợp đồng triệu đô.</p>
+            <p className="text-sm font-medium text-slate-500 mt-2 ml-10">Nơi khởi nguồn của những hợp đồng triệu đô và Đối tác chiến lược.</p>
           </div>
           
           <div className="flex gap-1 bg-slate-100 p-1.5 rounded-2xl border border-slate-200 shrink-0 w-full md:w-auto">
@@ -259,6 +271,7 @@ export default function MemberBizLinkPage() {
                   ) : (
                     displayedMarketProjects.map(p => {
                       const details = p.details || {};
+                      const isPart = p.category === 'PARTNERSHIP';
                       let authorName = 'Doanh nghiệp cá nhân';
                       if (details.is_investor_hidden) authorName = 'Doanh nghiệp ẩn danh';
                       else if (details.investor_name) authorName = details.investor_name;
@@ -272,21 +285,26 @@ export default function MemberBizLinkPage() {
                           className="block bg-white border border-slate-200 rounded-3xl p-6 shadow-sm flex flex-col hover:border-[#002D62] hover:shadow-lg transition-all group relative overflow-hidden cursor-pointer"
                         >
                           <div className="flex justify-between items-start mb-4 relative z-10">
-                            <span className="text-[9px] font-black px-3 py-1.5 rounded-lg uppercase tracking-widest bg-emerald-50 text-emerald-600 border border-emerald-200">ĐANG MỞ THẦU</span>
+                            <span className="text-[9px] font-black px-3 py-1.5 rounded-lg uppercase tracking-widest bg-emerald-50 text-emerald-600 border border-emerald-200">
+                              {isPart ? 'ĐANG TÌM ĐỐI TÁC' : 'ĐANG MỞ THẦU'}
+                            </span>
                             <span className="w-8 h-8 rounded-full bg-slate-50 border border-slate-100 flex items-center justify-center text-slate-400 group-hover:text-white group-hover:bg-[#002D62] transition-colors"><i className="ph-bold ph-arrow-up-right"></i></span>
                           </div>
                           <div className="relative z-10 mb-6">
                             <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">{p.category}</p>
                             <h4 className="text-lg font-black text-slate-900 leading-snug line-clamp-2 group-hover:text-[#002D62] transition-colors">{p.title}</h4>
-                            <div className="flex items-center gap-2 mt-3 text-xs font-bold text-slate-500 bg-slate-50 w-fit px-3 py-1.5 rounded-lg border border-slate-100"><i className="ph-fill ph-map-pin"></i> {p.location || 'Chưa cập nhật'}</div>
+                            <div className="flex flex-wrap items-center gap-2 mt-3 text-xs font-bold text-slate-500">
+                              <span className="bg-slate-50 px-3 py-1.5 rounded-lg border border-slate-100"><i className="ph-fill ph-map-pin"></i> {p.location || 'Chưa cập nhật'}</span>
+                              <span className="bg-slate-50 px-3 py-1.5 rounded-lg border border-slate-100"><i className="ph-fill ph-tag"></i> {getProjectTypeLabel(details.project_type)}</span>
+                            </div>
                           </div>
                           <div className="mt-auto pt-5 border-t border-slate-100 flex justify-between items-end relative z-10">
                             <div>
-                              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Bên Mời thầu</p>
+                              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">{isPart ? 'Khởi xướng' : 'Mời thầu'}</p>
                               <p className="text-sm font-bold text-slate-700 truncate max-w-[150px]">{authorName}</p>
                             </div>
                             <div className="text-right">
-                              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Ngân sách</p>
+                              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">{isPart ? 'Quy mô' : 'Ngân sách'}</p>
                               <p className="text-base font-black text-emerald-600">{formatMoneyCard(p.budget_max)}</p>
                             </div>
                           </div>
@@ -310,14 +328,14 @@ export default function MemberBizLinkPage() {
                 <div className="absolute top-0 right-0 w-64 h-64 bg-white opacity-5 rounded-full blur-3xl translate-x-1/4 -translate-y-1/4 pointer-events-none"></div>
                 <div className="mb-6 md:mb-0 relative z-10 text-center md:text-left">
                   <h3 className="text-xl font-black text-white mb-2">Đăng tải Yêu cầu Báo giá / Mời thầu / Kết nối</h3>
-                  <p className="text-blue-200 text-sm font-medium">Bạn đang tìm thầu phụ thi công, nhà cung cấp vật tư hay đối tác phân phối? Hãy đưa lên sàn để mạng lưới NKBA tiếp cận.</p>
+                  <p className="text-blue-200 text-sm font-medium">Tìm thầu phụ thi công, nhà cung cấp vật tư hay đối tác phân phối? Hãy đưa lên sàn để mạng lưới NKBA tiếp cận.</p>
                 </div>
                 <button onClick={() => setShowForm(!showForm)} className={`relative z-10 shrink-0 h-14 px-8 rounded-2xl text-sm font-black shadow-lg transition-all flex items-center gap-2 ${showForm ? 'bg-slate-800 text-white hover:bg-slate-900 border border-slate-700' : 'bg-white text-[#002D62] hover:bg-blue-50 hover:scale-105'}`}>
                   <i className={`ph-bold ${showForm ? 'ph-x' : 'ph-plus'} text-lg`}></i> {showForm ? 'ĐÓNG FORM' : 'TẠO BÀI ĐĂNG MỚI'}
                 </button>
               </div>
 
-              {/* FORM KHAI BÁO DỰ ÁN */}
+              {/* FORM KHAI BÁO DỰ ÁN (DYNAMIC FORM) */}
               {showForm && (
                 <div className="bg-white border border-slate-200 p-8 rounded-3xl shadow-sm animate-in zoom-in-95 duration-300">
                   <h3 className="text-2xl font-black text-slate-900 mb-8 flex items-center gap-3">
@@ -331,12 +349,29 @@ export default function MemberBizLinkPage() {
                         <span className="w-6 h-6 rounded-full bg-blue-100 flex items-center justify-center">1</span> Thông tin cơ bản
                       </h4>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div className="col-span-2 space-y-2"><label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Tiêu đề Gói thầu / Nhu cầu (*)</label><input type="text" value={formData.title} onChange={e => setFormData({...formData, title: e.target.value})} className="w-full h-12 px-4 bg-white border border-slate-200 rounded-xl text-sm font-bold text-slate-900 outline-none focus:border-blue-400" placeholder="VD: Tìm thầu phụ thi công... / Tìm đại lý phân phối..." /></div>
+                        
+                        <div className="col-span-2 space-y-2">
+                          <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">
+                            {isPartnershipForm ? 'Tiêu đề Nhu cầu Kết nối (*)' : 'Tên Dự án / Gói thầu (*)'}
+                          </label>
+                          <input type="text" value={formData.title} onChange={e => setFormData({...formData, title: e.target.value})} className="w-full h-12 px-4 bg-white border border-slate-200 rounded-xl text-sm font-bold text-slate-900 outline-none focus:border-blue-400" placeholder={isPartnershipForm ? "VD: Cần tìm Đại lý phân phối miền Bắc..." : "VD: Tìm thầu phụ..."} />
+                        </div>
                         
                         <div className="space-y-2">
                           <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Lĩnh vực</label>
                           <div className="flex flex-col gap-2">
-                            <select value={formData.category} onChange={e => setFormData({...formData, category: e.target.value})} className="w-full h-12 px-4 bg-white border border-slate-200 rounded-xl text-sm font-bold text-slate-900 outline-none cursor-pointer focus:border-blue-400">
+                            <select 
+                              value={formData.category} 
+                              onChange={e => {
+                                const val = e.target.value;
+                                setFormData({
+                                  ...formData, 
+                                  category: val, 
+                                  project_type: val === 'PARTNERSHIP' ? 'DISTRIBUTION' : 'RESIDENTIAL'
+                                });
+                              }} 
+                              className="w-full h-12 px-4 bg-white border border-slate-200 rounded-xl text-sm font-bold text-slate-900 outline-none cursor-pointer focus:border-blue-400"
+                            >
                               <option value="CONSTRUCTION">Thi công (Construction)</option>
                               <option value="DESIGN">Thiết kế (Design)</option>
                               <option value="MATERIAL">Cung cấp vật tư (Material)</option>
@@ -348,15 +383,46 @@ export default function MemberBizLinkPage() {
                         </div>
 
                         <div className="space-y-2">
-                          <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Loại hình / Dự án</label>
+                          <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">
+                            {isPartnershipForm ? 'Loại hình Hợp tác' : 'Loại công trình'}
+                          </label>
                           <div className="flex flex-col gap-2">
-                            <select value={formData.project_type} onChange={e => setFormData({...formData, project_type: e.target.value})} className="w-full h-12 px-4 bg-white border border-slate-200 rounded-xl text-sm font-bold text-slate-900 outline-none cursor-pointer focus:border-blue-400"><option value="RESIDENTIAL">Nhà ở / Biệt thự</option><option value="APARTMENT">Chung cư</option><option value="OFFICE">Văn phòng (Office)</option><option value="FACTORY">Nhà xưởng / Khu công nghiệp</option><option value="COMMERCIAL">Thương mại / Showroom</option><option value="OTHER">Khác (Tự nhập...)</option></select>
-                            {formData.project_type === 'OTHER' && <input type="text" value={formData.custom_project_type} onChange={e => setFormData({...formData, custom_project_type: e.target.value})} className="w-full h-12 px-4 bg-blue-50 border border-blue-200 rounded-xl text-sm font-bold text-blue-900 outline-none" placeholder="Nhập loại hình..." autoFocus />}
+                            <select value={formData.project_type} onChange={e => setFormData({...formData, project_type: e.target.value})} className="w-full h-12 px-4 bg-white border border-slate-200 rounded-xl text-sm font-bold text-slate-900 outline-none cursor-pointer focus:border-blue-400">
+                              {isPartnershipForm ? (
+                                <>
+                                  <option value="DISTRIBUTION">Đại lý / Phân phối</option>
+                                  <option value="R_AND_D">Nghiên cứu & Phát triển (R&D)</option>
+                                  <option value="FRANCHISE">Nhượng quyền (Franchise)</option>
+                                  <option value="JOINT_VENTURE">Liên doanh / Gọi vốn</option>
+                                </>
+                              ) : (
+                                <>
+                                  <option value="RESIDENTIAL">Nhà ở / Biệt thự</option>
+                                  <option value="APARTMENT">Chung cư</option>
+                                  <option value="OFFICE">Văn phòng (Office)</option>
+                                  <option value="FACTORY">Nhà xưởng / Khu công nghiệp</option>
+                                  <option value="COMMERCIAL">Thương mại / Showroom</option>
+                                </>
+                              )}
+                              <option value="OTHER">Khác (Tự nhập...)</option>
+                            </select>
+                            {formData.project_type === 'OTHER' && <input type="text" value={formData.custom_project_type} onChange={e => setFormData({...formData, custom_project_type: e.target.value})} className="w-full h-12 px-4 bg-blue-50 border border-blue-200 rounded-xl text-sm font-bold text-blue-900 outline-none" placeholder="Nhập tên loại hình..." autoFocus />}
                           </div>
                         </div>
                         
-                        <div className="space-y-2"><label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Ngân sách dự kiến / Quy mô (VNĐ)</label><input type="text" value={displayBudget} onChange={handleBudgetChange} className="w-full h-12 px-4 bg-white border border-slate-200 rounded-xl text-sm font-bold text-slate-900 outline-none focus:border-blue-400" placeholder="VD: 5,000,000,000" /></div>
-                        <div className="col-span-2 space-y-2"><label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Khu vực / Địa điểm</label><input type="text" value={formData.location} onChange={e => setFormData({...formData, location: e.target.value})} className="w-full h-12 px-4 bg-white border border-slate-200 rounded-xl text-sm font-bold text-slate-900 outline-none focus:border-blue-400" placeholder="VD: Toàn quốc, hoặc KCN VSIP Bắc Ninh" /></div>
+                        <div className="space-y-2">
+                          <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">
+                            {isPartnershipForm ? 'Mức vốn / Ngân sách dự kiến (VNĐ)' : 'Ngân sách dự kiến (VNĐ)'}
+                          </label>
+                          <input type="text" value={displayBudget} onChange={handleBudgetChange} className="w-full h-12 px-4 bg-white border border-slate-200 rounded-xl text-sm font-bold text-slate-900 outline-none focus:border-blue-400" placeholder="VD: 5,000,000,000" />
+                        </div>
+
+                        <div className="space-y-2">
+                          <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">
+                            {isPartnershipForm ? 'Khu vực mục tiêu' : 'Địa điểm dự án'}
+                          </label>
+                          <input type="text" value={formData.location} onChange={e => setFormData({...formData, location: e.target.value})} className="w-full h-12 px-4 bg-white border border-slate-200 rounded-xl text-sm font-bold text-slate-900 outline-none focus:border-blue-400" placeholder="VD: Toàn quốc, hoặc KCN VSIP Bắc Ninh" />
+                        </div>
                       </div>
                     </div>
 
@@ -365,12 +431,24 @@ export default function MemberBizLinkPage() {
                       <h4 className="text-sm font-black text-[#002D62] uppercase tracking-widest mb-6 flex items-center gap-2"><span className="w-6 h-6 rounded-full bg-blue-100 flex items-center justify-center">2</span> Chi tiết & Pháp lý</h4>
                       <div className="grid grid-cols-1 gap-6">
                         <div className="space-y-3 bg-white p-5 rounded-2xl border border-slate-200">
-                          <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Tên Pháp nhân / Chủ đầu tư</label>
+                          <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">
+                            {isPartnershipForm ? 'Tên Doanh nghiệp / Đơn vị khởi xướng' : 'Tên Chủ đầu tư / Đơn vị thầu chính'}
+                          </label>
                           <input type="text" value={formData.investor_name} onChange={e => setFormData({...formData, investor_name: e.target.value})} className="w-full h-12 px-4 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-900 outline-none focus:border-blue-400" placeholder="VD: Công ty TNHH ABC..." />
-                          <label className="flex items-center gap-2 cursor-pointer w-fit group"><input type="checkbox" checked={formData.is_investor_hidden} onChange={e => setFormData({...formData, is_investor_hidden: e.target.checked})} className="w-5 h-5 rounded text-[#002D62] cursor-pointer" /><span className="text-sm font-bold text-slate-600 select-none">Ẩn tên Pháp nhân (Bảo mật thông tin dự án)</span></label>
+                          <label className="flex items-center gap-2 cursor-pointer w-fit group"><input type="checkbox" checked={formData.is_investor_hidden} onChange={e => setFormData({...formData, is_investor_hidden: e.target.checked})} className="w-5 h-5 rounded text-[#002D62] cursor-pointer" /><span className="text-sm font-bold text-slate-600 select-none">Ẩn tên Doanh nghiệp (Bảo mật thông tin trên Sàn)</span></label>
                         </div>
-                        <div className="space-y-2"><label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Mô tả Nội dung / Yêu cầu chi tiết</label><textarea value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} className="w-full h-32 p-4 bg-white border border-slate-200 rounded-xl text-sm font-medium text-slate-900 outline-none resize-none focus:border-blue-400" /></div>
-                        <div className="space-y-2"><label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Yêu cầu năng lực Đối tác / Nhà thầu</label><textarea value={formData.requirements} onChange={e => setFormData({...formData, requirements: e.target.value})} className="w-full h-24 p-4 bg-white border border-slate-200 rounded-xl text-sm font-medium text-slate-900 outline-none resize-none focus:border-blue-400" /></div>
+                        <div className="space-y-2">
+                          <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">
+                            {isPartnershipForm ? 'Nội dung Hợp tác chi tiết' : 'Mô tả Yêu cầu chi tiết (Scope of work)'}
+                          </label>
+                          <textarea value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} className="w-full h-32 p-4 bg-white border border-slate-200 rounded-xl text-sm font-medium text-slate-900 outline-none resize-none focus:border-blue-400" placeholder="Diễn giải chi tiết nội dung..." />
+                        </div>
+                        <div className="space-y-2">
+                          <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">
+                            {isPartnershipForm ? 'Tiêu chí Đối tác / Yêu cầu năng lực' : 'Yêu cầu năng lực Nhà thầu (Requirements)'}
+                          </label>
+                          <textarea value={formData.requirements} onChange={e => setFormData({...formData, requirements: e.target.value})} className="w-full h-24 p-4 bg-white border border-slate-200 rounded-xl text-sm font-medium text-slate-900 outline-none resize-none focus:border-blue-400" placeholder="Yêu cầu cụ thể để đối tác chuẩn bị..." />
+                        </div>
                       </div>
                     </div>
 
@@ -385,7 +463,9 @@ export default function MemberBizLinkPage() {
                         </div>
 
                         <div className="col-span-2 space-y-3 mt-4">
-                          <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Hình ảnh minh họa / Sản phẩm (Tự động nén)</label>
+                          <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">
+                            {isPartnershipForm ? 'Hình ảnh Sản phẩm / Profile / Brochure (Tự động nén)' : 'Hình ảnh minh họa / Phối cảnh (Tự động nén)'}
+                          </label>
                           <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-slate-300 border-dashed rounded-2xl cursor-pointer bg-white hover:bg-slate-50">
                             <div className="flex flex-col items-center justify-center pt-5 pb-6"><i className="ph-bold ph-upload-simple text-3xl text-slate-400 mb-2"></i><p className="text-sm font-bold text-slate-600">Nhấn để chọn ảnh đính kèm</p></div>
                             <input type="file" className="hidden" multiple accept="image/*" onChange={handleImageUpload} />
@@ -419,25 +499,34 @@ export default function MemberBizLinkPage() {
                   {displayedMyProjects.length === 0 ? (
                     <div className="col-span-full py-20 bg-white border border-slate-200 rounded-3xl text-center flex flex-col items-center">
                       <div className="w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center mb-6 shadow-sm"><i className="ph-fill ph-folder-dashed text-4xl text-slate-300"></i></div>
-                      <p className="text-slate-500 font-bold text-lg">Bạn chưa có dự án nào thỏa mãn tìm kiếm.</p>
+                      <p className="text-slate-500 font-bold text-lg">Bạn chưa có bài đăng nào thỏa mãn tìm kiếm.</p>
+                      <button onClick={() => {setSearchTerm(''); setFilterCategory('ALL')}} className="mt-4 px-6 py-2.5 bg-white border border-slate-200 text-slate-600 font-bold rounded-xl hover:bg-slate-50 transition-colors">Xóa bộ lọc</button>
                     </div>
                   ) : (
-                    displayedMyProjects.map(p => (
-                      <Link href={`/biz-link/${p.id}`} key={p.id} className="block bg-white border border-slate-200 rounded-3xl p-6 shadow-sm flex flex-col hover:border-[#002D62] hover:shadow-lg transition-all group relative overflow-hidden cursor-pointer">
-                        <div className="flex justify-between items-start mb-4 relative z-10">
-                          <span className={`text-[9px] font-black px-3 py-1.5 rounded-lg uppercase tracking-widest ${p.status === 'PENDING' ? 'bg-amber-50 text-amber-600 border border-amber-200' : p.status === 'OPEN' ? 'bg-blue-50 text-blue-600 border border-blue-200' : 'bg-slate-100 text-slate-500 border border-slate-200'}`}>{p.status === 'PENDING' ? 'CHỜ DUYỆT' : p.status}</span>
-                          <span className="w-8 h-8 rounded-full bg-slate-50 border border-slate-100 flex items-center justify-center text-slate-400 group-hover:text-white group-hover:bg-[#002D62] transition-colors"><i className="ph-bold ph-arrow-up-right"></i></span>
-                        </div>
-                        <div className="relative z-10 mb-6">
-                          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">{p.category}</p>
-                          <h4 className="text-lg font-black text-slate-900 leading-snug line-clamp-2 group-hover:text-[#002D62] transition-colors">{p.title}</h4>
-                          <div className="flex items-center gap-2 mt-3 text-xs font-bold text-slate-500 bg-slate-50 w-fit px-3 py-1.5 rounded-lg border border-slate-100"><i className="ph-fill ph-map-pin"></i> {p.location || 'Chưa cập nhật'}</div>
-                        </div>
-                        <div className="mt-auto pt-5 border-t border-slate-100 flex justify-between items-end relative z-10">
-                          <div><p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Ngân sách / Quy mô</p><p className="text-base font-black text-emerald-600">{formatMoneyCard(p.budget_max)}</p></div>
-                        </div>
-                      </Link>
-                    ))
+                    displayedMyProjects.map(p => {
+                      const details = p.details || {};
+                      const isPart = p.category === 'PARTNERSHIP';
+                      
+                      return (
+                        <Link href={`/biz-link/${p.id}`} key={p.id} className="block bg-white border border-slate-200 rounded-3xl p-6 shadow-sm flex flex-col hover:border-[#002D62] hover:shadow-lg transition-all group relative overflow-hidden cursor-pointer">
+                          <div className="flex justify-between items-start mb-4 relative z-10">
+                            <span className={`text-[9px] font-black px-3 py-1.5 rounded-lg uppercase tracking-widest ${p.status === 'PENDING' ? 'bg-amber-50 text-amber-600 border border-amber-200' : p.status === 'OPEN' ? 'bg-blue-50 text-blue-600 border border-blue-200' : 'bg-slate-100 text-slate-500 border border-slate-200'}`}>{p.status === 'PENDING' ? 'CHỜ DUYỆT' : p.status}</span>
+                            <span className="w-8 h-8 rounded-full bg-slate-50 border border-slate-100 flex items-center justify-center text-slate-400 group-hover:text-white group-hover:bg-[#002D62] transition-colors"><i className="ph-bold ph-arrow-up-right"></i></span>
+                          </div>
+                          <div className="relative z-10 mb-6">
+                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">{p.category}</p>
+                            <h4 className="text-lg font-black text-slate-900 leading-snug line-clamp-2 group-hover:text-[#002D62] transition-colors">{p.title}</h4>
+                            <div className="flex flex-wrap items-center gap-2 mt-3 text-xs font-bold text-slate-500">
+                              <span className="bg-slate-50 px-3 py-1.5 rounded-lg border border-slate-100"><i className="ph-fill ph-map-pin"></i> {p.location || 'Chưa cập nhật'}</span>
+                              <span className="bg-slate-50 px-3 py-1.5 rounded-lg border border-slate-100"><i className="ph-fill ph-tag"></i> {getProjectTypeLabel(details.project_type)}</span>
+                            </div>
+                          </div>
+                          <div className="mt-auto pt-5 border-t border-slate-100 flex justify-between items-end relative z-10">
+                            <div><p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">{isPart ? 'Quy mô' : 'Ngân sách'}</p><p className="text-base font-black text-emerald-600">{formatMoneyCard(p.budget_max)}</p></div>
+                          </div>
+                        </Link>
+                      )
+                    })
                   )}
                 </div>
               </div>
