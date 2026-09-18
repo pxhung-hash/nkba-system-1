@@ -364,10 +364,19 @@ export default function IndividualsPage() {
                 <div className="col-span-2"><p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Họ và Tên</p><p className="font-black text-slate-800 text-lg">{reviewingInd.full_name}</p></div>
                 <div><p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Liên hệ</p><p className="font-medium text-slate-700">{reviewingInd.email || reviewingInd.phone || 'N/A'}</p></div>
                 
+                {/* --- FIX LỖI "CHƯA CHỌN GÓI" KHI NÂNG CẤP --- */}
                 <div>
-                   <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Gói cấp phát (Hiện tại)</p>
-                   <p className="font-bold text-amber-600">
-                     {Array.isArray(reviewingInd.individual_tiers) ? reviewingInd.individual_tiers[0]?.name : reviewingInd.individual_tiers?.name || 'CHƯA CHỌN GÓI'}
+                   <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">
+                     {reviewingInd.upgrade_tier_id ? 'GÓI XIN NÂNG CẤP' : 'GÓI CẤP PHÁT (HIỆN TẠI)'}
+                   </p>
+                   <p className={`font-bold ${reviewingInd.upgrade_tier_id ? 'text-purple-600 flex items-center gap-1.5' : 'text-amber-600'}`}>
+                     {reviewingInd.upgrade_tier_id
+                       ? (() => {
+                           const t = indTiers.find(x => x.id === reviewingInd.upgrade_tier_id);
+                           return <><i className="ph-bold ph-trend-up"></i> {t?.name || 'Lỗi gói'}</>;
+                         })()
+                       : (Array.isArray(reviewingInd.individual_tiers) ? reviewingInd.individual_tiers[0]?.name : reviewingInd.individual_tiers?.name || 'CHƯA CHỌN GÓI')
+                     }
                    </p>
                 </div>
                 
