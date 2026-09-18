@@ -224,7 +224,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 
                   <div className="h-8 w-px bg-slate-200 mx-1 hidden md:block"></div>
                   
-                  {/* DROPDOWN MENU PROFILE */}
+                  {/* DROPDOWN MENU PROFILE (DESKTOP) */}
                   {currentUser ? (
                     <div className="relative">
                       <div 
@@ -242,29 +242,38 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 
                       {/* NỘI DUNG MENU THẢ XUỐNG */}
                       {showProfileDropdown && (
-                        <div className="absolute top-14 right-0 w-[280px] bg-white rounded-2xl shadow-2xl border border-slate-100 overflow-hidden flex flex-col z-[100] animate-in slide-in-from-top-2">
-                          <div className="p-4 bg-slate-50 border-b border-slate-100">
-                            <p className="text-sm font-black text-slate-900 line-clamp-1">{currentUser.name}</p>
-                            <p className="text-[10px] font-bold text-slate-500 truncate">{currentUser.email}</p>
+                        <div className="absolute top-14 right-0 w-[300px] bg-white rounded-2xl shadow-2xl border border-slate-100 overflow-hidden flex flex-col z-[100] animate-in slide-in-from-top-2">
+                          <div className="p-5 bg-slate-50 border-b border-slate-100">
+                            <p className="text-base font-black text-[#002D62] line-clamp-1">{currentUser.name}</p>
+                            <p className="text-xs font-bold text-slate-500 truncate mt-0.5">{currentUser.email}</p>
                           </div>
                           
                           {!currentUser.is_admin && (
-                            <>
-                              <Link href="/account" onClick={() => setShowProfileDropdown(false)} className="p-4 border-b border-slate-50 hover:bg-slate-50 transition-colors flex items-center gap-3 text-sm font-bold text-slate-700">
-                                <div className="w-8 h-8 rounded-full bg-indigo-50 text-indigo-600 flex items-center justify-center"><i className="ph-fill ph-user-gear text-lg"></i></div>
-                                Sửa thông tin tài khoản
+                            <div className="p-2 border-b border-slate-100">
+                              <Link href="/account" onClick={() => setShowProfileDropdown(false)} className="p-3 hover:bg-slate-50 transition-colors flex items-center gap-3 rounded-xl">
+                                <div className="w-8 h-8 rounded-full bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0"><i className="ph-fill ph-user-gear text-lg"></i></div>
+                                <span className="text-sm font-bold text-slate-700">Sửa thông tin tài khoản</span>
                               </Link>
-                              <Link href="/profile" onClick={() => setShowProfileDropdown(false)} className="p-4 border-b border-slate-50 hover:bg-slate-50 transition-colors flex items-center gap-3 text-sm font-bold text-slate-700">
-                                <div className="w-8 h-8 rounded-full bg-amber-50 text-amber-600 flex items-center justify-center"><i className="ph-fill ph-briefcase-metal text-lg"></i></div>
-                                Cập nhật Hồ sơ Chuyên gia
+
+                              {/* NÚT QUẢN LÝ DOANH NGHIỆP MỚI ĐƯỢC CHÈN VÀO ĐÂY */}
+                              <Link href="/account" onClick={() => setShowProfileDropdown(false)} className="p-3 hover:bg-slate-50 transition-colors flex items-center gap-3 rounded-xl">
+                                <div className="w-8 h-8 rounded-full bg-blue-50 text-[#002D62] flex items-center justify-center shrink-0"><i className="ph-fill ph-buildings text-lg"></i></div>
+                                <span className="text-sm font-bold text-slate-700">Quản lý hồ sơ Doanh nghiệp</span>
                               </Link>
-                            </>
+
+                              <Link href="/profile" onClick={() => setShowProfileDropdown(false)} className="p-3 hover:bg-slate-50 transition-colors flex items-center gap-3 rounded-xl">
+                                <div className="w-8 h-8 rounded-full bg-amber-50 text-amber-600 flex items-center justify-center shrink-0"><i className="ph-fill ph-briefcase-metal text-lg"></i></div>
+                                <span className="text-sm font-bold text-slate-700">Cập nhật Hồ sơ Chuyên gia</span>
+                              </Link>
+                            </div>
                           )}
                           
-                          <button onClick={() => { handleLogout(); setShowProfileDropdown(false); }} className="p-4 hover:bg-rose-50 transition-colors flex items-center gap-3 text-sm font-bold text-rose-600 text-left">
-                            <div className="w-8 h-8 rounded-full bg-rose-50 text-rose-600 flex items-center justify-center"><i className="ph-bold ph-sign-out text-lg"></i></div>
-                            Đăng xuất
-                          </button>
+                          <div className="p-2">
+                            <button onClick={() => { handleLogout(); setShowProfileDropdown(false); }} className="w-full p-3 hover:bg-rose-50 transition-colors flex items-center gap-3 text-left rounded-xl">
+                              <div className="w-8 h-8 rounded-full bg-rose-50 text-rose-600 flex items-center justify-center shrink-0"><i className="ph-bold ph-sign-out text-lg"></i></div>
+                              <span className="text-sm font-bold text-rose-600">Đăng xuất</span>
+                            </button>
+                          </div>
                         </div>
                       )}
                     </div>
@@ -281,9 +290,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 </div>
               </div>
 
+              {/* MOBILE MENU */}
               {showMobileMenu && (
                 <div className="lg:hidden absolute top-full left-0 w-full bg-white border-t border-b border-slate-200 shadow-xl animate-in slide-in-from-top-2">
-                  <nav className="flex flex-col px-4 py-4 gap-2">
+                  <nav className="flex flex-col px-4 py-4 gap-1">
                     {navItems.map(item => {
                       const isActive = pathname === item.path || (item.path !== '/' && pathname.startsWith(item.path));
                       return (
@@ -299,13 +309,19 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                         <Link href="/account" onClick={() => setShowMobileMenu(false)} className="px-4 py-3 rounded-xl text-base font-bold flex items-center gap-3 text-slate-600 hover:bg-slate-50 transition-all text-left">
                           <i className="ph-fill ph-user-gear text-xl"></i> Sửa thông tin tài khoản
                         </Link>
+                        
+                        {/* NÚT QUẢN LÝ DOANH NGHIỆP TRÊN MOBILE */}
+                        <Link href="/account" onClick={() => setShowMobileMenu(false)} className="px-4 py-3 rounded-xl text-base font-bold flex items-center gap-3 text-slate-600 hover:bg-slate-50 transition-all text-left">
+                          <i className="ph-fill ph-buildings text-xl"></i> Quản lý hồ sơ Doanh nghiệp
+                        </Link>
+
                         <Link href="/profile" onClick={() => setShowMobileMenu(false)} className="px-4 py-3 rounded-xl text-base font-bold flex items-center gap-3 text-slate-600 hover:bg-slate-50 transition-all text-left">
                           <i className="ph-fill ph-briefcase-metal text-xl"></i> Hồ sơ Chuyên gia
                         </Link>
                       </>
                     )}
 
-                    <button onClick={handleLogout} className="px-4 py-3 rounded-xl text-base font-bold flex items-center gap-3 text-rose-500 hover:bg-rose-50 transition-all text-left">
+                    <button onClick={handleLogout} className="px-4 py-3 mt-2 rounded-xl text-base font-bold flex items-center gap-3 text-rose-500 hover:bg-rose-50 transition-all text-left border border-rose-100">
                       <i className="ph-bold ph-sign-out text-xl"></i> Đăng xuất
                     </button>
                   </nav>
