@@ -46,9 +46,10 @@ export default function ProjectDetailPage() {
         let userProfile = null;
 
         if (user) {
+          // Bổ sung hút status (tick xanh) và is_corporate_sponsored (pháp nhân)
           const { data: profile } = await supabase
             .from('individuals')
-            .select('id, full_name, individual_tiers!individuals_tier_id_fkey(name, code)')
+            .select('id, full_name, status, is_corporate_sponsored, individual_tiers!individuals_tier_id_fkey(name, code)')
             .eq('user_auth_id', user.id)
             .single();
           setCurrentUser(profile);
@@ -109,6 +110,20 @@ export default function ProjectDetailPage() {
   // ==========================================
   // LOGIC NHÀ THẦU: NỘP HỒ SƠ / BÁO GIÁ
   // ==========================================
+  
+  // Hàm kiểm duyệt trước khi mở Modal nộp thầu
+  const handleOpenBidModal = () => {
+    if (!currentUser) return alert('Vui lòng đăng nhập để thực hiện chức năng này!');
+    
+    // Kiểm tra KYC: Phải là ACTIVE (Đã duyệt) và có Pháp nhân (is_corporate_sponsored)
+    if (currentUser.status !== 'ACTIVE' || !currentUser.is_corporate_sponsored) {
+      alert('⚠️ Bạn phải hoàn thành đăng ký hồ sơ và xác thực Doanh nghiệp (Pháp nhân) mới có thể đăng ký tham gia đấu thầu dự án.');
+      return;
+    }
+
+    setShowSubmitBidModal(true);
+  };
+
   const handleBidPriceChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const rawValue = e.target.value.replace(/\D/g, ''); 
     setBidFormData(prev => ({ ...prev, price: rawValue }));
@@ -126,17 +141,17 @@ export default function ProjectDetailPage() {
         bidder_id: currentUser.id,
         proposed_price: bidFormData.price,
         message: bidFormData.message,
-        status: 'PENDING' // Chờ xem xét
+        status: 'PENDING' 
       }]);
 
       if (error) {
-        if (error.code === '23505') throw new Error('Bạn đã nộp báo giá cho dự án này rồi!');
+        if (error.code === '23505') throw new Error('Bạn đã đăng ký tham gia đấu thầu dự án này rồi!');
         throw error;
       }
 
-      alert('✅ Gửi báo giá thành công! Chủ đầu tư sẽ sớm liên hệ với bạn.');
+      alert('✅ Đăng ký tham gia thành công! Chủ đầu tư sẽ sớm liên hệ với bạn.');
       setShowSubmitBidModal(false);
-      setHasSubmittedBid(true); // Khóa nút
+      setHasSubmittedBid(true);
       setTotalQuotes(prev => prev + 1);
     } catch (err: any) {
       alert('Lỗi: ' + err.message);
@@ -372,18 +387,21 @@ export default function ProjectDetailPage() {
                   <i className="ph-bold ph-pencil-simple"></i> Chỉnh sửa Dự Án
                 </button>
                 <button onClick={handleOpenQuotesManager} className="w-full py-4 bg-[#002D62] text-white rounded-xl font-black hover:bg-blue-900 transition-all shadow-md flex items-center justify-center gap-2">
-                  <i className="ph-bold ph-folder-open"></i> Quản lý Báo Giá Đã Nhận ({totalQuotes})
+                  <i className="ph-bold ph-folder-open"></i> Quản lý Hồ Sơ Đã Nhận ({totalQuotes})
                 </button>
               </div>
             ) : (
               <div className="space-y-3">
                 <button 
-                  onClick={() => setShowSubmitBidModal(true)}
+                  onClick={handleOpenBidModal}
                   disabled={project.status !== 'OPEN' || hasSubmittedBid} 
                   className={`w-full py-4 text-white rounded-xl font-black transition-all shadow-lg flex items-center justify-center gap-2 ${hasSubmittedBid ? 'bg-emerald-600' : 'bg-[#002D62] hover:bg-blue-900 hover:-translate-y-1'} disabled:opacity-70 disabled:hover:translate-y-0`}
                 >
                   <i className={`ph-bold ${hasSubmittedBid ? 'ph-check-circle' : 'ph-paper-plane-right'}`}></i> 
-                  {hasSubmittedBid ? 'ĐÃ NỘP HỒ SƠ / BÁO GIÁ' : project.status === 'OPEN' ? 'NỘP HỒ SƠ / BÁO GIÁ' : 'KHÔNG THỂ NỘP HỒ SƠ'}
+                  {hasSubmittedBid ? 'ĐÃ ĐĂNG KÝ THAM GIA' : project.status === 'OPEN' ? 'ĐĂNG KÝ THAM GIA ĐẤU THẦU' : 'KHÔNG THỂ NỘP HỒ SƠ'}
+                </button>
+                <button className="w-full py-4 bg-white border-2 border-slate-200 text-slate-700 rounded-xl font-black hover:border-[#002D62] hover:text-[#002D62] transition-colors flex items-center justify-center gap-2">
+                  <i className="ph-bold ph-bookmark-simple"></i> Lưu vào Yêu thích
                 </button>
               </div>
             )}
@@ -442,7 +460,7 @@ export default function ProjectDetailPage() {
                       </select>
                     </div>
                     <div className="col-span-2 space-y-2"><label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Tên Dự án (*)</label><input type="text" required value={editFormData.title} onChange={e => setEditFormData({...editFormData, title: e.target.value})} className="w-full h-12 px-4 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-900 outline-none focus:bg-white focus:border-blue-400" /></div>
-                    <div className="space-y-2"><label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Lĩnh vực</label><select value={editFormData.category} onChange={e => setEditFormData({...editFormData, category: e.target.value})} className="w-full h-12 px-4 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-900 outline-none cursor-pointer focus:border-blue-400"><option value="CONSTRUCTION">Thi công</option><option value="DESIGN">Thiết kế</option><option value="MATERIAL">Cung cấp vật tư</option><option value="OTHER">Khác</option></select></div>
+                    <div className="space-y-2"><label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Lĩnh vực</label><select value={editFormData.category} onChange={e => setEditFormData({...editFormData, category: e.target.value})} className="w-full h-12 px-4 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-900 outline-none cursor-pointer focus:bg-white focus:border-blue-400"><option value="CONSTRUCTION">Thi công</option><option value="DESIGN">Thiết kế</option><option value="MATERIAL">Cung cấp vật tư</option><option value="OTHER">Khác</option></select></div>
                     <div className="space-y-2"><label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Ngân sách (VNĐ)</label><input type="text" required value={displayEditBudget} onChange={handleEditBudgetChange} className="w-full h-12 px-4 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-900 outline-none focus:bg-white focus:border-blue-400" /></div>
                   </div>
                 </div>
@@ -450,67 +468,8 @@ export default function ProjectDetailPage() {
                 <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
                   <h4 className="text-sm font-black text-[#002D62] uppercase tracking-widest mb-6 flex items-center gap-2 border-b border-slate-100 pb-3">2. Yêu cầu chi tiết</h4>
                   <div className="space-y-6">
-                    <div className="space-y-3 bg-slate-50 p-5 rounded-2xl border border-slate-100">
-                      <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Tên Chủ đầu tư / Đơn vị thầu chính</label>
-                      <input type="text" value={editFormData.investor_name} onChange={e => setEditFormData({...editFormData, investor_name: e.target.value})} className="w-full h-12 px-4 bg-white border border-slate-200 rounded-xl text-sm font-bold text-slate-900 placeholder-slate-400 outline-none focus:border-blue-400 transition-all" />
-                      <label className="flex items-center gap-2 cursor-pointer w-fit group mt-2">
-                        <input type="checkbox" checked={editFormData.is_investor_hidden} onChange={e => setEditFormData({...editFormData, is_investor_hidden: e.target.checked})} className="w-5 h-5 rounded text-[#002D62] cursor-pointer" />
-                        <span className="text-sm font-bold text-slate-600 group-hover:text-slate-900 select-none">Ẩn tên Chủ đầu tư (Bảo mật thông tin dự án)</span>
-                      </label>
-                    </div>
-
-                    <div className="space-y-2">
-                      <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Mô tả Yêu cầu chi tiết (Scope of work)</label>
-                      <textarea value={editFormData.description} onChange={e => setEditFormData({...editFormData, description: e.target.value})} className="w-full h-32 p-4 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium text-slate-900 placeholder-slate-400 outline-none resize-none focus:bg-white focus:border-blue-400 focus:ring-4 focus:ring-blue-500/10 transition-all" />
-                    </div>
-
-                    <div className="space-y-2">
-                      <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Yêu cầu năng lực Nhà thầu (Requirements)</label>
-                      <textarea value={editFormData.requirements} onChange={e => setEditFormData({...editFormData, requirements: e.target.value})} className="w-full h-24 p-4 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium text-slate-900 placeholder-slate-400 outline-none resize-none focus:bg-white focus:border-blue-400 focus:ring-4 focus:ring-blue-500/10 transition-all" />
-                    </div>
-                  </div>
-                </div>
-
-                {/* SECTION 3: LIÊN HỆ & ẢNH */}
-                <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
-                  <h4 className="text-sm font-black text-[#002D62] uppercase tracking-widest mb-6 flex items-center gap-2 border-b border-slate-100 pb-3">3. Liên hệ & Hình ảnh đính kèm</h4>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <div className="space-y-2">
-                      <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Người liên hệ</label>
-                      <input type="text" value={editFormData.contact_name} onChange={e => setEditFormData({...editFormData, contact_name: e.target.value})} className="w-full h-12 px-4 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-900 placeholder-slate-400 outline-none focus:bg-white focus:border-blue-400 transition-all" />
-                    </div>
-                    <div className="space-y-2">
-                      <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Số điện thoại</label>
-                      <input type="tel" value={editFormData.contact_phone} onChange={e => setEditFormData({...editFormData, contact_phone: e.target.value})} className="w-full h-12 px-4 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-900 placeholder-slate-400 outline-none focus:bg-white focus:border-blue-400 transition-all" />
-                    </div>
-                    <div className="space-y-2">
-                      <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Email</label>
-                      <input type="email" value={editFormData.contact_email} onChange={e => setEditFormData({...editFormData, contact_email: e.target.value})} className="w-full h-12 px-4 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-900 placeholder-slate-400 outline-none focus:bg-white focus:border-blue-400 transition-all" />
-                    </div>
-
-                    <div className="col-span-1 md:col-span-3 space-y-3 mt-4">
-                      <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Cập nhật Hình ảnh / Phối cảnh (Tự động nén)</label>
-                      <label className="flex flex-col items-center justify-center w-full h-24 border-2 border-slate-300 border-dashed rounded-xl cursor-pointer bg-slate-50 hover:bg-slate-100 transition-colors">
-                        <div className="flex flex-col items-center justify-center pt-3 pb-3">
-                          <i className="ph-bold ph-upload-simple text-2xl text-slate-400 mb-1"></i>
-                          <p className="text-sm font-bold text-slate-600">Nhấn để thêm ảnh mới</p>
-                        </div>
-                        <input type="file" className="hidden" multiple accept="image/*" onChange={handleEditImageUpload} />
-                      </label>
-                      
-                      {editFormData.images.length > 0 && (
-                        <div className="flex gap-4 overflow-x-auto py-2">
-                          {editFormData.images.map((imgBase64, idx) => (
-                            <div key={idx} className="relative shrink-0">
-                              <img src={imgBase64} alt={`Preview ${idx}`} className="w-24 h-24 object-cover rounded-xl border border-slate-200 shadow-sm" />
-                              <button type="button" onClick={() => removeEditImage(idx)} className="absolute -top-2 -right-2 w-6 h-6 bg-rose-500 text-white rounded-full flex items-center justify-center shadow-md hover:scale-110 transition-transform">
-                                <i className="ph-bold ph-x text-xs"></i>
-                              </button>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
+                    <div className="space-y-2"><label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Mô tả Yêu cầu</label><textarea value={editFormData.description} onChange={e => setEditFormData({...editFormData, description: e.target.value})} className="w-full h-32 p-4 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium text-slate-900 outline-none focus:bg-white focus:border-blue-400" /></div>
+                    <div className="space-y-2"><label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Yêu cầu năng lực</label><textarea value={editFormData.requirements} onChange={e => setEditFormData({...editFormData, requirements: e.target.value})} className="w-full h-24 p-4 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium text-slate-900 outline-none focus:bg-white focus:border-blue-400" /></div>
                   </div>
                 </div>
 
@@ -550,7 +509,7 @@ export default function ProjectDetailPage() {
                   <table className="w-full text-left border-collapse">
                     <thead>
                       <tr className="bg-slate-50 border-b border-slate-200 text-xs font-black text-slate-500 uppercase tracking-widest">
-                        <th className="p-4">Nhà thầu / Đối tác</th><th className="p-4">Liên hệ[cite: 11]</th><th className="p-4">Ngày gửi[cite: 11]</th><th className="p-4">Giá đề xuất[cite: 11]</th><th className="p-4 text-center">Trạng thái[cite: 11]</th>
+                        <th className="p-4">Nhà thầu / Đối tác</th><th className="p-4">Liên hệ</th><th className="p-4">Ngày gửi</th><th className="p-4">Giá đề xuất</th><th className="p-4 text-center">Trạng thái</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100">
@@ -581,13 +540,13 @@ export default function ProjectDetailPage() {
       )}
 
       {/* ========================================== */}
-      {/* MODAL 3: NỘP HỒ SƠ BÁO GIÁ (DÀNH CHO NHÀ THẦU) */}
+      {/* MODAL 3: ĐĂNG KÝ THAM GIA ĐẤU THẦU (NHÀ THẦU) */}
       {/* ========================================== */}
       {showSubmitBidModal && (
         <div className="fixed inset-0 z-[999] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in">
           <div className="bg-white w-full max-w-lg rounded-[2rem] shadow-2xl overflow-hidden flex flex-col animate-in zoom-in-95">
             <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50">
-              <h3 className="text-xl font-black text-[#002D62] flex items-center gap-2"><i className="ph-fill ph-paper-plane-right"></i> Nộp Hồ Sơ / Báo Giá</h3>
+              <h3 className="text-xl font-black text-[#002D62] flex items-center gap-2"><i className="ph-fill ph-paper-plane-right"></i> Đăng ký Tham gia Đấu thầu / Báo giá</h3>
               <button onClick={() => setShowSubmitBidModal(false)} className="w-8 h-8 flex items-center justify-center bg-slate-200 rounded-full text-slate-600 hover:bg-rose-100 hover:text-rose-600"><i className="ph-bold ph-x"></i></button>
             </div>
             <form onSubmit={submitBid} className="p-6 space-y-5">
