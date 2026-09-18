@@ -26,13 +26,13 @@ export default function ProjectDetailPage() {
     requirements: '', contact_name: '', contact_phone: '', contact_email: '', images: [] as string[], status: 'OPEN'
   });
 
-  // --- STATE QUẢN LÝ BÁO GIÁ (CHỦ ĐẦU TƯ) ---
+  // --- STATE QUẢN LÝ BÁO GIÁ/HỒ SƠ (CHỦ ĐẦU TƯ) ---
   const [showQuotesModal, setShowQuotesModal] = useState(false);
   const [realQuotes, setRealQuotes] = useState<any[]>([]);
   const [loadingQuotes, setLoadingQuotes] = useState(false);
   const [totalQuotes, setTotalQuotes] = useState(0);
 
-  // --- STATE NỘP HỒ SƠ (NHÀ THẦU) ---
+  // --- STATE NỘP HỒ SƠ (NHÀ THẦU / ĐỐI TÁC) ---
   const [showSubmitBidModal, setShowSubmitBidModal] = useState(false);
   const [hasSubmittedBid, setHasSubmittedBid] = useState(false);
   const [isSubmittingBid, setIsSubmittingBid] = useState(false);
@@ -46,7 +46,6 @@ export default function ProjectDetailPage() {
         let userProfile = null;
 
         if (user) {
-          // Bổ sung hút status (tick xanh) và is_corporate_sponsored (pháp nhân)
           const { data: profile } = await supabase
             .from('individuals')
             .select('id, full_name, status, is_corporate_sponsored, individual_tiers!individuals_tier_id_fkey(name, code)')
@@ -65,7 +64,6 @@ export default function ProjectDetailPage() {
         if (fetchError) throw fetchError;
         setProject(projData);
 
-        // Lấy thông tin chủ dự án
         if (projData.member_id) {
           const { data: authorData } = await supabase
             .from('individuals')
@@ -75,14 +73,12 @@ export default function ProjectDetailPage() {
           if (authorData) setAuthor(authorData);
         }
 
-        // Lấy tổng số lượng báo giá đã nộp
         const { count } = await supabase
           .from('project_bids')
           .select('id', { count: 'exact', head: true })
           .eq('project_id', id);
         setTotalQuotes(count || 0);
 
-        // Kiểm tra xem User hiện tại đã nộp báo giá cho dự án này chưa?
         if (userProfile && userProfile.id !== projData.member_id) {
           const { data: existingBid } = await supabase
             .from('project_bids')
@@ -106,21 +102,20 @@ export default function ProjectDetailPage() {
 
   const formatMoney = (amount: number) => amount ? amount.toLocaleString('vi-VN') + ' VNĐ' : 'Thỏa thuận';
   const isOwner = currentUser?.id === project?.member_id;
+  
+  // Xác định xem bài đăng có phải là Kết nối thương mại hay không
+  const isPartnership = project?.category === 'PARTNERSHIP';
 
   // ==========================================
-  // LOGIC NHÀ THẦU: NỘP HỒ SƠ / BÁO GIÁ
+  // LOGIC ĐỐI TÁC: NỘP HỒ SƠ / KẾT NỐI
   // ==========================================
-  
-  // Hàm kiểm duyệt trước khi mở Modal nộp thầu
   const handleOpenBidModal = () => {
     if (!currentUser) return alert('Vui lòng đăng nhập để thực hiện chức năng này!');
     
-    // Kiểm tra KYC: Phải là ACTIVE (Đã duyệt) và có Pháp nhân (is_corporate_sponsored)
     if (currentUser.status !== 'ACTIVE' || !currentUser.is_corporate_sponsored) {
-      alert('⚠️ Bạn phải hoàn thành đăng ký hồ sơ và xác thực Doanh nghiệp (Pháp nhân) mới có thể đăng ký tham gia đấu thầu dự án.');
+      alert(`⚠️ Bạn phải hoàn thành đăng ký hồ sơ và xác thực Doanh nghiệp (Pháp nhân) mới có thể đăng ký tham gia ${isPartnership ? 'kết nối thương mại' : 'đấu thầu dự án'}.`);
       return;
     }
-
     setShowSubmitBidModal(true);
   };
 
@@ -145,11 +140,11 @@ export default function ProjectDetailPage() {
       }]);
 
       if (error) {
-        if (error.code === '23505') throw new Error('Bạn đã đăng ký tham gia đấu thầu dự án này rồi!');
+        if (error.code === '23505') throw new Error('Bạn đã đăng ký tham gia vào mục này rồi!');
         throw error;
       }
 
-      alert('✅ Đăng ký tham gia thành công! Chủ đầu tư sẽ sớm liên hệ với bạn.');
+      alert('✅ Đăng ký tham gia thành công! Đối tác sẽ sớm liên hệ với bạn.');
       setShowSubmitBidModal(false);
       setHasSubmittedBid(true);
       setTotalQuotes(prev => prev + 1);
@@ -161,13 +156,12 @@ export default function ProjectDetailPage() {
   };
 
   // ==========================================
-  // LOGIC CHỦ ĐẦU TƯ: XEM HỒ SƠ ĐÃ NHẬN
+  // LOGIC CHỦ BÀI ĐĂNG: XEM HỒ SƠ ĐÃ NHẬN
   // ==========================================
   const handleOpenQuotesManager = async () => {
     setShowQuotesModal(true);
     setLoadingQuotes(true);
     try {
-      // Join bảng project_bids với individuals và corporates để lấy tên nhà thầu
       const { data, error } = await supabase
         .from('project_bids')
         .select(`
@@ -180,7 +174,7 @@ export default function ProjectDetailPage() {
       if (error) throw error;
       if (data) setRealQuotes(data);
     } catch (err) {
-      console.error("Lỗi lấy danh sách báo giá:", err);
+      console.error("Lỗi lấy danh sách hồ sơ:", err);
     } finally {
       setLoadingQuotes(false);
     }
@@ -195,14 +189,11 @@ export default function ProjectDetailPage() {
   };
   const displayEditBudget = editFormData.budget_max ? new Intl.NumberFormat('vi-VN').format(Number(editFormData.budget_max)) : '';
 
-  // --- HÀM 2: THUẬT TOÁN TỰ ĐỘNG NÉN ẢNH (CANVAS API) ---
   const handleEditImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files) return;
-
     Array.from(files).forEach(file => {
       if (!file.type.startsWith('image/')) return alert('Chỉ hỗ trợ file hình ảnh!');
-      
       const reader = new FileReader();
       reader.readAsDataURL(file);
       reader.onload = (event) => {
@@ -225,11 +216,11 @@ export default function ProjectDetailPage() {
     setEditFormData(prev => ({ ...prev, images: prev.images.filter((_, i) => i !== index) }));
   };
 
-  // --- HÀM 3: MỞ MODAL VÀ ĐỔ DỮ LIỆU CŨ VÀO FORM ---
   const openEditModal = () => {
     const details = project.details || {};
     const contact = details.contact || {};
-    const isStandardCat = ['CONSTRUCTION', 'DESIGN', 'MATERIAL'].includes(project.category);
+    // BỔ SUNG PARTNERSHIP VÀO DANH SÁCH KIỂM TRA
+    const isStandardCat = ['CONSTRUCTION', 'DESIGN', 'MATERIAL', 'PARTNERSHIP'].includes(project.category);
     const isStandardType = ['RESIDENTIAL', 'APARTMENT', 'OFFICE', 'FACTORY', 'COMMERCIAL'].includes(details.project_type);
 
     setEditFormData({
@@ -244,9 +235,8 @@ export default function ProjectDetailPage() {
 
   const handleUpdateProject = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!editFormData.title || !editFormData.budget_max) return alert('Vui lòng nhập Tên dự án và Ngân sách dự kiến!');
+    if (!editFormData.title || !editFormData.budget_max) return alert('Vui lòng nhập Tiêu đề và Ngân sách/Quy mô!');
     setIsSubmitting(true);
-    
     const finalCategory = editFormData.category === 'OTHER' ? editFormData.custom_category : editFormData.category;
     const finalProjectType = editFormData.project_type === 'OTHER' ? editFormData.custom_project_type : editFormData.project_type;
 
@@ -260,8 +250,7 @@ export default function ProjectDetailPage() {
         description: editFormData.description, details: updatedDetails, status: editFormData.status
       }).eq('id', project.id);
       if (updateError) throw updateError;
-
-      alert('✅ Cập nhật dự án thành công!');
+      alert('✅ Cập nhật thành công!');
       setProject({ ...project, title: editFormData.title, category: finalCategory, budget_max: parseFloat(editFormData.budget_max), location: editFormData.location, description: editFormData.description, details: updatedDetails, status: editFormData.status });
       setIsEditing(false);
     } catch (err: any) { alert('Lỗi cập nhật: ' + err.message); } finally { setIsSubmitting(false); }
@@ -269,14 +258,16 @@ export default function ProjectDetailPage() {
 
   // ----------------------------------------------------
 
-  if (loading) return <div className="flex h-[70vh] flex-col items-center justify-center text-slate-500 font-bold gap-4"><i className="ph-bold ph-spinner animate-spin text-4xl text-[#002D62]"></i> <p className="animate-pulse">Đang giải mã hồ sơ dự án...</p></div>;
+  if (loading) return <div className="flex h-[70vh] flex-col items-center justify-center text-slate-500 font-bold gap-4"><i className="ph-bold ph-spinner animate-spin text-4xl text-[#002D62]"></i> <p className="animate-pulse">Đang giải mã hồ sơ...</p></div>;
   if (error || !project) return <div className="flex flex-col h-[70vh] items-center justify-center text-center animate-in fade-in duration-500"><div className="w-24 h-24 bg-rose-50 text-rose-500 rounded-full flex items-center justify-center mb-6"><i className="ph-fill ph-file-x text-5xl"></i></div><h1 className="text-2xl font-black text-slate-800 mb-2">Hồ sơ không tồn tại</h1><button onClick={() => router.push('/biz-link')} className="mt-8 px-8 py-3.5 bg-[#002D62] text-white rounded-xl font-bold">Quay lại Sàn Giao Dịch</button></div>;
 
   const getCategoryLabel = (cat: string) => {
     const cats: Record<string, { label: string, color: string, icon: string }> = {
       'CONSTRUCTION': { label: 'Thi Công Xây Lắp', color: 'text-emerald-700 bg-emerald-50 border-emerald-200', icon: 'ph-crane' },
       'DESIGN': { label: 'Thiết Kế / Kiến Trúc', color: 'text-purple-700 bg-purple-50 border-purple-200', icon: 'ph-pen-nib' },
-      'MATERIAL': { label: 'Cung Cấp Vật Tư', color: 'text-amber-700 bg-amber-50 border-amber-200', icon: 'ph-truck' }
+      'MATERIAL': { label: 'Cung Cấp Vật Tư', color: 'text-amber-700 bg-amber-50 border-amber-200', icon: 'ph-truck' },
+      // BỔ SUNG LĨNH VỰC MỚI VÀO ĐÂY
+      'PARTNERSHIP': { label: 'Kết Nối Thương Mại', color: 'text-blue-700 bg-blue-50 border-blue-200', icon: 'ph-handshake' }
     };
     return cats[cat] || { label: cat, color: 'text-slate-600 bg-slate-100 border-slate-200', icon: 'ph-tag' };
   };
@@ -286,11 +277,10 @@ export default function ProjectDetailPage() {
     return types[type] || type || 'Chưa phân loại';
   };
 
-  // Hàm render Badge trạng thái
   const getStatusBadge = (status: string) => {
     switch (status) {
-      case 'OPEN': return <span className="px-4 py-1.5 rounded-lg text-xs font-black uppercase tracking-widest border bg-emerald-500/20 text-emerald-300 border-emerald-500/50">ĐANG MỞ THẦU</span>;
-      case 'CLOSED': return <span className="px-4 py-1.5 rounded-lg text-xs font-black uppercase tracking-widest border bg-rose-500/20 text-rose-300 border-rose-500/50">ĐÃ ĐÓNG THẦU</span>;
+      case 'OPEN': return <span className="px-4 py-1.5 rounded-lg text-xs font-black uppercase tracking-widest border bg-emerald-500/20 text-emerald-300 border-emerald-500/50">{isPartnership ? 'ĐANG TÌM ĐỐI TÁC' : 'ĐANG MỞ THẦU'}</span>;
+      case 'CLOSED': return <span className="px-4 py-1.5 rounded-lg text-xs font-black uppercase tracking-widest border bg-rose-500/20 text-rose-300 border-rose-500/50">ĐÃ ĐÓNG / KẾT THÚC</span>;
       case 'COMPLETED': return <span className="px-4 py-1.5 rounded-lg text-xs font-black uppercase tracking-widest border bg-blue-500/20 text-blue-300 border-blue-500/50">ĐÃ HOÀN THÀNH</span>;
       case 'CANCELED': return <span className="px-4 py-1.5 rounded-lg text-xs font-black uppercase tracking-widest border bg-slate-500/40 text-slate-300 border-slate-500/50">ĐÃ HỦY BỎ</span>;
       default: return <span className="px-4 py-1.5 rounded-lg text-xs font-black uppercase tracking-widest border bg-amber-500/20 text-amber-300 border-amber-500/50">ĐANG CHỜ DUYỆT</span>;
@@ -303,7 +293,6 @@ export default function ProjectDetailPage() {
 
   return (
     <div className="max-w-7xl mx-auto px-4 md:px-8 py-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-      
       <div className="flex items-center gap-3 text-sm font-bold text-slate-400 mb-8">
         <Link href="/biz-link" className="hover:text-[#002D62] transition-colors flex items-center gap-2"><i className="ph-bold ph-arrow-left"></i> Sàn B2B</Link>
         <i className="ph-bold ph-caret-right text-slate-300"></i> <span className="text-slate-700 truncate max-w-[200px] md:max-w-md">{project.title}</span>
@@ -312,25 +301,23 @@ export default function ProjectDetailPage() {
       {/* HEADER BANNER */}
       <div className="bg-gradient-to-r from-[#002D62] to-blue-900 rounded-[2rem] p-8 md:p-12 text-white relative overflow-hidden shadow-xl mb-8">
         <div className="absolute top-0 right-0 w-96 h-96 bg-white/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/3 pointer-events-none"></div>
-        
         <div className="relative z-10 flex flex-col md:flex-row justify-between items-start gap-8">
           <div className="flex-1">
             <div className="flex flex-wrap items-center gap-3 mb-5">
               <span className={`px-4 py-1.5 rounded-lg text-xs font-black uppercase tracking-widest border flex items-center gap-2 ${catInfo.color.replace('bg-', 'bg-white/90 ')}`}><i className={`ph-bold ${catInfo.icon} text-base`}></i> {catInfo.label}</span>
-              <span className="px-4 py-1.5 rounded-lg text-xs font-black uppercase tracking-widest border bg-white/10 text-white border-white/20"><i className="ph-fill ph-buildings mr-1"></i> {getProjectTypeLabel(details.project_type)}</span>
+              {!isPartnership && (
+                <span className="px-4 py-1.5 rounded-lg text-xs font-black uppercase tracking-widest border bg-white/10 text-white border-white/20"><i className="ph-fill ph-buildings mr-1"></i> {getProjectTypeLabel(details.project_type)}</span>
+              )}
               {getStatusBadge(project.status)}
             </div>
-            
             <h1 className="text-3xl md:text-4xl font-black mb-4 leading-tight">{project.title}</h1>
-            
             <div className="flex flex-wrap items-center gap-6 text-sm font-medium text-blue-200">
               <div className="flex items-center gap-2"><i className="ph-fill ph-map-pin"></i> {project.location || 'Toàn quốc'}</div>
               <div className="flex items-center gap-2"><i className="ph-fill ph-clock"></i> Đăng ngày: {new Date(project.created_at).toLocaleDateString('vi-VN')}</div>
             </div>
           </div>
-
           <div className="bg-white/10 backdrop-blur-md border border-white/20 p-6 rounded-3xl shrink-0 w-full md:w-auto text-center md:text-right">
-            <p className="text-blue-200 text-xs font-bold uppercase tracking-widest mb-1">Ngân sách dự kiến</p>
+            <p className="text-blue-200 text-xs font-bold uppercase tracking-widest mb-1">{isPartnership ? 'Quy mô / Ngân sách' : 'Ngân sách dự kiến'}</p>
             <p className="text-2xl md:text-3xl font-black text-[#F3E5AB]">{formatMoney(project.budget_max)}</p>
           </div>
         </div>
@@ -339,22 +326,19 @@ export default function ProjectDetailPage() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* CỘT TRÁI: DỮ LIỆU */}
         <div className="lg:col-span-2 space-y-8">
-          
-          {/* Hình ảnh dự án (Nếu có) */}
           {details.images && details.images.length > 0 && (
             <div className="bg-white rounded-3xl p-8 border border-slate-200 shadow-sm">
-              <h3 className="text-xl font-black text-slate-900 mb-6 flex items-center gap-3 border-b border-slate-100 pb-4"><i className="ph-fill ph-image text-emerald-600 text-2xl"></i> Hình ảnh / Phối cảnh</h3>
+              <h3 className="text-xl font-black text-slate-900 mb-6 flex items-center gap-3 border-b border-slate-100 pb-4"><i className="ph-fill ph-image text-emerald-600 text-2xl"></i> Hình ảnh / Sản phẩm minh họa</h3>
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
                 {details.images.map((img: string, idx: number) => (
-                  <a href={img} target="_blank" rel="noreferrer" key={idx} className="block overflow-hidden rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow"><img src={img} alt="Dự án" className="w-full h-48 object-cover hover:scale-105 transition-transform duration-500" /></a>
+                  <a href={img} target="_blank" rel="noreferrer" key={idx} className="block overflow-hidden rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow"><img src={img} alt="Minh hoạ" className="w-full h-48 object-cover hover:scale-105 transition-transform duration-500" /></a>
                 ))}
               </div>
             </div>
           )}
 
-          {/* Chi tiết yêu cầu */}
           <div className="bg-white rounded-3xl p-8 border border-slate-200 shadow-sm">
-            <h3 className="text-xl font-black text-slate-900 mb-6 flex items-center gap-3 border-b border-slate-100 pb-4"><i className="ph-fill ph-article text-[#002D62] text-2xl"></i> Chi tiết yêu cầu (Scope of Work)</h3>
+            <h3 className="text-xl font-black text-slate-900 mb-6 flex items-center gap-3 border-b border-slate-100 pb-4"><i className="ph-fill ph-article text-[#002D62] text-2xl"></i> {isPartnership ? 'Nội dung hợp tác chi tiết' : 'Chi tiết yêu cầu (Scope of Work)'}</h3>
             <div className="prose prose-slate max-w-none">
               <p className="text-slate-700 leading-loose whitespace-pre-wrap font-medium">{project.description || 'Chưa cung cấp mô tả chi tiết.'}</p>
             </div>
@@ -362,7 +346,7 @@ export default function ProjectDetailPage() {
 
           {(details.requirements || '').trim() !== '' && (
             <div className="bg-white rounded-3xl p-8 border border-slate-200 shadow-sm">
-              <h3 className="text-xl font-black text-slate-900 mb-6 flex items-center gap-3 border-b border-slate-100 pb-4"><i className="ph-fill ph-medal text-amber-500 text-2xl"></i> Yêu cầu đối với Nhà thầu / Đối tác</h3>
+              <h3 className="text-xl font-black text-slate-900 mb-6 flex items-center gap-3 border-b border-slate-100 pb-4"><i className="ph-fill ph-medal text-amber-500 text-2xl"></i> {isPartnership ? 'Tiêu chí lựa chọn Đối tác' : 'Yêu cầu đối với Nhà thầu / Đối tác'}</h3>
               <div className="bg-amber-50/50 p-6 rounded-2xl border border-amber-100">
                 <p className="text-slate-700 leading-loose whitespace-pre-wrap font-medium">{details.requirements}</p>
               </div>
@@ -374,17 +358,17 @@ export default function ProjectDetailPage() {
         <div className="space-y-6">
           <div className="bg-white rounded-3xl p-6 border border-slate-200 shadow-xl relative overflow-hidden">
             <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-amber-400 to-[#002D62]"></div>
-            <h3 className="font-black text-slate-900 mb-2 mt-2">Hạn chót nộp hồ sơ</h3>
+            <h3 className="font-black text-slate-900 mb-2 mt-2">{isPartnership ? 'Hạn chót tìm đối tác' : 'Hạn chót nộp hồ sơ'}</h3>
             {project.status === 'OPEN' ? (
-              <div className="flex items-center gap-3 text-rose-600 font-black text-lg bg-rose-50 p-4 rounded-xl border border-rose-100 mb-6"><i className="ph-fill ph-clock-countdown text-2xl"></i> Đang mở thầu</div>
+              <div className="flex items-center gap-3 text-emerald-600 font-black text-lg bg-emerald-50 p-4 rounded-xl border border-emerald-100 mb-6"><i className="ph-fill ph-clock-countdown text-2xl"></i> {isPartnership ? 'Đang mở tìm đối tác' : 'Đang mở thầu'}</div>
             ) : (
-              <div className="flex items-center gap-3 text-slate-500 font-black text-lg bg-slate-100 p-4 rounded-xl border border-slate-200 mb-6"><i className="ph-fill ph-lock-key text-2xl"></i> Đã đóng thầu / Kết thúc</div>
+              <div className="flex items-center gap-3 text-slate-500 font-black text-lg bg-slate-100 p-4 rounded-xl border border-slate-200 mb-6"><i className="ph-fill ph-lock-key text-2xl"></i> Đã đóng / Kết thúc</div>
             )}
 
             {isOwner ? (
               <div className="space-y-3">
                 <button onClick={openEditModal} className="w-full py-4 bg-slate-100 text-slate-700 rounded-xl font-black hover:bg-slate-200 transition-colors flex items-center justify-center gap-2">
-                  <i className="ph-bold ph-pencil-simple"></i> Chỉnh sửa Dự Án
+                  <i className="ph-bold ph-pencil-simple"></i> Chỉnh sửa bài đăng
                 </button>
                 <button onClick={handleOpenQuotesManager} className="w-full py-4 bg-[#002D62] text-white rounded-xl font-black hover:bg-blue-900 transition-all shadow-md flex items-center justify-center gap-2">
                   <i className="ph-bold ph-folder-open"></i> Quản lý Hồ Sơ Đã Nhận ({totalQuotes})
@@ -398,7 +382,7 @@ export default function ProjectDetailPage() {
                   className={`w-full py-4 text-white rounded-xl font-black transition-all shadow-lg flex items-center justify-center gap-2 ${hasSubmittedBid ? 'bg-emerald-600' : 'bg-[#002D62] hover:bg-blue-900 hover:-translate-y-1'} disabled:opacity-70 disabled:hover:translate-y-0`}
                 >
                   <i className={`ph-bold ${hasSubmittedBid ? 'ph-check-circle' : 'ph-paper-plane-right'}`}></i> 
-                  {hasSubmittedBid ? 'ĐÃ ĐĂNG KÝ THAM GIA' : project.status === 'OPEN' ? 'ĐĂNG KÝ THAM GIA ĐẤU THẦU' : 'KHÔNG THỂ NỘP HỒ SƠ'}
+                  {hasSubmittedBid ? 'ĐÃ ĐĂNG KÝ THAM GIA' : project.status === 'OPEN' ? (isPartnership ? 'ĐĂNG KÝ KẾT NỐI' : 'ĐĂNG KÝ THAM GIA ĐẤU THẦU') : 'ĐÃ ĐÓNG KẾT NỐI'}
                 </button>
                 <button className="w-full py-4 bg-white border-2 border-slate-200 text-slate-700 rounded-xl font-black hover:border-[#002D62] hover:text-[#002D62] transition-colors flex items-center justify-center gap-2">
                   <i className="ph-bold ph-bookmark-simple"></i> Lưu vào Yêu thích
@@ -408,7 +392,7 @@ export default function ProjectDetailPage() {
           </div>
 
           <div className="bg-slate-50 rounded-3xl p-6 border border-slate-200">
-            <h3 className="font-black text-slate-800 mb-6 flex items-center gap-2 text-sm uppercase tracking-widest"><i className="ph-fill ph-buildings text-lg"></i> Đơn vị Mời thầu</h3>
+            <h3 className="font-black text-slate-800 mb-6 flex items-center gap-2 text-sm uppercase tracking-widest"><i className="ph-fill ph-buildings text-lg"></i> {isPartnership ? 'Đơn vị Tìm đối tác' : 'Đơn vị Mời thầu'}</h3>
             <div className="flex items-center gap-4 mb-6">
               <div className="w-16 h-16 bg-white border border-slate-200 rounded-full flex items-center justify-center shadow-sm shrink-0"><i className="ph-fill ph-buildings text-3xl text-slate-300"></i></div>
               <div>
@@ -439,29 +423,38 @@ export default function ProjectDetailPage() {
       {/* ========================================== */}
       {isEditing && (
         <div className="fixed inset-0 z-[999] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in">
-          {/* ... (Giữ nguyên toàn bộ code phần nội dung Modal Chỉnh Sửa ở bản trước, tôi thu gọn lại để tiết kiệm chữ) ... */}
           <div className="bg-white w-full max-w-4xl rounded-[2rem] shadow-2xl overflow-hidden max-h-[90vh] flex flex-col animate-in zoom-in-95">
             <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50 shrink-0">
-              <h3 className="text-xl font-black text-slate-900 flex items-center gap-2"><i className="ph-fill ph-pencil-line text-[#002D62]"></i> Chỉnh sửa thông tin Dự án</h3>
+              <h3 className="text-xl font-black text-slate-900 flex items-center gap-2"><i className="ph-fill ph-pencil-line text-[#002D62]"></i> Chỉnh sửa thông tin</h3>
               <button onClick={() => setIsEditing(false)} className="w-10 h-10 flex items-center justify-center bg-slate-200 rounded-full text-slate-600 hover:bg-rose-100 hover:text-rose-600 transition-colors"><i className="ph-bold ph-x"></i></button>
             </div>
-
             <div className="p-6 md:p-8 overflow-y-auto bg-slate-100/50">
               <div className="space-y-8">
-                
                 {/* SECTION 1: CƠ BẢN */}
                 <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
                   <h4 className="text-sm font-black text-[#002D62] uppercase tracking-widest mb-6 flex items-center gap-2 border-b border-slate-100 pb-3">1. Trạng thái & Cơ bản</h4>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="col-span-2 space-y-2 bg-blue-50 p-4 rounded-xl border border-blue-100">
-                      <label className="text-xs font-bold text-[#002D62] uppercase tracking-widest">Tình trạng dự án hiện tại</label>
+                      <label className="text-xs font-bold text-[#002D62] uppercase tracking-widest">Tình trạng hiện tại</label>
                       <select value={editFormData.status} onChange={e => setEditFormData({...editFormData, status: e.target.value})} className="w-full h-12 px-4 bg-white border border-blue-200 rounded-xl text-sm font-bold text-slate-900 outline-none cursor-pointer focus:border-[#002D62] transition-all">
-                        <option value="OPEN">Đang mở thầu / Đang tìm kiếm</option><option value="CLOSED">Đã đóng thầu</option><option value="COMPLETED">Đã hoàn thành</option><option value="CANCELED">Đã hủy bỏ</option><option value="PENDING">Chờ duyệt</option>
+                        <option value="OPEN">Đang mở / Đang tìm kiếm</option><option value="CLOSED">Đã đóng / Kết thúc</option><option value="COMPLETED">Đã hoàn thành</option><option value="CANCELED">Đã hủy bỏ</option><option value="PENDING">Chờ duyệt</option>
                       </select>
                     </div>
-                    <div className="col-span-2 space-y-2"><label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Tên Dự án (*)</label><input type="text" required value={editFormData.title} onChange={e => setEditFormData({...editFormData, title: e.target.value})} className="w-full h-12 px-4 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-900 outline-none focus:bg-white focus:border-blue-400" /></div>
-                    <div className="space-y-2"><label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Lĩnh vực</label><select value={editFormData.category} onChange={e => setEditFormData({...editFormData, category: e.target.value})} className="w-full h-12 px-4 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-900 outline-none cursor-pointer focus:bg-white focus:border-blue-400"><option value="CONSTRUCTION">Thi công</option><option value="DESIGN">Thiết kế</option><option value="MATERIAL">Cung cấp vật tư</option><option value="OTHER">Khác</option></select></div>
-                    <div className="space-y-2"><label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Ngân sách (VNĐ)</label><input type="text" required value={displayEditBudget} onChange={handleEditBudgetChange} className="w-full h-12 px-4 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-900 outline-none focus:bg-white focus:border-blue-400" /></div>
+                    <div className="col-span-2 space-y-2"><label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Tiêu đề (*)</label><input type="text" required value={editFormData.title} onChange={e => setEditFormData({...editFormData, title: e.target.value})} className="w-full h-12 px-4 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-900 outline-none focus:bg-white focus:border-blue-400" /></div>
+                    
+                    {/* BỔ SUNG LĨNH VỰC PARTNERSHIP VÀO FORM EDIT */}
+                    <div className="space-y-2">
+                      <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Lĩnh vực</label>
+                      <select value={editFormData.category} onChange={e => setEditFormData({...editFormData, category: e.target.value})} className="w-full h-12 px-4 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-900 outline-none cursor-pointer focus:bg-white focus:border-blue-400">
+                        <option value="CONSTRUCTION">Thi công</option>
+                        <option value="DESIGN">Thiết kế</option>
+                        <option value="MATERIAL">Cung cấp vật tư</option>
+                        <option value="PARTNERSHIP">Kết nối Thương mại (Đại lý, Phân phối...)</option>
+                        <option value="OTHER">Khác</option>
+                      </select>
+                    </div>
+
+                    <div className="space-y-2"><label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Ngân sách / Quy mô (VNĐ)</label><input type="text" required value={displayEditBudget} onChange={handleEditBudgetChange} className="w-full h-12 px-4 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-900 outline-none focus:bg-white focus:border-blue-400" /></div>
                   </div>
                 </div>
                 {/* SECTION 2 & 3 */}
@@ -469,10 +462,9 @@ export default function ProjectDetailPage() {
                   <h4 className="text-sm font-black text-[#002D62] uppercase tracking-widest mb-6 flex items-center gap-2 border-b border-slate-100 pb-3">2. Yêu cầu chi tiết</h4>
                   <div className="space-y-6">
                     <div className="space-y-2"><label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Mô tả Yêu cầu</label><textarea value={editFormData.description} onChange={e => setEditFormData({...editFormData, description: e.target.value})} className="w-full h-32 p-4 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium text-slate-900 outline-none focus:bg-white focus:border-blue-400" /></div>
-                    <div className="space-y-2"><label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Yêu cầu năng lực</label><textarea value={editFormData.requirements} onChange={e => setEditFormData({...editFormData, requirements: e.target.value})} className="w-full h-24 p-4 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium text-slate-900 outline-none focus:bg-white focus:border-blue-400" /></div>
+                    <div className="space-y-2"><label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Yêu cầu đối tác / Năng lực</label><textarea value={editFormData.requirements} onChange={e => setEditFormData({...editFormData, requirements: e.target.value})} className="w-full h-24 p-4 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium text-slate-900 outline-none focus:bg-white focus:border-blue-400" /></div>
                   </div>
                 </div>
-
               </div>
             </div>
             <div className="flex gap-4 p-6 border-t border-slate-100 bg-white shrink-0">
@@ -489,12 +481,10 @@ export default function ProjectDetailPage() {
       {showQuotesModal && (
         <div className="fixed inset-0 z-[999] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in">
           <div className="bg-white w-full max-w-5xl rounded-[2rem] shadow-2xl overflow-hidden max-h-[90vh] flex flex-col animate-in zoom-in-95">
-            
-            {/* Header Modal */}
             <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50 shrink-0">
               <div>
-                <h3 className="text-xl font-black text-[#002D62] flex items-center gap-2 mb-1"><i className="ph-fill ph-folder-open"></i> Quản lý Báo giá / Hồ sơ Quan tâm</h3>
-                <p className="text-xs font-bold text-slate-500 uppercase tracking-widest">DỰ ÁN: {project.title}</p>
+                <h3 className="text-xl font-black text-[#002D62] flex items-center gap-2 mb-1"><i className="ph-fill ph-folder-open"></i> Quản lý Hồ sơ Quan tâm</h3>
+                <p className="text-xs font-bold text-slate-500 uppercase tracking-widest">{project.title}</p>
               </div>
               <button onClick={() => setShowQuotesModal(false)} className="w-10 h-10 flex items-center justify-center bg-slate-200 rounded-full text-slate-600 hover:bg-rose-100 hover:text-rose-600 transition-colors"><i className="ph-bold ph-x"></i></button>
             </div>
@@ -503,13 +493,13 @@ export default function ProjectDetailPage() {
               {loadingQuotes ? (
                 <div className="flex flex-col items-center py-10"><i className="ph-bold ph-spinner animate-spin text-3xl text-[#002D62] mb-3"></i><p className="text-slate-500 font-bold">Đang tải hồ sơ...</p></div>
               ) : realQuotes.length === 0 ? (
-                <div className="text-center py-16 bg-slate-50 rounded-2xl border border-slate-100"><i className="ph-fill ph-empty text-5xl text-slate-300 mb-3"></i><p className="text-slate-500 font-bold">Chưa có nhà thầu nào nộp hồ sơ/báo giá cho dự án này.</p></div>
+                <div className="text-center py-16 bg-slate-50 rounded-2xl border border-slate-100"><i className="ph-fill ph-empty text-5xl text-slate-300 mb-3"></i><p className="text-slate-500 font-bold">Chưa có đối tác nào nộp hồ sơ cho mục này.</p></div>
               ) : (
                 <div className="border border-slate-200 rounded-2xl overflow-hidden">
                   <table className="w-full text-left border-collapse">
                     <thead>
                       <tr className="bg-slate-50 border-b border-slate-200 text-xs font-black text-slate-500 uppercase tracking-widest">
-                        <th className="p-4">Nhà thầu / Đối tác</th><th className="p-4">Liên hệ</th><th className="p-4">Ngày gửi</th><th className="p-4">Giá đề xuất</th><th className="p-4 text-center">Trạng thái</th>
+                        <th className="p-4">Đối tác</th><th className="p-4">Liên hệ</th><th className="p-4">Ngày gửi</th><th className="p-4">Đề xuất (VNĐ)</th><th className="p-4 text-center">Trạng thái</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100">
@@ -540,27 +530,27 @@ export default function ProjectDetailPage() {
       )}
 
       {/* ========================================== */}
-      {/* MODAL 3: ĐĂNG KÝ THAM GIA ĐẤU THẦU (NHÀ THẦU) */}
+      {/* MODAL 3: ĐĂNG KÝ THAM GIA ĐẤU THẦU / KẾT NỐI */}
       {/* ========================================== */}
       {showSubmitBidModal && (
         <div className="fixed inset-0 z-[999] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in">
           <div className="bg-white w-full max-w-lg rounded-[2rem] shadow-2xl overflow-hidden flex flex-col animate-in zoom-in-95">
             <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50">
-              <h3 className="text-xl font-black text-[#002D62] flex items-center gap-2"><i className="ph-fill ph-paper-plane-right"></i> Đăng ký Tham gia Đấu thầu / Báo giá</h3>
+              <h3 className="text-xl font-black text-[#002D62] flex items-center gap-2"><i className="ph-fill ph-paper-plane-right"></i> {isPartnership ? 'Đăng ký Kết nối Thương mại' : 'Đăng ký Tham gia Đấu thầu'}</h3>
               <button onClick={() => setShowSubmitBidModal(false)} className="w-8 h-8 flex items-center justify-center bg-slate-200 rounded-full text-slate-600 hover:bg-rose-100 hover:text-rose-600"><i className="ph-bold ph-x"></i></button>
             </div>
             <form onSubmit={submitBid} className="p-6 space-y-5">
               <div className="bg-blue-50 p-4 rounded-xl border border-blue-100 mb-2">
-                <p className="text-sm font-bold text-[#002D62] mb-1">Dự án: {project.title}</p>
-                <p className="text-xs text-blue-600">Ngân sách CĐT: {formatMoney(project.budget_max)}</p>
+                <p className="text-sm font-bold text-[#002D62] mb-1">Mục tiêu: {project.title}</p>
+                <p className="text-xs text-blue-600">{isPartnership ? 'Quy mô/Ngân sách' : 'Ngân sách CĐT'}: {formatMoney(project.budget_max)}</p>
               </div>
               <div className="space-y-2">
-                <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Giá đề xuất của bạn (VNĐ) - Tùy chọn</label>
+                <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">{isPartnership ? 'Mức vốn / Chi phí đề xuất (VNĐ) - Tùy chọn' : 'Giá đề xuất của bạn (VNĐ) - Tùy chọn'}</label>
                 <input type="text" value={displayBidPrice} onChange={handleBidPriceChange} className="w-full h-12 px-4 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-900 placeholder-slate-400 outline-none focus:bg-white focus:border-blue-400 focus:ring-4 focus:ring-blue-500/10" placeholder="Để trống nếu muốn Thỏa thuận..." />
               </div>
               <div className="space-y-2">
                 <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Lời nhắn / Năng lực tóm tắt (*)</label>
-                <textarea required value={bidFormData.message} onChange={e => setBidFormData({...bidFormData, message: e.target.value})} className="w-full h-32 p-4 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium text-slate-900 placeholder-slate-400 outline-none resize-none focus:bg-white focus:border-blue-400 focus:ring-4 focus:ring-blue-500/10" placeholder="Kính gửi CĐT, chúng tôi đã có 5 năm kinh nghiệm thi công các dự án tương tự..." />
+                <textarea required value={bidFormData.message} onChange={e => setBidFormData({...bidFormData, message: e.target.value})} className="w-full h-32 p-4 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium text-slate-900 placeholder-slate-400 outline-none resize-none focus:bg-white focus:border-blue-400 focus:ring-4 focus:ring-blue-500/10" placeholder="Giới thiệu nhanh về năng lực, sản phẩm hoặc mong muốn hợp tác của bạn..." />
               </div>
               <div className="flex gap-3 pt-4">
                 <button type="button" onClick={() => setShowSubmitBidModal(false)} className="flex-1 h-12 bg-white border border-slate-200 text-slate-700 rounded-xl font-bold">Hủy</button>
