@@ -148,43 +148,63 @@ export default function AccountSettingsPage() {
 
     setIsSubmittingCorp(true);
     try {
-      // 1. Tạo mới bản ghi vào bảng corporates
-      const { data: newCorp, error: corpErr } = await supabase
-        .from('corporates')
-        .insert([{
-          tax_code: corpForm.tax_code,
-          name: corpForm.name,
-          domain_id: corpForm.domain_id,
-          status: 'PENDING_VERIFICATION',
-          details: { 
-            brc_image: corpForm.brc_image,
-            registered_by_individual_id: profileId // Lưu vết ai là người tạo
-          }
-        }])
-        .select('id, name')
-        .single();
+      let corporateId = null;
 
-      if (corpErr) {
-        if (corpErr.code === '23505') throw new Error('Mã số thuế này đã được đăng ký trên hệ thống!');
-        throw corpErr;
+      // 1. KIỂM TRA XEM MÃ SỐ THUẾ ĐÃ TỒN TẠI CHƯA
+      const { data: existingCorp } = await supabase
+        .from('corporates')
+        .select('id, name')
+        .eq('tax_code', corpForm.tax_code)
+        .maybeSingle();
+
+      if (existingCorp) {
+        // NẾU ĐÃ CÓ: Lấy luôn ID của công ty đó để liên kết
+        corporateId = existingCorp.id;
+        alert(`💡 Hệ thống nhận diện MST này thuộc về Doanh nghiệp: "${existingCorp.name}". Tài khoản của bạn sẽ được tự động liên kết vào tổ chức này!`);
+      } else {
+        // NẾU CHƯA CÓ: Tạo pháp nhân mới
+        const { data: newCorp, error: corpErr } = await supabase
+          .from('corporates')
+          .insert([{
+            tax_code: corpForm.tax_code,
+            name: corpForm.name,
+            domain_id: corpForm.domain_id,
+            status: 'PENDING_VERIFICATION',
+            details: { 
+              brc_image: corpForm.brc_image,
+              registered_by_individual_id: profileId // Lưu vết ai là người tạo
+            }
+          }])
+          .select('id')
+          .single();
+
+        if (corpErr) throw corpErr;
+        corporateId = newCorp.id;
       }
 
-      // 2. Cập nhật tài khoản cá nhân hiện tại thành người đại diện của Pháp nhân này
+      // 2. CẬP NHẬT TÀI KHOẢN CÁ NHÂN LIÊN KẾT VÀO DOANH NGHIỆP
       const { error: indErr } = await supabase
         .from('individuals')
         .update({
-          corporate_id: newCorp.id,
+          corporate_id: corporateId,
           is_corporate_sponsored: true,
-          role_in_company: 'Người đại diện' // Tự động gán quyền đại diện
+          // Nếu cty có sẵn thì gán chức vụ 'Thành viên', nếu tự tạo mới thì là 'Người đại diện'
+          role_in_company: existingCorp ? 'Thành viên trực thuộc' : 'Người đại diện' 
         })
         .eq('id', profileId);
 
       if (indErr) throw indErr;
 
-      alert('✅ Đăng ký Pháp nhân thành công! Hồ sơ đang chờ Ban Quản trị kiểm duyệt.');
+      // Hiển thị thông báo phù hợp
+      if (!existingCorp) {
+        alert('✅ Đăng ký Pháp nhân thành công! Hồ sơ đang chờ Ban Quản trị kiểm duyệt.');
+      } else {
+        alert('✅ Liên kết vào Pháp nhân có sẵn thành công!');
+      }
+      
       window.location.reload(); // Tải lại trang để cập nhật UI
     } catch (err: any) {
-      alert('Lỗi đăng ký: ' + err.message);
+      alert('Lỗi hệ thống: ' + err.message);
     } finally {
       setIsSubmittingCorp(false);
     }
