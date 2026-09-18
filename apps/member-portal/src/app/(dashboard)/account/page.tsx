@@ -27,10 +27,11 @@ export default function AccountSettingsPage() {
     tier_name: 'Hội viên Tiêu chuẩn',
     title_name: 'Chưa cập nhật',
     join_date: '',
-    status: ''
+    status: '',
+    rejection_reason: ''
   });
 
-  // --- STATE DÀNH CHO FORM ĐĂNG KÝ PHÁP NHÂN ---
+  // --- STATE DÀNH CHO FORM ĐĂNG KÝ PHÁP NHÂN MỚI ---
   const [showCorpForm, setShowCorpForm] = useState(false);
   const [isSubmittingCorp, setIsSubmittingCorp] = useState(false);
   const [corpForm, setCorpForm] = useState({
@@ -38,6 +39,15 @@ export default function AccountSettingsPage() {
     name: '',
     domain_id: '',
     brc_image: '' // Base64 Giấy phép ĐKKD
+  });
+
+  // --- STATE DÀNH CHO QUẢN LÝ PHÁP NHÂN HIỆN TẠI ---
+  const [isEditingCorp, setIsEditingCorp] = useState(false);
+  const [isUpdatingCorp, setIsUpdatingCorp] = useState(false);
+  const [corpDetails, setCorpDetails] = useState<any>(null);
+  const [editCorpForm, setEditCorpForm] = useState({
+    domain_id: '',
+    brc_image: ''
   });
 
   useEffect(() => {
@@ -52,7 +62,7 @@ export default function AccountSettingsPage() {
           .from('individuals')
           .select(`
             id, full_name, phone, email, join_date, status, corporate_id, is_corporate_sponsored,
-            corporates(id, name, status),
+            corporates(id, name, tax_code, status, domain_id, details, rejection_reason, corporate_domains(name), corporate_tiers(name)),
             individual_tiers!individuals_tier_id_fkey(name),
             individual_titles(name)
           `)
@@ -73,6 +83,15 @@ export default function AccountSettingsPage() {
         });
 
         const corpData = Array.isArray(profile.corporates) ? profile.corporates[0] : profile.corporates;
+        
+        // Nếu có công ty, set dữ liệu để hiển thị khung Quản lý
+        if (corpData) {
+          setCorpDetails(corpData);
+          setEditCorpForm({
+            domain_id: corpData.domain_id || '',
+            brc_image: corpData.details?.brc_image || ''
+          });
+        }
 
         setMetadata({
           corporate_id: profile.corporate_id || null,
@@ -81,7 +100,8 @@ export default function AccountSettingsPage() {
           tier_name: Array.isArray(profile.individual_tiers) ? profile.individual_tiers[0]?.name : (profile.individual_tiers as any)?.name || 'Hội viên Tiêu chuẩn',
           title_name: profile.individual_titles?.[0]?.name || 'Chưa cập nhật',
           join_date: profile.join_date ? new Date(profile.join_date).toLocaleDateString('vi-VN') : '---',
-          status: profile.status
+          status: profile.status,
+          rejection_reason: corpData?.rejection_reason || ''
         });
       }
       setIsLoading(false);
@@ -91,7 +111,7 @@ export default function AccountSettingsPage() {
   }, [supabase]);
 
   // ==========================================
-  // HÀM 1: CẬP NHẬT THÔNG TIN CÁ NHÂN
+  // HÀM: CẬP NHẬT THÔNG TIN CÁ NHÂN
   // ==========================================
   const handleSaveAccount = async () => {
     if (!form.full_name) return alert('Họ và tên không được để trống!');
@@ -103,23 +123,19 @@ export default function AccountSettingsPage() {
       .update({ full_name: form.full_name, phone: form.phone, email: form.email })
       .eq('id', profileId);
 
-    if (error) {
-      alert('Lỗi cập nhật: ' + error.message);
-    } else {
-      alert('✅ Đã lưu thông tin tài khoản thành công!');
+    if (error) alert('Lỗi cập nhật: ' + error.message);
+    else {
+      alert('✅ Đã lưu thông tin cá nhân thành công!');
       window.location.reload();
     }
     setIsSaving(false);
   };
 
   // ==========================================
-  // HÀM 2: XỬ LÝ ẢNH ĐKKD (CANVAS NÉN ẢNH TỰ ĐỘNG)
+  // HÀM: XỬ LÝ ẢNH ĐKKD CHUNG (CANVAS NÉN TỰ ĐỘNG)
   // ==========================================
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  const processImage = (file: File, callback: (base64: string) => void) => {
     if (!file.type.startsWith('image/')) return alert('Chỉ hỗ trợ file hình ảnh!');
-
     const reader = new FileReader();
     reader.readAsDataURL(file);
     reader.onload = (event) => {
@@ -131,14 +147,13 @@ export default function AccountSettingsPage() {
         if (width > 1200) { height = Math.round((height * 1200) / width); width = 1200; }
         canvas.width = width; canvas.height = height;
         canvas.getContext('2d')?.drawImage(img, 0, 0, width, height);
-        const compressedBase64 = canvas.toDataURL('image/jpeg', 0.8);
-        setCorpForm(prev => ({ ...prev, brc_image: compressedBase64 }));
+        callback(canvas.toDataURL('image/jpeg', 0.8));
       };
     };
   };
 
   // ==========================================
-  // HÀM 3: ĐĂNG KÝ PHÁP NHÂN & LIÊN KẾT VÀO TÀI KHOẢN
+  // HÀM: ĐĂNG KÝ PHÁP NHÂN MỚI
   // ==========================================
   const handleRegisterCorporate = async () => {
     if (!corpForm.tax_code || !corpForm.name || !corpForm.domain_id || !corpForm.brc_image) {
@@ -150,63 +165,66 @@ export default function AccountSettingsPage() {
     try {
       let corporateId = null;
 
-      // 1. KIỂM TRA XEM MÃ SỐ THUẾ ĐÃ TỒN TẠI CHƯA
-      const { data: existingCorp } = await supabase
-        .from('corporates')
-        .select('id, name')
-        .eq('tax_code', corpForm.tax_code)
-        .maybeSingle();
+      const { data: existingCorp } = await supabase.from('corporates').select('id, name').eq('tax_code', corpForm.tax_code).maybeSingle();
 
       if (existingCorp) {
-        // NẾU ĐÃ CÓ: Lấy luôn ID của công ty đó để liên kết
         corporateId = existingCorp.id;
-        alert(`💡 Hệ thống nhận diện MST này thuộc về Doanh nghiệp: "${existingCorp.name}". Tài khoản của bạn sẽ được tự động liên kết vào tổ chức này!`);
+        alert(`💡 Hệ thống nhận diện MST này thuộc về: "${existingCorp.name}". Tài khoản của bạn sẽ được liên kết vào tổ chức này!`);
       } else {
-        // NẾU CHƯA CÓ: Tạo pháp nhân mới
-        const { data: newCorp, error: corpErr } = await supabase
-          .from('corporates')
+        const { data: newCorp, error: corpErr } = await supabase.from('corporates')
           .insert([{
-            tax_code: corpForm.tax_code,
-            name: corpForm.name,
-            domain_id: corpForm.domain_id,
-            status: 'PENDING_VERIFICATION',
-            details: { 
-              brc_image: corpForm.brc_image,
-              registered_by_individual_id: profileId // Lưu vết ai là người tạo
-            }
-          }])
-          .select('id')
-          .single();
+            tax_code: corpForm.tax_code, name: corpForm.name, domain_id: corpForm.domain_id,
+            status: 'PENDING_VERIFICATION', details: { brc_image: corpForm.brc_image, registered_by_individual_id: profileId }
+          }]).select('id').single();
 
         if (corpErr) throw corpErr;
         corporateId = newCorp.id;
       }
 
-      // 2. CẬP NHẬT TÀI KHOẢN CÁ NHÂN LIÊN KẾT VÀO DOANH NGHIỆP
-      const { error: indErr } = await supabase
-        .from('individuals')
+      const { error: indErr } = await supabase.from('individuals')
         .update({
-          corporate_id: corporateId,
-          is_corporate_sponsored: true,
-          // Nếu cty có sẵn thì gán chức vụ 'Thành viên', nếu tự tạo mới thì là 'Người đại diện'
+          corporate_id: corporateId, is_corporate_sponsored: true,
           role_in_company: existingCorp ? 'Thành viên trực thuộc' : 'Người đại diện' 
-        })
-        .eq('id', profileId);
+        }).eq('id', profileId);
 
       if (indErr) throw indErr;
 
-      // Hiển thị thông báo phù hợp
-      if (!existingCorp) {
-        alert('✅ Đăng ký Pháp nhân thành công! Hồ sơ đang chờ Ban Quản trị kiểm duyệt.');
-      } else {
-        alert('✅ Liên kết vào Pháp nhân có sẵn thành công!');
-      }
+      if (!existingCorp) alert('✅ Đăng ký Pháp nhân thành công! Đang chờ Ban Quản trị kiểm duyệt.');
+      else alert('✅ Liên kết vào Pháp nhân có sẵn thành công!');
       
-      window.location.reload(); // Tải lại trang để cập nhật UI
+      window.location.reload();
+    } catch (err: any) { alert('Lỗi hệ thống: ' + err.message); } 
+    finally { setIsSubmittingCorp(false); }
+  };
+
+  // ==========================================
+  // HÀM: CẬP NHẬT PHÁP NHÂN (KHI BỊ TỪ CHỐI HOẶC SỬA ĐKKD)
+  // ==========================================
+  const handleUpdateCorporate = async () => {
+    if (!metadata.corporate_id || !editCorpForm.domain_id) return alert('Vui lòng chọn lĩnh vực hoạt động!');
+    setIsUpdatingCorp(true);
+    
+    try {
+      const updatedDetails = { ...(corpDetails.details || {}), brc_image: editCorpForm.brc_image };
+      // Nếu trạng thái đang là REJECTED, khi user sửa xong ta tự động đẩy lại thành PENDING_VERIFICATION để Admin duyệt lại
+      const newStatus = metadata.corporate_status === 'REJECTED' ? 'PENDING_VERIFICATION' : metadata.corporate_status;
+
+      const { error } = await supabase.from('corporates')
+        .update({ 
+          domain_id: editCorpForm.domain_id, 
+          details: updatedDetails,
+          status: newStatus 
+        })
+        .eq('id', metadata.corporate_id);
+
+      if (error) throw error;
+      
+      alert('✅ Đã cập nhật hồ sơ Doanh nghiệp thành công!');
+      window.location.reload();
     } catch (err: any) {
-      alert('Lỗi hệ thống: ' + err.message);
+      alert('Lỗi cập nhật: ' + err.message);
     } finally {
-      setIsSubmittingCorp(false);
+      setIsUpdatingCorp(false);
     }
   };
 
@@ -231,42 +249,24 @@ export default function AccountSettingsPage() {
 
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
         
-        {/* CỘT TRÁI: THÔNG TIN CÁ NHÂN */}
+        {/* CỘT TRÁI: KHU VỰC QUẢN LÝ (CÁ NHÂN & DOANH NGHIỆP) */}
         <div className="xl:col-span-2 space-y-8">
+          
+          {/* 1. KHỐI THÔNG TIN CÁ NHÂN */}
           <div className="bg-white border border-slate-200 rounded-[2rem] p-8 shadow-sm">
             <h3 className="text-xl font-black text-slate-900 border-b border-slate-100 pb-4 mb-6 flex items-center gap-2">
               <i className="ph-fill ph-user-gear text-[#002D62]"></i> Thông tin Cá nhân
             </h3>
-            
             <div className="space-y-6">
               <div className="space-y-1.5">
                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Họ và Tên (*)</label>
-                <input 
-                  type="text" value={form.full_name} onChange={e => setForm({...form, full_name: e.target.value})} 
-                  className="w-full h-12 px-4 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-800 outline-none focus:bg-white focus:border-indigo-400 focus:ring-4 focus:ring-indigo-500/10 transition-all" 
-                  placeholder="Nhập họ và tên..."
-                />
+                <input type="text" value={form.full_name} onChange={e => setForm({...form, full_name: e.target.value})} className="w-full h-12 px-4 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-800 outline-none focus:bg-white focus:border-indigo-400 focus:ring-4 focus:ring-indigo-500/10 transition-all" placeholder="Nhập họ và tên..." />
               </div>
-
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-1.5">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Số điện thoại liên hệ</label>
-                  <input 
-                    type="tel" value={form.phone} onChange={e => setForm({...form, phone: e.target.value})} 
-                    className="w-full h-12 px-4 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-800 font-mono outline-none focus:bg-white focus:border-indigo-400 transition-all" 
-                  />
-                </div>
-                
-                <div className="space-y-1.5">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Email liên lạc</label>
-                  <input 
-                    type="email" value={form.email} onChange={e => setForm({...form, email: e.target.value})} 
-                    className="w-full h-12 px-4 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-800 outline-none focus:bg-white focus:border-indigo-400 transition-all" 
-                  />
-                </div>
+                <div className="space-y-1.5"><label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Số điện thoại liên hệ</label><input type="tel" value={form.phone} onChange={e => setForm({...form, phone: e.target.value})} className="w-full h-12 px-4 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-800 font-mono outline-none focus:bg-white focus:border-indigo-400 transition-all" /></div>
+                <div className="space-y-1.5"><label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Email liên lạc</label><input type="email" value={form.email} onChange={e => setForm({...form, email: e.target.value})} className="w-full h-12 px-4 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-800 outline-none focus:bg-white focus:border-indigo-400 transition-all" /></div>
               </div>
             </div>
-
             <div className="mt-8 flex justify-end">
               <button onClick={handleSaveAccount} disabled={isSaving} className="h-12 px-8 bg-[#002D62] text-white rounded-xl text-sm font-black shadow-md hover:bg-blue-900 transition-colors disabled:opacity-50 flex items-center gap-2">
                 {isSaving ? <><i className="ph-bold ph-spinner animate-spin text-lg"></i> ĐANG LƯU...</> : <><i className="ph-bold ph-floppy-disk text-lg"></i> LƯU THAY ĐỔI</>}
@@ -274,8 +274,8 @@ export default function AccountSettingsPage() {
             </div>
           </div>
 
-          {/* KHỐI ĐĂNG KÝ PHÁP NHÂN NẾU CHƯA CÓ */}
-          {!metadata.corporate_id && (
+          {/* 2A. NẾU CHƯA CÓ PHÁP NHÂN -> HIỆN KHUNG ĐĂNG KÝ MỚI */}
+          {!metadata.corporate_id ? (
             <div className="bg-gradient-to-br from-blue-50 to-white border border-blue-100 rounded-[2rem] p-8 shadow-sm relative overflow-hidden">
               <div className="absolute top-0 right-0 w-32 h-32 bg-[#002D62] opacity-5 rounded-full blur-2xl translate-x-1/2 -translate-y-1/2 pointer-events-none"></div>
               
@@ -283,7 +283,7 @@ export default function AccountSettingsPage() {
                 <div className="flex flex-col md:flex-row items-center justify-between gap-6 relative z-10">
                   <div>
                     <h3 className="text-xl font-black text-[#002D62] mb-2 flex items-center gap-2"><i className="ph-fill ph-buildings"></i> Đăng ký Pháp nhân (Doanh nghiệp)</h3>
-                    <p className="text-sm font-medium text-slate-600">Nâng cấp tài khoản thành Đại diện Pháp nhân để mở khóa quyền đấu thầu, kết nối thương mại và tiếp cận danh bạ đối tác trên nền tảng B2B.</p>
+                    <p className="text-sm font-medium text-slate-600">Nâng cấp tài khoản thành Đại diện Pháp nhân để mở khóa quyền đấu thầu, kết nối thương mại trên nền tảng B2B.</p>
                   </div>
                   <button onClick={() => setShowCorpForm(true)} className="shrink-0 h-12 px-6 bg-[#002D62] text-white rounded-xl text-sm font-black shadow-lg shadow-blue-900/20 hover:-translate-y-0.5 transition-all flex items-center gap-2">
                     <i className="ph-bold ph-plus-circle text-lg"></i> KHAI BÁO NGAY
@@ -297,34 +297,21 @@ export default function AccountSettingsPage() {
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="col-span-2 space-y-1.5">
-                      <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Tên Công ty / Pháp nhân (*)</label>
-                      <input type="text" value={corpForm.name} onChange={e => setCorpForm({...corpForm, name: e.target.value})} className="w-full h-12 px-4 bg-white border border-slate-200 rounded-xl text-sm font-bold text-slate-900 outline-none focus:border-[#002D62]" placeholder="VD: CÔNG TY CỔ PHẦN ABC..." />
-                    </div>
-                    
-                    <div className="space-y-1.5">
-                      <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Mã số thuế (*)</label>
-                      <input type="text" value={corpForm.tax_code} onChange={e => setCorpForm({...corpForm, tax_code: e.target.value})} className="w-full h-12 px-4 bg-white border border-slate-200 rounded-xl text-sm font-bold text-slate-900 outline-none focus:border-[#002D62]" placeholder="Mã số thuế doanh nghiệp" />
-                    </div>
-
+                    <div className="col-span-2 space-y-1.5"><label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Tên Công ty / Pháp nhân (*)</label><input type="text" value={corpForm.name} onChange={e => setCorpForm({...corpForm, name: e.target.value})} className="w-full h-12 px-4 bg-white border border-slate-200 rounded-xl text-sm font-bold text-slate-900 outline-none focus:border-[#002D62]" placeholder="VD: CÔNG TY CỔ PHẦN ABC..." /></div>
+                    <div className="space-y-1.5"><label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Mã số thuế (*)</label><input type="text" value={corpForm.tax_code} onChange={e => setCorpForm({...corpForm, tax_code: e.target.value})} className="w-full h-12 px-4 bg-white border border-slate-200 rounded-xl text-sm font-bold text-slate-900 outline-none focus:border-[#002D62]" placeholder="Mã số thuế doanh nghiệp" /></div>
                     <div className="space-y-1.5">
                       <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Lĩnh vực hoạt động chính (*)</label>
                       <select value={corpForm.domain_id} onChange={e => setCorpForm({...corpForm, domain_id: e.target.value})} className="w-full h-12 px-4 bg-white border border-slate-200 rounded-xl text-sm font-bold text-slate-900 outline-none focus:border-[#002D62]">
-                        <option value="">-- Chọn lĩnh vực --</option>
-                        {domains.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
+                        <option value="">-- Chọn lĩnh vực --</option>{domains.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
                       </select>
                     </div>
 
                     <div className="col-span-2 space-y-2 mt-2">
                       <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Tải lên Giấy phép ĐKKD (Ảnh/Bản scan) (*)</label>
                       <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-slate-300 border-dashed rounded-xl cursor-pointer bg-white hover:bg-slate-50 transition-colors">
-                        <div className="flex flex-col items-center justify-center pt-5 pb-6 text-slate-400">
-                          <i className="ph-bold ph-upload-simple text-3xl mb-2"></i>
-                          <p className="text-sm font-bold text-slate-600">Nhấn để chọn ảnh chứng nhận ĐKKD</p>
-                        </div>
-                        <input type="file" className="hidden" accept="image/*" onChange={handleImageUpload} />
+                        <div className="flex flex-col items-center justify-center pt-5 pb-6 text-slate-400"><i className="ph-bold ph-upload-simple text-3xl mb-2"></i><p className="text-sm font-bold text-slate-600">Nhấn để chọn ảnh chứng nhận ĐKKD</p></div>
+                        <input type="file" className="hidden" accept="image/*" onChange={(e) => processImage(e.target.files?.[0] as File, (b64) => setCorpForm({...corpForm, brc_image: b64}))} />
                       </label>
-                      
                       {corpForm.brc_image && (
                         <div className="relative inline-block mt-3">
                           <img src={corpForm.brc_image} alt="BRC" className="h-32 object-cover rounded-xl border border-slate-200 shadow-sm" />
@@ -342,10 +329,105 @@ export default function AccountSettingsPage() {
                 </div>
               )}
             </div>
+          ) : (
+            
+          /* 2B. NẾU ĐÃ CÓ PHÁP NHÂN -> HIỆN KHUNG QUẢN LÝ DOANH NGHIỆP */
+            <div className="bg-gradient-to-br from-indigo-50 to-white border border-indigo-100 rounded-[2rem] p-8 shadow-sm relative overflow-hidden">
+              <div className="flex justify-between items-center border-b border-indigo-100 pb-4 mb-6 relative z-10">
+                <h3 className="text-xl font-black text-indigo-900 flex items-center gap-2"><i className="ph-fill ph-buildings"></i> Quản lý Pháp nhân trực thuộc</h3>
+                {!isEditingCorp && (
+                  <button onClick={() => setIsEditingCorp(true)} className="px-4 py-2 bg-white text-indigo-600 text-xs font-black rounded-lg border border-indigo-200 hover:bg-indigo-50 transition-all flex items-center gap-1">
+                    <i className="ph-bold ph-pencil-simple"></i> BỔ SUNG HỒ SƠ
+                  </button>
+                )}
+              </div>
+
+              {!isEditingCorp ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 relative z-10">
+                  <div className="col-span-2">
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Tên Doanh nghiệp đăng ký</p>
+                    <p className="text-lg font-black text-slate-800">{corpDetails?.name}</p>
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Mã số thuế</p>
+                    <p className="font-mono font-bold text-slate-700 bg-white border border-slate-200 px-3 py-1.5 rounded-lg w-fit">{corpDetails?.tax_code}</p>
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Lĩnh vực hoạt động</p>
+                    <p className="font-bold text-slate-700">{corpDetails?.corporate_domains?.name || 'Đang cập nhật'}</p>
+                  </div>
+                  
+                  {corpDetails?.details?.brc_image && (
+                    <div className="col-span-2 pt-2">
+                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 flex items-center gap-1"><i className="ph-fill ph-image text-slate-500"></i> Giấy phép ĐKKD</p>
+                      <a href={corpDetails.details.brc_image} target="_blank" rel="noopener noreferrer">
+                        <img src={corpDetails.details.brc_image} alt="BRC Thumbnail" className="h-24 w-auto object-cover rounded-xl border border-slate-200 shadow-sm hover:opacity-80 transition-opacity cursor-pointer" />
+                      </a>
+                    </div>
+                  )}
+
+                  {metadata.corporate_status === 'REJECTED' && (
+                    <div className="col-span-2 mt-2 bg-rose-50 border border-rose-200 p-4 rounded-xl flex items-start gap-3">
+                      <i className="ph-fill ph-warning-circle text-rose-500 text-xl mt-0.5"></i>
+                      <div>
+                        <p className="text-sm font-black text-rose-900 mb-1">Hồ sơ bị từ chối kiểm duyệt!</p>
+                        <p className="text-sm font-medium text-rose-700 italic">Lý do: "{metadata.rejection_reason}"</p>
+                        <p className="text-xs font-bold text-rose-600 mt-2 cursor-pointer underline hover:text-rose-800" onClick={() => setIsEditingCorp(true)}>Vui lòng bấm Bổ sung hồ sơ để khắc phục.</p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="space-y-6 animate-in fade-in zoom-in-95 relative z-10">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="col-span-2 space-y-1.5">
+                      <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Tên Công ty (Không thể sửa)</label>
+                      <input type="text" value={corpDetails?.name} readOnly className="w-full h-12 px-4 bg-slate-100 border border-slate-200 rounded-xl text-sm font-bold text-slate-500 outline-none cursor-not-allowed" />
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Mã số thuế (Không thể sửa)</label>
+                      <input type="text" value={corpDetails?.tax_code} readOnly className="w-full h-12 px-4 bg-slate-100 border border-slate-200 rounded-xl text-sm font-bold text-slate-500 outline-none cursor-not-allowed" />
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Lĩnh vực hoạt động chính (*)</label>
+                      <select value={editCorpForm.domain_id} onChange={e => setEditCorpForm({...editCorpForm, domain_id: e.target.value})} className="w-full h-12 px-4 bg-white border border-slate-200 rounded-xl text-sm font-bold text-slate-900 outline-none focus:border-indigo-400">
+                        <option value="">-- Chọn lĩnh vực --</option>
+                        {domains.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
+                      </select>
+                    </div>
+
+                    <div className="col-span-2 space-y-2 mt-2">
+                      <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Cập nhật Giấy phép ĐKKD (Ảnh/Bản scan)</label>
+                      <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-slate-300 border-dashed rounded-xl cursor-pointer bg-white hover:bg-slate-50 transition-colors">
+                        <div className="flex flex-col items-center justify-center pt-5 pb-6 text-slate-400">
+                          <i className="ph-bold ph-upload-simple text-3xl mb-2"></i>
+                          <p className="text-sm font-bold text-slate-600">Nhấn để thay đổi ảnh chứng nhận ĐKKD mới</p>
+                        </div>
+                        <input type="file" className="hidden" accept="image/*" onChange={(e) => processImage(e.target.files?.[0] as File, (b64) => setEditCorpForm({...editCorpForm, brc_image: b64}))} />
+                      </label>
+                      
+                      {editCorpForm.brc_image && (
+                        <div className="relative inline-block mt-3">
+                          <img src={editCorpForm.brc_image} alt="BRC" className="h-32 object-cover rounded-xl border border-slate-200 shadow-sm" />
+                          <button onClick={() => setEditCorpForm({...editCorpForm, brc_image: ''})} className="absolute -top-2 -right-2 bg-rose-500 text-white w-6 h-6 rounded-full flex items-center justify-center shadow-md hover:scale-110"><i className="ph-bold ph-x text-xs"></i></button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="flex justify-end gap-3 pt-4 border-t border-indigo-100">
+                    <button onClick={() => setIsEditingCorp(false)} className="px-6 h-12 bg-white text-slate-600 rounded-xl font-bold hover:bg-slate-50 border border-slate-200 transition-colors">HỦY BỎ</button>
+                    <button onClick={handleUpdateCorporate} disabled={isUpdatingCorp} className="px-10 h-12 bg-indigo-600 text-white rounded-xl text-sm font-black shadow-md hover:bg-indigo-700 transition-colors disabled:opacity-50 flex items-center gap-2">
+                      {isUpdatingCorp ? <><i className="ph-bold ph-spinner animate-spin"></i> ĐANG LƯU...</> : <><i className="ph-bold ph-floppy-disk text-lg"></i> CẬP NHẬT PHÁP NHÂN</>}
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
           )}
         </div>
 
-        {/* CỘT PHẢI: DỮ LIỆU ĐỊNH DANH */}
+        {/* CỘT PHẢI: DỮ LIỆU ĐỊNH DANH (Read-only Sidebar) */}
         <div className="space-y-6">
           <div className="bg-slate-50 border border-slate-200 rounded-[2rem] p-8 shadow-sm">
             <h3 className="text-lg font-black text-slate-900 border-b border-slate-200 pb-4 mb-6 flex items-center gap-2">
@@ -370,8 +452,8 @@ export default function AccountSettingsPage() {
                 {metadata.corporate_id ? (
                   <>
                     <p className="text-base font-black text-[#002D62] leading-tight mb-2">{metadata.corporate_name}</p>
-                    <span className={`inline-block px-2.5 py-0.5 rounded text-[10px] font-black uppercase border ${metadata.corporate_status === 'ACTIVE' ? 'bg-emerald-50 text-emerald-600 border-emerald-200' : metadata.corporate_status === 'REJECTED' ? 'bg-rose-50 text-rose-600 border-rose-200' : 'bg-amber-50 text-amber-600 border-amber-200'}`}>
-                      Trạng thái Cty: {metadata.corporate_status.replace('_', ' ')}
+                    <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded text-[10px] font-black uppercase border ${metadata.corporate_status === 'ACTIVE' ? 'bg-emerald-50 text-emerald-600 border-emerald-200' : metadata.corporate_status === 'REJECTED' ? 'bg-rose-50 text-rose-600 border-rose-200' : 'bg-amber-50 text-amber-600 border-amber-200'}`}>
+                      Trạng thái: {metadata.corporate_status.replace('_', ' ')}
                     </span>
                   </>
                 ) : (
