@@ -1,15 +1,12 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { createClient } from '@supabase/supabase-js';
 import Link from 'next/link';
-
-// Khởi tạo Supabase Client
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
-const supabase = createClient(supabaseUrl, supabaseAnonKey);
+// SỬA LỖI 1: Dùng hàm createClient nội bộ để mang theo chứng minh thư (Auth Cookie) của Admin!
+import { createClient } from '@/utils/supabase/client';
 
 export default function BizLinkDashboard() {
+  const supabase = createClient(); // Khởi tạo Auth Client
   const [isLoading, setIsLoading] = useState(true);
   const [projects, setProjects] = useState<any[]>([]);
   const [members, setMembers] = useState<any[]>([]);
@@ -17,10 +14,11 @@ export default function BizLinkDashboard() {
 
   const fetchData = async () => {
     setIsLoading(true);
-    // SỬA LỖI 1: Hút từ bảng individuals và corporates thay vì members
+    
+    // Hút dữ liệu mang theo quyền Admin
     const [projRes, indRes] = await Promise.all([
       supabase.from('projects').select('*').order('created_at', { ascending: false }),
-      supabase.from('individuals').select('id, full_name, corporates(name), individual_tiers(code)')
+      supabase.from('individuals').select('id, full_name, corporates!individuals_corporate_id_fkey(name), individual_tiers!individuals_tier_id_fkey(code)')
     ]);
     
     if (projRes.error) console.error("Lỗi tải dự án:", projRes.error);
@@ -42,7 +40,6 @@ export default function BizLinkDashboard() {
     setIsUpdating(null);
   };
 
-  // SỬA LỖI 2: Móc đúng member_id và xử lý logic Ẩn danh Chủ đầu tư
   const getAuthor = (member_id: string, details: any) => {
     // Ưu tiên check nếu CĐT yêu cầu ẩn danh hoặc tự nhập tên
     if (details?.is_investor_hidden) return { name: 'Doanh nghiệp ẩn danh', tier: 'STANDARD' };
@@ -52,8 +49,9 @@ export default function BizLinkDashboard() {
     const user = members.find(m => m.id === member_id);
     if (user) {
       const tierCode = Array.isArray(user.individual_tiers) ? user.individual_tiers[0]?.code : user.individual_tiers?.code;
+      const corpName = Array.isArray(user.corporates) ? user.corporates[0]?.name : user.corporates?.name;
       return { 
-        name: user.corporates?.name || user.full_name || 'Thành viên Độc lập', 
+        name: corpName || user.full_name || 'Thành viên Độc lập', 
         tier: tierCode || 'STANDARD' 
       };
     }
@@ -122,16 +120,13 @@ export default function BizLinkDashboard() {
          </div>
       </div>
 
-      {/* 2. KANBAN BOARD */}
       <div className="flex-1 flex gap-6 overflow-x-auto pb-6 pt-2 snap-x scroll-smooth">
-        
         {columns.map(col => {
-          const colProjects = projects.filter(p => p.status === col.id);
+          // SỬA LỖI ĐỀ PHÒNG: Gom cả các dự án bị dính mã 'PLANNING' (do DB set default cũ) vào cột CHỜ DUYỆT
+          const colProjects = projects.filter(p => p.status === col.id || (col.id === 'PENDING' && p.status === 'PLANNING'));
           
           return (
             <div key={col.id} className={`shrink-0 w-[340px] flex flex-col rounded-[2rem] border border-slate-200 shadow-sm bg-white overflow-hidden snap-center border-t-[6px] ${col.color}`}>
-              
-              {/* Kanban Header */}
               <div className={`p-5 border-b border-slate-100 ${col.bg} flex justify-between items-center`}>
                 <h3 className="font-black text-slate-800 text-sm">{col.title}</h3>
                 <span className="bg-white text-slate-600 text-xs font-black px-2.5 py-1 rounded-lg border border-slate-200 shadow-sm">{colProjects.length}</span>
@@ -158,9 +153,8 @@ export default function BizLinkDashboard() {
 
                         <div className="flex justify-between items-start mb-3">
                           <span className={`text-[9px] font-black px-2 py-1 rounded border uppercase tracking-wider ${cat.style}`}>{cat.label}</span>
-                          {/* Menu Chuyển trạng thái siêu tốc */}
                           <select 
-                            value={project.status} 
+                            value={project.status === 'PLANNING' ? 'PENDING' : project.status} 
                             onChange={(e) => handleUpdateStatus(project.id, e.target.value)}
                             className="text-[10px] font-bold text-slate-500 bg-slate-100 border-none outline-none rounded p-1 cursor-pointer opacity-0 group-hover:opacity-100 transition-opacity"
                           >
@@ -184,7 +178,7 @@ export default function BizLinkDashboard() {
                           </div>
                           
                           <div className="flex items-center gap-2">
-                            <div className="w-6 h-6 rounded-md bg-slate-100 flex items-center justify-center text-[10px] font-black text-slate-600 border border-slate-200 shrink-0">
+                            <div className="w-6 h-6 rounded-md bg-slate-100 flex items-center justify-center text-[10px] font-black text-slate-600 border border-slate-200 shrink-0 uppercase">
                               {author.name.charAt(0)}
                             </div>
                             <span className="text-[11px] font-bold text-slate-600 truncate flex-1" title={author.name}>
@@ -194,18 +188,11 @@ export default function BizLinkDashboard() {
                           </div>
                         </div>
 
-                        {/* Nút Call to Action theo Status */}
-                        {project.status === 'PENDING' && (
+                        {(project.status === 'PENDING' || project.status === 'PLANNING') && (
                           <button onClick={() => handleUpdateStatus(project.id, 'OPEN')} className="mt-4 w-full h-9 bg-emerald-50 text-emerald-600 border border-emerald-200 rounded-xl text-xs font-black hover:bg-emerald-500 hover:text-white transition-colors flex items-center justify-center gap-1">
                             <svg width="14" height="14" fill="currentColor" viewBox="0 0 256 256"><path d="M229.66,77.66l-128,128a8,8,0,0,1-11.32,0l-56-56a8,8,0,0,1,11.32-11.32L96,188.69,218.34,66.34a8,8,0,0,1,11.32,11.32Z"></path></svg> DUYỆT MỞ THẦU
                           </button>
                         )}
-                        {project.status === 'OPEN' && (
-                          <button className="mt-4 w-full h-9 bg-amber-50 text-amber-600 border border-amber-200 rounded-xl text-xs font-black hover:bg-amber-500 hover:text-[#002D62] transition-colors flex items-center justify-center gap-1">
-                            <svg width="14" height="14" fill="currentColor" viewBox="0 0 256 256"><path d="M245.82,107l-83.33-31-31-83.31a15.89,15.89,0,0,0-29.84,0l-31,83.31-83.33,31a15.89,15.89,0,0,0,0,29.84l83.33,31,31,83.31a15.89,15.89,0,0,0,29.84,0l31-83.31,83.33-31A15.89,15.89,0,0,0,245.82,107Z"></path></svg> GỢI Ý MATCHING
-                          </button>
-                        )}
-
                       </div>
                     );
                   })
