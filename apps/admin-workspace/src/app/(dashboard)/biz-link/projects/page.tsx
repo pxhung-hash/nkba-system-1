@@ -2,11 +2,12 @@
 
 import { useEffect, useState } from 'react';
 import { createClient } from '@supabase/supabase-js';
+import Link from 'next/link';
 
+// Khởi tạo Supabase Client
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
 const supabase = createClient(supabaseUrl, supabaseAnonKey);
-import Link from 'next/link';
 
 export default function BizLinkDashboard() {
   const [isLoading, setIsLoading] = useState(true);
@@ -16,14 +17,17 @@ export default function BizLinkDashboard() {
 
   const fetchData = async () => {
     setIsLoading(true);
-    // Hút song song Dự án và Hội viên để ghép tên Công ty vào thẻ Dự án
-    const [projRes, memRes] = await Promise.all([
+    // SỬA LỖI 1: Hút từ bảng individuals và khai báo rõ Foreign Key để tránh lỗi Ambiguous
+    const [projRes, indRes] = await Promise.all([
       supabase.from('projects').select('*').order('created_at', { ascending: false }),
-      supabase.from('members').select('id, company_name, tier')
+      supabase.from('individuals').select('id, full_name, corporates!individuals_corporate_id_fkey(name), individual_tiers!individuals_tier_id_fkey(code)')
     ]);
     
+    if (projRes.error) console.error("Lỗi tải dự án:", projRes.error);
+    if (indRes.error) console.error("Lỗi tải hội viên:", indRes.error);
+
     if (projRes.data) setProjects(projRes.data);
-    if (memRes.data) setMembers(memRes.data);
+    if (indRes.data) setMembers(indRes.data);
     setIsLoading(false);
   };
 
@@ -38,8 +42,24 @@ export default function BizLinkDashboard() {
     setIsUpdating(null);
   };
 
-  // Helpers
-  const getAuthor = (id: string) => members.find(m => m.id === id) || { company_name: 'Khách vãng lai', tier: 'STANDARD' };
+  // SỬA LỖI 2: Móc đúng member_id và xử lý logic Ẩn danh Chủ đầu tư
+  const getAuthor = (member_id: string, details: any) => {
+    // Ưu tiên check nếu CĐT yêu cầu ẩn danh hoặc tự nhập tên
+    if (details?.is_investor_hidden) return { name: 'Doanh nghiệp ẩn danh', tier: 'STANDARD' };
+    if (details?.investor_name) return { name: details.investor_name, tier: 'STANDARD' };
+
+    // Nếu không, móc từ Database
+    const user = members.find(m => m.id === member_id);
+    if (user) {
+      const tierCode = Array.isArray(user.individual_tiers) ? user.individual_tiers[0]?.code : user.individual_tiers?.code;
+      const corpName = Array.isArray(user.corporates) ? user.corporates[0]?.name : user.corporates?.name;
+      return { 
+        name: corpName || user.full_name || 'Thành viên Độc lập', 
+        tier: tierCode || 'STANDARD' 
+      };
+    }
+    return { name: 'Khách vãng lai', tier: 'STANDARD' };
+  };
   
   const formatMoney = (amount: number) => {
     if (!amount) return 'Thỏa thuận';
@@ -124,7 +144,7 @@ export default function BizLinkDashboard() {
                   <div className="h-24 border-2 border-dashed border-slate-200 rounded-2xl flex items-center justify-center text-xs font-bold text-slate-400">Trống</div>
                 ) : (
                   colProjects.map(project => {
-                    const author = getAuthor(project.author_id);
+                    const author = getAuthor(project.member_id, project.details);
                     const cat = getCategoryBadge(project.category);
                     
                     return (
@@ -165,13 +185,13 @@ export default function BizLinkDashboard() {
                           </div>
                           
                           <div className="flex items-center gap-2">
-                            <div className="w-6 h-6 rounded-md bg-slate-100 flex items-center justify-center text-[10px] font-black text-slate-600 border border-slate-200 shrink-0">
-                              {author.company_name.charAt(0)}
+                            <div className="w-6 h-6 rounded-md bg-slate-100 flex items-center justify-center text-[10px] font-black text-slate-600 border border-slate-200 shrink-0 uppercase">
+                              {author.name.charAt(0)}
                             </div>
-                            <span className="text-[11px] font-bold text-slate-600 truncate flex-1" title={author.company_name}>
-                              {author.company_name}
+                            <span className="text-[11px] font-bold text-slate-600 truncate flex-1" title={author.name}>
+                              {author.name}
                             </span>
-                            {author.tier === 'VIP' && <span title="Doanh nghiệp VIP">👑</span>}
+                            {['VIP', 'TITANIUM', 'GOLD'].includes(author.tier) && <span title="Doanh nghiệp VIP">👑</span>}
                           </div>
                         </div>
 
