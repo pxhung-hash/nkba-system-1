@@ -65,7 +65,7 @@ export default function Sidebar() {
     };
 
     fetchPermissions();
-  }, []);
+  }, [supabase]);
 
   // DANH SÁCH MENU 
   const menuItems = [
@@ -91,7 +91,7 @@ export default function Sidebar() {
     { title: 'Duyệt KYC (Pending)', path: '/members/pending', icon: 'ph-user-check' },
 
     { isDivider: true, title: 'Dự án & Kết nối' },
-    { title: 'Biz-Link (Dự án)', path: '/biz-link/projects', icon: 'ph-handshake' },
+    { title: 'Biz-Link (Dự án)', path: '/biz-link', icon: 'ph-handshake' }, // <-- ĐÃ SỬA ĐƯỜNG DẪN Ở ĐÂY
     { title: 'Talent-Hub', path: '/talent-hub', icon: 'ph-briefcase' },
     { title: 'Quản lý Sự kiện', path: '/events', icon: 'ph-calendar-star' }, 
     
