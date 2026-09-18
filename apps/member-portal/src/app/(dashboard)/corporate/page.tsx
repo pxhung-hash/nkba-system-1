@@ -25,8 +25,8 @@ export default function CorporateDashboardPage() {
   const [portfolio, setPortfolio] = useState({
     about_us: '',
     website: '',
-    products: [] as { name: string, description: string }[],
-    projects: [] as { name: string, year: string, role: string }[]
+    products: [] as { name: string, description: string, image?: string }[],
+    projects: [] as { name: string, year: string, role: string, description?: string, image?: string }[]
   });
 
   useEffect(() => {
@@ -35,7 +35,6 @@ export default function CorporateDashboardPage() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      // 1. Lấy user hiện tại để biết họ thuộc công ty nào
       const { data: profile } = await supabase.from('individuals').select('id, corporate_id, role_in_company').eq('user_auth_id', user.id).single();
       if (!profile || !profile.corporate_id) {
         setLoading(false);
@@ -43,7 +42,6 @@ export default function CorporateDashboardPage() {
       }
       setCurrentUser(profile);
 
-      // 2. Hút toàn bộ dữ liệu Công ty, Danh sách nhân viên và Cấu hình Gói
       const [corpRes, memRes, tierRes] = await Promise.all([
         supabase.from('corporates').select('*, corporate_domains(name), corporate_tiers(*)').eq('id', profile.corporate_id).single(),
         supabase.from('individuals').select('id, full_name, email, role_in_company, status, individual_tiers!individuals_tier_id_fkey(name, code)').eq('corporate_id', profile.corporate_id),
@@ -82,7 +80,6 @@ export default function CorporateDashboardPage() {
   const handleAddMember = async () => {
     if (!newMember.full_name || !newMember.email || !newMember.tier_code) return alert('Vui lòng điền đủ thông tin!');
     
-    // Kiểm tra Quota
     const tierConfig = corporate.corporate_tiers;
     if (!tierConfig) return alert('Lỗi: Công ty chưa được cấp gói cước!');
     
@@ -99,21 +96,13 @@ export default function CorporateDashboardPage() {
 
     setIsAddingMember(true);
     try {
-      // 1. KIỂM TRA EMAIL TRÙNG LẶP TRƯỚC KHI THÊM (CHỐNG LỖI CSDL)
-      const { data: existingEmail } = await supabase
-        .from('individuals')
-        .select('id, corporate_id')
-        .eq('email', newMember.email)
-        .maybeSingle();
+      const { data: existingEmail } = await supabase.from('individuals').select('id, corporate_id').eq('email', newMember.email).maybeSingle();
 
       if (existingEmail) {
-        if (existingEmail.corporate_id === corporate.id) {
-          throw new Error('Nhân sự này đã có mặt trong danh sách doanh nghiệp của bạn!');
-        }
+        if (existingEmail.corporate_id === corporate.id) throw new Error('Nhân sự này đã có mặt trong danh sách doanh nghiệp của bạn!');
         throw new Error('Email này đã được sử dụng bởi một tài khoản khác trên hệ thống NKBA!');
       }
 
-      // 2. LƯU VÀO BẢNG INDIVIDUALS
       const { error: insertErr } = await supabase.from('individuals').insert([{
         corporate_id: corporate.id,
         is_corporate_sponsored: true,
@@ -129,12 +118,9 @@ export default function CorporateDashboardPage() {
         throw insertErr;
       }
 
-      // 3. GỬI EMAIL MỜI BẰNG MAGIC LINK CỦA SUPABASE AUTH
       const { error: authErr } = await supabase.auth.signInWithOtp({
         email: newMember.email,
-        options: {
-          shouldCreateUser: true // Tự động tạo user Auth nếu email này hoàn toàn mới
-        }
+        options: { shouldCreateUser: true }
       });
 
       if (authErr) {
@@ -161,6 +147,27 @@ export default function CorporateDashboardPage() {
   };
 
   // ==========================================
+  // HÀM XỬ LÝ ẢNH CHUNG
+  // ==========================================
+  const processImage = (file: File, callback: (base64: string) => void) => {
+    if (!file.type.startsWith('image/')) return alert('Chỉ hỗ trợ file hình ảnh!');
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = (event) => {
+      const img = new Image();
+      img.src = event.target?.result as string;
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        let width = img.width; let height = img.height;
+        if (width > 800) { height = Math.round((height * 800) / width); width = 800; }
+        canvas.width = width; canvas.height = height;
+        canvas.getContext('2d')?.drawImage(img, 0, 0, width, height);
+        callback(canvas.toDataURL('image/jpeg', 0.7));
+      };
+    };
+  };
+
+  // ==========================================
   // LOGIC HỒ SƠ NĂNG LỰC (PORTFOLIO)
   // ==========================================
   const handleSavePortfolio = async () => {
@@ -174,7 +181,7 @@ export default function CorporateDashboardPage() {
     setIsSavingDetails(false);
   };
 
-  const addProduct = () => setPortfolio({ ...portfolio, products: [...portfolio.products, { name: '', description: '' }] });
+  const addProduct = () => setPortfolio({ ...portfolio, products: [{ name: '', description: '', image: '' }, ...portfolio.products] });
   const updateProduct = (idx: number, field: string, val: string) => {
     const newProds = [...portfolio.products];
     newProds[idx] = { ...newProds[idx], [field]: val };
@@ -182,7 +189,7 @@ export default function CorporateDashboardPage() {
   };
   const removeProduct = (idx: number) => setPortfolio({ ...portfolio, products: portfolio.products.filter((_, i) => i !== idx) });
 
-  const addProject = () => setPortfolio({ ...portfolio, projects: [...portfolio.projects, { name: '', year: '', role: '' }] });
+  const addProject = () => setPortfolio({ ...portfolio, projects: [{ name: '', year: '', role: '', description: '', image: '' }, ...portfolio.projects] });
   const updateProject = (idx: number, field: string, val: string) => {
     const newProjs = [...portfolio.projects];
     newProjs[idx] = { ...newProjs[idx], [field]: val };
@@ -270,7 +277,6 @@ export default function CorporateDashboardPage() {
       {/* ========================================== */}
       {activeTab === 'members' && (
         <div className="space-y-6 animate-in zoom-in-95">
-          {/* Dashboard Quota */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {['SILVER', 'GOLD', 'TITANIUM'].map(tierCode => {
               const max = corporate.corporate_tiers?.[`quota_${tierCode.toLowerCase()}`] || 0;
@@ -378,18 +384,42 @@ export default function CorporateDashboardPage() {
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            
             {/* CỘT SẢN PHẨM / DỊCH VỤ */}
-            <div className="bg-white rounded-[2rem] border border-slate-200 p-6 shadow-sm">
-              <div className="flex justify-between items-center border-b border-slate-100 pb-4 mb-4">
+            <div className="bg-white rounded-[2rem] border border-slate-200 p-6 shadow-sm flex flex-col max-h-[800px]">
+              <div className="flex justify-between items-center border-b border-slate-100 pb-4 mb-4 shrink-0">
                 <h4 className="font-black text-slate-800 flex items-center gap-2"><i className="ph-fill ph-package text-amber-500"></i> Sản phẩm & Dịch vụ</h4>
                 <button onClick={addProduct} className="text-xs font-bold text-blue-600 bg-blue-50 px-3 py-1.5 rounded-lg hover:bg-blue-100 transition-colors">+ Thêm SP</button>
               </div>
-              <div className="space-y-4 max-h-[400px] overflow-y-auto custom-scrollbar pr-2">
+              <div className="space-y-4 overflow-y-auto custom-scrollbar pr-2 flex-1">
                 {portfolio.products.map((prod, idx) => (
-                  <div key={idx} className="p-4 bg-slate-50 border border-slate-200 rounded-xl relative group">
-                    <button onClick={() => removeProduct(idx)} className="absolute top-2 right-2 w-6 h-6 bg-white border border-slate-200 rounded text-rose-500 opacity-0 group-hover:opacity-100 transition-opacity"><i className="ph-bold ph-trash text-xs"></i></button>
-                    <input type="text" value={prod.name} onChange={e => updateProduct(idx, 'name', e.target.value)} placeholder="Tên sản phẩm/dịch vụ..." className="w-full bg-transparent font-bold text-slate-800 text-sm mb-2 outline-none border-b border-transparent focus:border-blue-400 transition-colors" />
-                    <textarea value={prod.description} onChange={e => updateProduct(idx, 'description', e.target.value)} placeholder="Mô tả ngắn gọn..." className="w-full bg-transparent text-sm text-slate-600 outline-none resize-none h-16 border-b border-transparent focus:border-blue-400 transition-colors" />
+                  <div key={idx} className="p-4 bg-slate-50 border border-slate-200 rounded-xl relative group flex gap-4">
+                    <button onClick={() => removeProduct(idx)} className="absolute top-2 right-2 w-6 h-6 bg-white border border-slate-200 rounded text-rose-500 opacity-0 group-hover:opacity-100 transition-opacity z-10"><i className="ph-bold ph-trash text-xs"></i></button>
+                    
+                    {/* KHỐI ẢNH */}
+                    <div className="w-24 h-24 shrink-0 rounded-lg overflow-hidden border border-slate-200 bg-white relative flex items-center justify-center group/img">
+                      {prod.image ? (
+                        <>
+                          <img src={prod.image} alt="Product" className="w-full h-full object-cover" />
+                          <label className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover/img:opacity-100 transition-opacity cursor-pointer">
+                            <i className="ph-bold ph-camera text-white text-xl"></i>
+                            <input type="file" className="hidden" accept="image/*" onChange={(e) => processImage(e.target.files?.[0] as File, (b64) => updateProduct(idx, 'image', b64))} />
+                          </label>
+                        </>
+                      ) : (
+                        <label className="w-full h-full flex flex-col items-center justify-center text-slate-400 cursor-pointer hover:bg-slate-50 transition-colors">
+                          <i className="ph-bold ph-image text-xl mb-1"></i>
+                          <span className="text-[8px] font-bold uppercase text-center px-2">Up ảnh</span>
+                          <input type="file" className="hidden" accept="image/*" onChange={(e) => processImage(e.target.files?.[0] as File, (b64) => updateProduct(idx, 'image', b64))} />
+                        </label>
+                      )}
+                    </div>
+
+                    {/* KHỐI NỘI DUNG */}
+                    <div className="flex-1 flex flex-col">
+                      <input type="text" value={prod.name} onChange={e => updateProduct(idx, 'name', e.target.value)} placeholder="Tên sản phẩm/dịch vụ..." className="w-full bg-transparent font-bold text-slate-800 text-sm mb-1 outline-none border-b border-transparent focus:border-blue-400 transition-colors" />
+                      <textarea value={prod.description} onChange={e => updateProduct(idx, 'description', e.target.value)} placeholder="Mô tả ngắn gọn..." className="w-full bg-transparent text-xs text-slate-600 outline-none resize-none h-full border-b border-transparent focus:border-blue-400 transition-colors" />
+                    </div>
                   </div>
                 ))}
                 {portfolio.products.length === 0 && <p className="text-center text-slate-400 text-sm py-10">Chưa khai báo sản phẩm nào.</p>}
@@ -397,19 +427,43 @@ export default function CorporateDashboardPage() {
             </div>
 
             {/* CỘT DỰ ÁN TIÊU BIỂU */}
-            <div className="bg-white rounded-[2rem] border border-slate-200 p-6 shadow-sm">
-              <div className="flex justify-between items-center border-b border-slate-100 pb-4 mb-4">
+            <div className="bg-white rounded-[2rem] border border-slate-200 p-6 shadow-sm flex flex-col max-h-[800px]">
+              <div className="flex justify-between items-center border-b border-slate-100 pb-4 mb-4 shrink-0">
                 <h4 className="font-black text-slate-800 flex items-center gap-2"><i className="ph-fill ph-buildings text-emerald-500"></i> Dự án Tiêu biểu</h4>
                 <button onClick={addProject} className="text-xs font-bold text-blue-600 bg-blue-50 px-3 py-1.5 rounded-lg hover:bg-blue-100 transition-colors">+ Thêm Dự án</button>
               </div>
-              <div className="space-y-4 max-h-[400px] overflow-y-auto custom-scrollbar pr-2">
+              <div className="space-y-4 overflow-y-auto custom-scrollbar pr-2 flex-1">
                 {portfolio.projects.map((proj, idx) => (
-                  <div key={idx} className="p-4 bg-slate-50 border border-slate-200 rounded-xl relative group flex flex-col gap-2">
-                    <button onClick={() => removeProject(idx)} className="absolute top-2 right-2 w-6 h-6 bg-white border border-slate-200 rounded text-rose-500 opacity-0 group-hover:opacity-100 transition-opacity"><i className="ph-bold ph-trash text-xs"></i></button>
-                    <input type="text" value={proj.name} onChange={e => updateProject(idx, 'name', e.target.value)} placeholder="Tên dự án..." className="w-full bg-transparent font-bold text-slate-800 text-sm outline-none border-b border-transparent focus:border-emerald-400 transition-colors" />
-                    <div className="flex gap-2">
-                      <input type="text" value={proj.year} onChange={e => updateProject(idx, 'year', e.target.value)} placeholder="Năm (VD: 2023)" className="w-24 bg-transparent text-sm text-slate-600 outline-none border-b border-transparent focus:border-emerald-400 transition-colors" />
-                      <input type="text" value={proj.role} onChange={e => updateProject(idx, 'role', e.target.value)} placeholder="Vai trò (VD: Thầu chính)" className="flex-1 bg-transparent text-sm text-slate-600 outline-none border-b border-transparent focus:border-emerald-400 transition-colors" />
+                  <div key={idx} className="p-4 bg-slate-50 border border-slate-200 rounded-xl relative group flex gap-4">
+                    <button onClick={() => removeProject(idx)} className="absolute top-2 right-2 w-6 h-6 bg-white border border-slate-200 rounded text-rose-500 opacity-0 group-hover:opacity-100 transition-opacity z-10"><i className="ph-bold ph-trash text-xs"></i></button>
+                    
+                    {/* KHỐI ẢNH */}
+                    <div className="w-24 h-32 shrink-0 rounded-lg overflow-hidden border border-slate-200 bg-white relative flex items-center justify-center group/img">
+                      {proj.image ? (
+                        <>
+                          <img src={proj.image} alt="Project" className="w-full h-full object-cover" />
+                          <label className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover/img:opacity-100 transition-opacity cursor-pointer">
+                            <i className="ph-bold ph-camera text-white text-xl"></i>
+                            <input type="file" className="hidden" accept="image/*" onChange={(e) => processImage(e.target.files?.[0] as File, (b64) => updateProject(idx, 'image', b64))} />
+                          </label>
+                        </>
+                      ) : (
+                        <label className="w-full h-full flex flex-col items-center justify-center text-slate-400 cursor-pointer hover:bg-slate-50 transition-colors">
+                          <i className="ph-bold ph-image text-xl mb-1"></i>
+                          <span className="text-[8px] font-bold uppercase text-center px-2">Up ảnh<br/>Phối cảnh</span>
+                          <input type="file" className="hidden" accept="image/*" onChange={(e) => processImage(e.target.files?.[0] as File, (b64) => updateProject(idx, 'image', b64))} />
+                        </label>
+                      )}
+                    </div>
+
+                    {/* KHỐI NỘI DUNG */}
+                    <div className="flex-1 flex flex-col gap-1.5">
+                      <input type="text" value={proj.name} onChange={e => updateProject(idx, 'name', e.target.value)} placeholder="Tên dự án..." className="w-full bg-transparent font-bold text-slate-800 text-sm outline-none border-b border-transparent focus:border-emerald-400 transition-colors" />
+                      <div className="flex gap-2">
+                        <input type="text" value={proj.year} onChange={e => updateProject(idx, 'year', e.target.value)} placeholder="Năm (VD: 2023)" className="w-20 bg-transparent text-xs text-slate-600 outline-none border-b border-transparent focus:border-emerald-400 transition-colors" />
+                        <input type="text" value={proj.role} onChange={e => updateProject(idx, 'role', e.target.value)} placeholder="Vai trò (VD: Thầu chính)" className="flex-1 bg-transparent text-xs text-slate-600 outline-none border-b border-transparent focus:border-emerald-400 transition-colors" />
+                      </div>
+                      <textarea value={proj.description} onChange={e => updateProject(idx, 'description', e.target.value)} placeholder="Mô tả công việc đã làm..." className="w-full mt-1 bg-transparent text-xs text-slate-500 outline-none resize-none h-full border-b border-transparent focus:border-emerald-400 transition-colors" />
                     </div>
                   </div>
                 ))}
