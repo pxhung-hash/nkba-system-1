@@ -17,6 +17,7 @@ export default function CorporateDashboardPage() {
 
   // State Tab Nhân sự
   const [showAddMember, setShowAddMember] = useState(false);
+  const [isAddingMember, setIsAddingMember] = useState(false);
   const [newMember, setNewMember] = useState({ full_name: '', email: '', role_in_company: '', tier_code: '' });
 
   // State Tab Năng lực (Portfolio)
@@ -38,7 +39,7 @@ export default function CorporateDashboardPage() {
       const { data: profile } = await supabase.from('individuals').select('id, corporate_id, role_in_company').eq('user_auth_id', user.id).single();
       if (!profile || !profile.corporate_id) {
         setLoading(false);
-        return; // Không có công ty thì thôi
+        return; 
       }
       setCurrentUser(profile);
 
@@ -93,13 +94,27 @@ export default function CorporateDashboardPage() {
 
     if (used >= max) return alert(`Đã hết hạn mức thẻ ${newMember.tier_code}! Vui lòng nâng cấp gói Doanh nghiệp.`);
 
-    // Lấy ID của tier
     const targetTier = indTiers.find(t => t.code === newMember.tier_code);
     if (!targetTier) return;
 
+    setIsAddingMember(true);
     try {
-      // Lưu nhân sự vào bảng individuals (Chưa có user_auth_id, khi họ đăng ký bằng email này sẽ tự map)
-      const { error } = await supabase.from('individuals').insert([{
+      // 1. KIỂM TRA EMAIL TRÙNG LẶP TRƯỚC KHI THÊM (CHỐNG LỖI CSDL)
+      const { data: existingEmail } = await supabase
+        .from('individuals')
+        .select('id, corporate_id')
+        .eq('email', newMember.email)
+        .maybeSingle();
+
+      if (existingEmail) {
+        if (existingEmail.corporate_id === corporate.id) {
+          throw new Error('Nhân sự này đã có mặt trong danh sách doanh nghiệp của bạn!');
+        }
+        throw new Error('Email này đã được sử dụng bởi một tài khoản khác trên hệ thống NKBA!');
+      }
+
+      // 2. LƯU VÀO BẢNG INDIVIDUALS
+      const { error: insertErr } = await supabase.from('individuals').insert([{
         corporate_id: corporate.id,
         is_corporate_sponsored: true,
         full_name: newMember.full_name,
@@ -109,20 +124,38 @@ export default function CorporateDashboardPage() {
         status: 'ACTIVE'
       }]);
 
-      if (error) throw error;
-      alert('✅ Đã thêm nhân sự thành công! Hệ thống sẽ tự động liên kết khi nhân sự đăng ký tài khoản bằng Email này.');
+      if (insertErr) {
+        if (insertErr.code === '23505') throw new Error('Email này đã tồn tại trong hệ thống!');
+        throw insertErr;
+      }
+
+      // 3. GỬI EMAIL MỜI BẰNG MAGIC LINK CỦA SUPABASE AUTH
+      const { error: authErr } = await supabase.auth.signInWithOtp({
+        email: newMember.email,
+        options: {
+          shouldCreateUser: true // Tự động tạo user Auth nếu email này hoàn toàn mới
+        }
+      });
+
+      if (authErr) {
+        console.warn("Không thể gửi email OTP:", authErr);
+        alert('✅ Đã thêm nhân sự thành công! (Không thể gửi email tự động lúc này do máy chủ. Hãy yêu cầu nhân sự vào trang Đăng nhập và chọn "Quên mật khẩu / Đăng nhập bằng Email").');
+      } else {
+        alert('✅ Đã thêm nhân sự & Gửi Thư mời thành công! Nhân sự hãy kiểm tra Hộp thư (hoặc Spam) để xác nhận và kích hoạt tài khoản.');
+      }
+
       setShowAddMember(false);
       setNewMember({ full_name: '', email: '', role_in_company: '', tier_code: '' });
-      // Lười fetch lại thì reload nhẹ
       window.location.reload();
     } catch (err: any) {
-      alert('Lỗi thêm nhân sự: ' + err.message);
+      alert('❌ Lỗi: ' + err.message);
+    } finally {
+      setIsAddingMember(false);
     }
   };
 
   const handleRemoveMember = async (id: string, name: string) => {
     if (!confirm(`Hủy liên kết thẻ của nhân sự "${name}" khỏi Doanh nghiệp?`)) return;
-    // Chuyển họ thành Độc lập
     await supabase.from('individuals').update({ corporate_id: null, is_corporate_sponsored: false }).eq('id', id);
     setMembers(members.filter(m => m.id !== id));
   };
@@ -181,13 +214,13 @@ export default function CorporateDashboardPage() {
                 {corporate.status.replace('_', ' ')}
               </span>
               <span className="px-3 py-1 rounded-md text-[10px] font-black uppercase tracking-widest border bg-white/10 text-white border-white/20">
-                {corporate.corporate_tiers?.name || 'Chưa cấp gói'}
+                Gói {corporate.corporate_tiers?.name || 'Chưa cấp'}
               </span>
             </div>
             <h1 className="text-3xl md:text-4xl font-black leading-tight mb-2">{corporate.name}</h1>
             <p className="text-blue-200 font-mono text-sm"><i className="ph-fill ph-tag"></i> MST: {corporate.tax_code} | {corporate.corporate_domains?.name}</p>
           </div>
-          <div className="bg-white/10 backdrop-blur-md border border-white/20 p-5 rounded-2xl shrink-0 w-full md:w-auto">
+          <div className="bg-white/10 backdrop-blur-md border border-white/20 p-5 rounded-2xl shrink-0 w-full md:w-auto text-center md:text-left">
             <p className="text-blue-200 text-xs font-bold uppercase tracking-widest mb-1">Vai trò của bạn</p>
             <p className="text-xl font-black text-white">{currentUser.role_in_company || 'Đại diện Doanh nghiệp'}</p>
           </div>
@@ -218,7 +251,7 @@ export default function CorporateDashboardPage() {
               <div><p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Tên Công ty</p><p className="font-bold text-slate-900 text-lg">{corporate.name}</p></div>
               <div><p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Mã số thuế</p><p className="font-mono font-bold text-slate-700 bg-slate-50 border border-slate-200 px-3 py-1.5 rounded-lg w-fit">{corporate.tax_code}</p></div>
               <div><p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Lĩnh vực hoạt động</p><p className="font-bold text-slate-800">{corporate.corporate_domains?.name}</p></div>
-              <div><p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Ngày duyệt hồ sơ</p><p className="font-bold text-slate-800">{corporate.join_date ? new Date(corporate.join_date).toLocaleDateString('vi-VN') : 'Đang xử lý...'}</p></div>
+              <div><p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Ngày tham gia hệ thống</p><p className="font-bold text-slate-800">{corporate.join_date ? new Date(corporate.join_date).toLocaleDateString('vi-VN') : 'Đang xử lý...'}</p></div>
             </div>
             <div>
               <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 flex items-center gap-2"><i className="ph-fill ph-file-text"></i> Giấy phép Đăng ký Kinh doanh</p>
@@ -274,49 +307,53 @@ export default function CorporateDashboardPage() {
                   <button onClick={() => setShowAddMember(false)} className="text-slate-400 hover:text-rose-500"><i className="ph-bold ph-x text-lg"></i></button>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
-                  <div><label className="text-[10px] font-bold text-slate-500 uppercase">Họ và Tên</label><input type="text" value={newMember.full_name} onChange={e => setNewMember({...newMember, full_name: e.target.value})} className="w-full h-11 px-3 border border-slate-200 rounded-lg text-sm mt-1 outline-none focus:border-blue-400" /></div>
-                  <div><label className="text-[10px] font-bold text-slate-500 uppercase">Email (Bắt buộc đúng)</label><input type="email" value={newMember.email} onChange={e => setNewMember({...newMember, email: e.target.value})} className="w-full h-11 px-3 border border-slate-200 rounded-lg text-sm mt-1 outline-none focus:border-blue-400" /></div>
-                  <div><label className="text-[10px] font-bold text-slate-500 uppercase">Chức vụ</label><input type="text" value={newMember.role_in_company} onChange={e => setNewMember({...newMember, role_in_company: e.target.value})} className="w-full h-11 px-3 border border-slate-200 rounded-lg text-sm mt-1 outline-none focus:border-blue-400" placeholder="VD: Trưởng phòng Mua hàng..." /></div>
+                  <div><label className="text-[10px] font-bold text-slate-500 uppercase">Họ và Tên</label><input type="text" value={newMember.full_name} onChange={e => setNewMember({...newMember, full_name: e.target.value})} className="w-full h-11 px-3 border border-slate-200 rounded-lg text-sm mt-1 outline-none focus:border-blue-400 bg-white" /></div>
+                  <div><label className="text-[10px] font-bold text-slate-500 uppercase">Email (Bắt buộc đúng)</label><input type="email" value={newMember.email} onChange={e => setNewMember({...newMember, email: e.target.value})} className="w-full h-11 px-3 border border-slate-200 rounded-lg text-sm mt-1 outline-none focus:border-blue-400 bg-white" /></div>
+                  <div><label className="text-[10px] font-bold text-slate-500 uppercase">Chức vụ</label><input type="text" value={newMember.role_in_company} onChange={e => setNewMember({...newMember, role_in_company: e.target.value})} className="w-full h-11 px-3 border border-slate-200 rounded-lg text-sm mt-1 outline-none focus:border-blue-400 bg-white" placeholder="VD: Trưởng phòng..." /></div>
                   <div>
                     <label className="text-[10px] font-bold text-slate-500 uppercase">Cấp thẻ (Quota)</label>
                     <div className="flex gap-2 mt-1">
-                      <select value={newMember.tier_code} onChange={e => setNewMember({...newMember, tier_code: e.target.value})} className="flex-1 h-11 px-3 border border-slate-200 rounded-lg text-sm font-bold text-[#002D62] outline-none">
+                      <select value={newMember.tier_code} onChange={e => setNewMember({...newMember, tier_code: e.target.value})} className="flex-1 h-11 px-3 border border-slate-200 rounded-lg text-sm font-bold text-[#002D62] outline-none bg-white">
                         <option value="">- Chọn -</option>
                         {corporate.corporate_tiers?.quota_silver > 0 && <option value="SILVER">SILVER</option>}
                         {corporate.corporate_tiers?.quota_gold > 0 && <option value="GOLD">GOLD</option>}
                         {corporate.corporate_tiers?.quota_titanium > 0 && <option value="TITANIUM">TITANIUM</option>}
                       </select>
-                      <button onClick={handleAddMember} className="w-11 h-11 bg-emerald-600 text-white rounded-lg flex items-center justify-center hover:bg-emerald-700 shadow-sm"><i className="ph-bold ph-check text-lg"></i></button>
+                      <button onClick={handleAddMember} disabled={isAddingMember} className="w-11 h-11 bg-emerald-600 text-white rounded-lg flex items-center justify-center hover:bg-emerald-700 shadow-sm disabled:opacity-50">
+                        {isAddingMember ? <i className="ph-bold ph-spinner animate-spin"></i> : <i className="ph-bold ph-check text-lg"></i>}
+                      </button>
                     </div>
                   </div>
                 </div>
               </div>
             )}
 
-            <table className="w-full text-left text-sm">
-              <thead className="bg-white border-b border-slate-100 text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                <tr><th className="p-4 pl-6">Nhân viên</th><th className="p-4">Email</th><th className="p-4">Chức vụ</th><th className="p-4 text-center">Hạng thẻ</th><th className="p-4 text-right pr-6">Thao tác</th></tr>
-              </thead>
-              <tbody className="divide-y divide-slate-50">
-                {members.map(m => {
-                  const tierCode = Array.isArray(m.individual_tiers) ? m.individual_tiers[0]?.code : (m.individual_tiers as any)?.code;
-                  const isMe = m.id === currentUser.id;
-                  return (
-                    <tr key={m.id} className="hover:bg-slate-50 transition-colors">
-                      <td className="p-4 pl-6 font-bold text-slate-800 flex items-center gap-2">{m.full_name} {isMe && <span className="bg-blue-100 text-blue-600 text-[9px] px-2 py-0.5 rounded">BẠN</span>}</td>
-                      <td className="p-4 text-slate-600">{m.email}</td>
-                      <td className="p-4 text-slate-600">{m.role_in_company || '---'}</td>
-                      <td className="p-4 text-center"><span className="px-2.5 py-1 bg-slate-100 border border-slate-200 rounded text-[10px] font-black">{tierCode}</span></td>
-                      <td className="p-4 text-right pr-6">
-                        {!isMe && (
-                          <button onClick={() => handleRemoveMember(m.id, m.full_name)} className="w-8 h-8 rounded-lg text-rose-500 hover:bg-rose-50 border border-transparent hover:border-rose-200 transition-colors"><i className="ph-bold ph-trash"></i></button>
-                        )}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-sm">
+                <thead className="bg-white border-b border-slate-100 text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                  <tr><th className="p-4 pl-6">Nhân viên</th><th className="p-4">Email</th><th className="p-4">Chức vụ</th><th className="p-4 text-center">Hạng thẻ</th><th className="p-4 text-right pr-6">Thao tác</th></tr>
+                </thead>
+                <tbody className="divide-y divide-slate-50">
+                  {members.map(m => {
+                    const tierCode = Array.isArray(m.individual_tiers) ? m.individual_tiers[0]?.code : (m.individual_tiers as any)?.code;
+                    const isMe = m.id === currentUser.id;
+                    return (
+                      <tr key={m.id} className="hover:bg-slate-50 transition-colors">
+                        <td className="p-4 pl-6 font-bold text-slate-800 flex items-center gap-2">{m.full_name} {isMe && <span className="bg-blue-100 text-blue-600 text-[9px] px-2 py-0.5 rounded">BẠN</span>}</td>
+                        <td className="p-4 text-slate-600">{m.email}</td>
+                        <td className="p-4 text-slate-600">{m.role_in_company || '---'}</td>
+                        <td className="p-4 text-center"><span className="px-2.5 py-1 bg-slate-100 border border-slate-200 rounded text-[10px] font-black">{tierCode}</span></td>
+                        <td className="p-4 text-right pr-6">
+                          {!isMe && (
+                            <button onClick={() => handleRemoveMember(m.id, m.full_name)} className="w-8 h-8 rounded-lg text-rose-500 hover:bg-rose-50 border border-transparent hover:border-rose-200 transition-colors" title="Xóa nhân sự"><i className="ph-bold ph-trash"></i></button>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
       )}
@@ -331,11 +368,11 @@ export default function CorporateDashboardPage() {
             <div className="space-y-4">
               <div>
                 <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Website Công ty</label>
-                <input type="text" value={portfolio.website} onChange={e => setPortfolio({...portfolio, website: e.target.value})} className="w-full h-12 px-4 border border-slate-200 rounded-xl mt-1 text-sm outline-none focus:border-blue-400" placeholder="https://..." />
+                <input type="text" value={portfolio.website} onChange={e => setPortfolio({...portfolio, website: e.target.value})} className="w-full h-12 px-4 border border-slate-200 bg-slate-50 rounded-xl mt-1 text-sm font-medium outline-none focus:bg-white focus:border-blue-400" placeholder="https://..." />
               </div>
               <div>
                 <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Giới thiệu ngắn (About Us)</label>
-                <textarea value={portfolio.about_us} onChange={e => setPortfolio({...portfolio, about_us: e.target.value})} className="w-full h-32 p-4 border border-slate-200 rounded-xl mt-1 text-sm outline-none focus:border-blue-400 resize-none" placeholder="Tầm nhìn, sứ mệnh, thế mạnh cốt lõi..." />
+                <textarea value={portfolio.about_us} onChange={e => setPortfolio({...portfolio, about_us: e.target.value})} className="w-full h-32 p-4 border border-slate-200 bg-slate-50 rounded-xl mt-1 text-sm font-medium outline-none focus:bg-white focus:border-blue-400 resize-none" placeholder="Tầm nhìn, sứ mệnh, thế mạnh cốt lõi..." />
               </div>
             </div>
           </div>
@@ -345,14 +382,14 @@ export default function CorporateDashboardPage() {
             <div className="bg-white rounded-[2rem] border border-slate-200 p-6 shadow-sm">
               <div className="flex justify-between items-center border-b border-slate-100 pb-4 mb-4">
                 <h4 className="font-black text-slate-800 flex items-center gap-2"><i className="ph-fill ph-package text-amber-500"></i> Sản phẩm & Dịch vụ</h4>
-                <button onClick={addProduct} className="text-xs font-bold text-blue-600 bg-blue-50 px-3 py-1.5 rounded-lg hover:bg-blue-100">+ Thêm SP</button>
+                <button onClick={addProduct} className="text-xs font-bold text-blue-600 bg-blue-50 px-3 py-1.5 rounded-lg hover:bg-blue-100 transition-colors">+ Thêm SP</button>
               </div>
               <div className="space-y-4 max-h-[400px] overflow-y-auto custom-scrollbar pr-2">
                 {portfolio.products.map((prod, idx) => (
                   <div key={idx} className="p-4 bg-slate-50 border border-slate-200 rounded-xl relative group">
                     <button onClick={() => removeProduct(idx)} className="absolute top-2 right-2 w-6 h-6 bg-white border border-slate-200 rounded text-rose-500 opacity-0 group-hover:opacity-100 transition-opacity"><i className="ph-bold ph-trash text-xs"></i></button>
-                    <input type="text" value={prod.name} onChange={e => updateProduct(idx, 'name', e.target.value)} placeholder="Tên sản phẩm/dịch vụ..." className="w-full bg-transparent font-bold text-slate-800 text-sm mb-2 outline-none border-b border-transparent focus:border-slate-300" />
-                    <textarea value={prod.description} onChange={e => updateProduct(idx, 'description', e.target.value)} placeholder="Mô tả ngắn gọn..." className="w-full bg-transparent text-sm text-slate-600 outline-none resize-none h-16 border-b border-transparent focus:border-slate-300" />
+                    <input type="text" value={prod.name} onChange={e => updateProduct(idx, 'name', e.target.value)} placeholder="Tên sản phẩm/dịch vụ..." className="w-full bg-transparent font-bold text-slate-800 text-sm mb-2 outline-none border-b border-transparent focus:border-blue-400 transition-colors" />
+                    <textarea value={prod.description} onChange={e => updateProduct(idx, 'description', e.target.value)} placeholder="Mô tả ngắn gọn..." className="w-full bg-transparent text-sm text-slate-600 outline-none resize-none h-16 border-b border-transparent focus:border-blue-400 transition-colors" />
                   </div>
                 ))}
                 {portfolio.products.length === 0 && <p className="text-center text-slate-400 text-sm py-10">Chưa khai báo sản phẩm nào.</p>}
@@ -363,16 +400,16 @@ export default function CorporateDashboardPage() {
             <div className="bg-white rounded-[2rem] border border-slate-200 p-6 shadow-sm">
               <div className="flex justify-between items-center border-b border-slate-100 pb-4 mb-4">
                 <h4 className="font-black text-slate-800 flex items-center gap-2"><i className="ph-fill ph-buildings text-emerald-500"></i> Dự án Tiêu biểu</h4>
-                <button onClick={addProject} className="text-xs font-bold text-blue-600 bg-blue-50 px-3 py-1.5 rounded-lg hover:bg-blue-100">+ Thêm Dự án</button>
+                <button onClick={addProject} className="text-xs font-bold text-blue-600 bg-blue-50 px-3 py-1.5 rounded-lg hover:bg-blue-100 transition-colors">+ Thêm Dự án</button>
               </div>
               <div className="space-y-4 max-h-[400px] overflow-y-auto custom-scrollbar pr-2">
                 {portfolio.projects.map((proj, idx) => (
                   <div key={idx} className="p-4 bg-slate-50 border border-slate-200 rounded-xl relative group flex flex-col gap-2">
                     <button onClick={() => removeProject(idx)} className="absolute top-2 right-2 w-6 h-6 bg-white border border-slate-200 rounded text-rose-500 opacity-0 group-hover:opacity-100 transition-opacity"><i className="ph-bold ph-trash text-xs"></i></button>
-                    <input type="text" value={proj.name} onChange={e => updateProject(idx, 'name', e.target.value)} placeholder="Tên dự án..." className="w-full bg-transparent font-bold text-slate-800 text-sm outline-none border-b border-transparent focus:border-slate-300" />
+                    <input type="text" value={proj.name} onChange={e => updateProject(idx, 'name', e.target.value)} placeholder="Tên dự án..." className="w-full bg-transparent font-bold text-slate-800 text-sm outline-none border-b border-transparent focus:border-emerald-400 transition-colors" />
                     <div className="flex gap-2">
-                      <input type="text" value={proj.year} onChange={e => updateProject(idx, 'year', e.target.value)} placeholder="Năm (VD: 2023)" className="w-24 bg-transparent text-sm text-slate-600 outline-none border-b border-transparent focus:border-slate-300" />
-                      <input type="text" value={proj.role} onChange={e => updateProject(idx, 'role', e.target.value)} placeholder="Vai trò (VD: Thầu chính)" className="flex-1 bg-transparent text-sm text-slate-600 outline-none border-b border-transparent focus:border-slate-300" />
+                      <input type="text" value={proj.year} onChange={e => updateProject(idx, 'year', e.target.value)} placeholder="Năm (VD: 2023)" className="w-24 bg-transparent text-sm text-slate-600 outline-none border-b border-transparent focus:border-emerald-400 transition-colors" />
+                      <input type="text" value={proj.role} onChange={e => updateProject(idx, 'role', e.target.value)} placeholder="Vai trò (VD: Thầu chính)" className="flex-1 bg-transparent text-sm text-slate-600 outline-none border-b border-transparent focus:border-emerald-400 transition-colors" />
                     </div>
                   </div>
                 ))}
