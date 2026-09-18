@@ -17,10 +17,10 @@ export default function BizLinkDashboard() {
 
   const fetchData = async () => {
     setIsLoading(true);
-    // SỬA LỖI 1: Hút từ bảng individuals và khai báo rõ Foreign Key để tránh lỗi Ambiguous
+    // SỬA LỖI 1: Hút từ bảng individuals và corporates thay vì members
     const [projRes, indRes] = await Promise.all([
       supabase.from('projects').select('*').order('created_at', { ascending: false }),
-      supabase.from('individuals').select('id, full_name, corporates!individuals_corporate_id_fkey(name), individual_tiers!individuals_tier_id_fkey(code)')
+      supabase.from('individuals').select('id, full_name, corporates(name), individual_tiers(code)')
     ]);
     
     if (projRes.error) console.error("Lỗi tải dự án:", projRes.error);
@@ -52,9 +52,8 @@ export default function BizLinkDashboard() {
     const user = members.find(m => m.id === member_id);
     if (user) {
       const tierCode = Array.isArray(user.individual_tiers) ? user.individual_tiers[0]?.code : user.individual_tiers?.code;
-      const corpName = Array.isArray(user.corporates) ? user.corporates[0]?.name : user.corporates?.name;
       return { 
-        name: corpName || user.full_name || 'Thành viên Độc lập', 
+        name: user.corporates?.name || user.full_name || 'Thành viên Độc lập', 
         tier: tierCode || 'STANDARD' 
       };
     }
@@ -185,7 +184,7 @@ export default function BizLinkDashboard() {
                           </div>
                           
                           <div className="flex items-center gap-2">
-                            <div className="w-6 h-6 rounded-md bg-slate-100 flex items-center justify-center text-[10px] font-black text-slate-600 border border-slate-200 shrink-0 uppercase">
+                            <div className="w-6 h-6 rounded-md bg-slate-100 flex items-center justify-center text-[10px] font-black text-slate-600 border border-slate-200 shrink-0">
                               {author.name.charAt(0)}
                             </div>
                             <span className="text-[11px] font-bold text-slate-600 truncate flex-1" title={author.name}>
