@@ -188,13 +188,63 @@ export default function MemberBizLinkPage() {
                 <div className="bg-white border border-slate-200 p-8 rounded-3xl shadow-sm animate-in zoom-in-95 duration-300">
                   <h3 className="text-xl font-black text-slate-900 mb-6 flex items-center gap-2"><i className="ph-fill ph-pencil-line text-[#002D62]"></i> Khai báo Thông tin Dự án</h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-slate-50 p-6 rounded-2xl border border-slate-100">
-                    <div className="col-span-2 md:col-span-2 space-y-2"><label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Tên Dự án (*)</label><input type="text" value={formData.title} onChange={e => setFormData({...formData, title: e.target.value})} className="w-full h-12 px-4 bg-white border border-slate-200 rounded-xl text-sm font-bold outline-none focus:border-blue-400 focus:ring-4 focus:ring-blue-500/10 transition-all" placeholder="VD: Tìm thầu phụ thi công Cơ Điện (MEP)..." /></div>
-                    <div className="space-y-2"><label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Lĩnh vực</label><select value={formData.category} onChange={e => setFormData({...formData, category: e.target.value})} className="w-full h-12 px-4 bg-white border border-slate-200 rounded-xl text-sm font-bold outline-none cursor-pointer focus:border-blue-400 transition-all"><option value="CONSTRUCTION">Thi công (Construction)</option><option value="DESIGN">Thiết kế (Design)</option><option value="MATERIAL">Cung cấp vật tư (Material)</option></select></div>
-                    <div className="space-y-2"><label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Ngân sách dự kiến (VNĐ)</label><input type="number" value={formData.budget_max} onChange={e => setFormData({...formData, budget_max: e.target.value})} className="w-full h-12 px-4 bg-white border border-slate-200 rounded-xl text-sm font-bold outline-none focus:border-blue-400 focus:ring-4 focus:ring-blue-500/10 transition-all" placeholder="VD: 5000000000" /></div>
-                    <div className="col-span-2 space-y-2"><label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Địa điểm dự án</label><input type="text" value={formData.location} onChange={e => setFormData({...formData, location: e.target.value})} className="w-full h-12 px-4 bg-white border border-slate-200 rounded-xl text-sm font-bold outline-none focus:border-blue-400 focus:ring-4 focus:ring-blue-500/10 transition-all" placeholder="VD: KCN VSIP, Bắc Ninh" /></div>
-                    <div className="col-span-2 space-y-2"><label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Mô tả Yêu cầu chi tiết</label><textarea value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} className="w-full h-32 p-4 bg-white border border-slate-200 rounded-xl text-sm font-medium outline-none resize-none focus:border-blue-400 focus:ring-4 focus:ring-blue-500/10 transition-all" placeholder="Yêu cầu chi tiết về năng lực, tiêu chuẩn vật tư, tiến độ..." /></div>
+                    <div className="col-span-2 md:col-span-2 space-y-2">
+                      <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Tên Dự án (*)</label>
+                      <input 
+                        type="text" 
+                        value={formData.title} 
+                        onChange={e => setFormData({...formData, title: e.target.value})} 
+                        className="w-full h-12 px-4 bg-white border border-slate-200 rounded-xl text-sm font-bold text-slate-900 placeholder-slate-400 outline-none focus:border-blue-400 focus:ring-4 focus:ring-blue-500/10 transition-all" 
+                        placeholder="VD: Tìm thầu phụ thi công Cơ Điện (MEP)..." 
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Lĩnh vực</label>
+                      <select 
+                        value={formData.category} 
+                        onChange={e => setFormData({...formData, category: e.target.value})} 
+                        className="w-full h-12 px-4 bg-white border border-slate-200 rounded-xl text-sm font-bold text-slate-900 outline-none cursor-pointer focus:border-blue-400 transition-all"
+                      >
+                        <option value="CONSTRUCTION">Thi công (Construction)</option>
+                        <option value="DESIGN">Thiết kế (Design)</option>
+                        <option value="MATERIAL">Cung cấp vật tư (Material)</option>
+                      </select>
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Ngân sách dự kiến (VNĐ)</label>
+                      <input 
+                        type="number" 
+                        value={formData.budget_max} 
+                        onChange={e => setFormData({...formData, budget_max: e.target.value})} 
+                        className="w-full h-12 px-4 bg-white border border-slate-200 rounded-xl text-sm font-bold text-slate-900 placeholder-slate-400 outline-none focus:border-blue-400 focus:ring-4 focus:ring-blue-500/10 transition-all" 
+                        placeholder="VD: 5000000000" 
+                      />
+                    </div>
+                    <div className="col-span-2 space-y-2">
+                      <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Địa điểm dự án</label>
+                      <input 
+                        type="text" 
+                        value={formData.location} 
+                        onChange={e => setFormData({...formData, location: e.target.value})} 
+                        className="w-full h-12 px-4 bg-white border border-slate-200 rounded-xl text-sm font-bold text-slate-900 placeholder-slate-400 outline-none focus:border-blue-400 focus:ring-4 focus:ring-blue-500/10 transition-all" 
+                        placeholder="VD: KCN VSIP, Bắc Ninh" 
+                      />
+                    </div>
+                    <div className="col-span-2 space-y-2">
+                      <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Mô tả Yêu cầu chi tiết</label>
+                      <textarea 
+                        value={formData.description} 
+                        onChange={e => setFormData({...formData, description: e.target.value})} 
+                        className="w-full h-32 p-4 bg-white border border-slate-200 rounded-xl text-sm font-medium text-slate-900 placeholder-slate-400 outline-none resize-none focus:border-blue-400 focus:ring-4 focus:ring-blue-500/10 transition-all" 
+                        placeholder="Yêu cầu chi tiết về năng lực, tiêu chuẩn vật tư, tiến độ..." 
+                      />
+                    </div>
                   </div>
-                  <div className="mt-8 flex justify-end"><button onClick={handleSubmitProject} disabled={isSubmitting} className="h-14 px-10 bg-[#002D62] text-white rounded-2xl text-sm font-black shadow-lg hover:bg-blue-900 transition-colors disabled:opacity-50 flex items-center gap-2">{isSubmitting ? <><i className="ph-bold ph-spinner animate-spin"></i> ĐANG XỬ LÝ...</> : <><i className="ph-bold ph-paper-plane-right"></i> ĐƯA LÊN SÀN GIAO DỊCH</>}</button></div>
+                  <div className="mt-8 flex justify-end">
+                    <button onClick={handleSubmitProject} disabled={isSubmitting} className="h-14 px-10 bg-[#002D62] text-white rounded-2xl text-sm font-black shadow-lg hover:bg-blue-900 transition-colors disabled:opacity-50 flex items-center gap-2">
+                      {isSubmitting ? <><i className="ph-bold ph-spinner animate-spin"></i> ĐANG XỬ LÝ...</> : <><i className="ph-bold ph-paper-plane-right"></i> ĐƯA LÊN SÀN GIAO DỊCH</>}
+                    </button>
+                  </div>
                 </div>
               )}
 
