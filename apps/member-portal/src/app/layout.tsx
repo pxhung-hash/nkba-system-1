@@ -255,8 +255,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                                 <span className="text-sm font-bold text-slate-700">Sửa thông tin tài khoản</span>
                               </Link>
 
-                              {/* NÚT QUẢN LÝ DOANH NGHIỆP MỚI ĐƯỢC CHÈN VÀO ĐÂY */}
-                              <Link href="/account" onClick={() => setShowProfileDropdown(false)} className="p-3 hover:bg-slate-50 transition-colors flex items-center gap-3 rounded-xl">
+                              {/* ĐÃ CẬP NHẬT: Trỏ về trang Corporate */}
+                              <Link href="/corporate" onClick={() => setShowProfileDropdown(false)} className="p-3 hover:bg-slate-50 transition-colors flex items-center gap-3 rounded-xl">
                                 <div className="w-8 h-8 rounded-full bg-blue-50 text-[#002D62] flex items-center justify-center shrink-0"><i className="ph-fill ph-buildings text-lg"></i></div>
                                 <span className="text-sm font-bold text-slate-700">Quản lý hồ sơ Doanh nghiệp</span>
                               </Link>
@@ -310,8 +310,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                           <i className="ph-fill ph-user-gear text-xl"></i> Sửa thông tin tài khoản
                         </Link>
                         
-                        {/* NÚT QUẢN LÝ DOANH NGHIỆP TRÊN MOBILE */}
-                        <Link href="/account" onClick={() => setShowMobileMenu(false)} className="px-4 py-3 rounded-xl text-base font-bold flex items-center gap-3 text-slate-600 hover:bg-slate-50 transition-all text-left">
+                        {/* ĐÃ CẬP NHẬT: Trỏ về trang Corporate */}
+                        <Link href="/corporate" onClick={() => setShowMobileMenu(false)} className="px-4 py-3 rounded-xl text-base font-bold flex items-center gap-3 text-slate-600 hover:bg-slate-50 transition-all text-left">
                           <i className="ph-fill ph-buildings text-xl"></i> Quản lý hồ sơ Doanh nghiệp
                         </Link>
 
