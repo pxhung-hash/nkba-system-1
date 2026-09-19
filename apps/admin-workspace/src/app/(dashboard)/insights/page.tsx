@@ -124,9 +124,20 @@ export default function InsightsPage() {
     }
   };
 
-  // --- LOGIC XỬ LÝ YÊU CẦU TỪ VIP (REQUESTS) ---
+  // ==========================================
+  // LOGIC XỬ LÝ YÊU CẦU DATA TỪ KHÁCH HÀNG
+  // ==========================================
   const handleUpdateRequest = async () => {
     if (!selectedRequest) return;
+    
+    // Validate trước khi lưu
+    if (selectedRequest.status === 'COMPLETED' && !selectedRequest.result_file_url) {
+      return alert('Để trả kết quả, vui lòng đính kèm Link File Kết Quả (Drive, PDF...)!');
+    }
+    if (selectedRequest.status === 'NEED_MORE_INFO' && !selectedRequest.admin_note) {
+      return alert('Vui lòng ghi rõ nội dung cần khách hàng làm rõ vào ô Lời nhắn!');
+    }
+
     setIsSavingReq(true);
     
     const { error } = await supabase.from('data_requests').update({
@@ -138,7 +149,7 @@ export default function InsightsPage() {
 
     if (error) alert('Lỗi cập nhật: ' + error.message);
     else {
-      alert('✅ Đã lưu kết quả xử lý!');
+      alert('✅ Đã lưu kết quả xử lý và cập nhật trạng thái cho khách hàng!');
       fetchData();
     }
     setIsSavingReq(false);
@@ -157,7 +168,8 @@ export default function InsightsPage() {
   const getReqStatusConfig = (status: string) => {
     switch(status) {
       case 'COMPLETED': return { color: 'text-emerald-700', bg: 'bg-emerald-100', label: 'ĐÃ TRẢ KẾT QUẢ' };
-      case 'PROCESSING': return { color: 'text-blue-700', bg: 'bg-blue-100', label: 'ĐANG XỬ LÝ' };
+      case 'PROCESSING': return { color: 'text-blue-700', bg: 'bg-blue-100', label: 'ĐANG THU THẬP' };
+      case 'NEED_MORE_INFO': return { color: 'text-purple-700', bg: 'bg-purple-100', label: 'CẦN BỔ SUNG TT' };
       case 'REJECTED': return { color: 'text-rose-700', bg: 'bg-rose-100', label: 'TỪ CHỐI' };
       default: return { color: 'text-amber-700', bg: 'bg-amber-100', label: 'CHỜ TIẾP NHẬN' };
     }
@@ -194,7 +206,7 @@ export default function InsightsPage() {
               <i className="ph-fill ph-books text-lg"></i> Kho Phát Hành ({reports.length})
             </button>
             <button onClick={() => setActiveTab('requests')} className={`px-6 py-3 rounded-xl text-sm font-black transition-all flex items-center gap-2 ${activeTab === 'requests' ? 'bg-[#002D62] text-white shadow-md' : 'text-slate-500 hover:text-slate-700'}`}>
-              <i className="ph-fill ph-ticket text-lg"></i> Yêu Cầu Dữ Liệu
+              <i className="ph-fill ph-ticket text-lg"></i> CRM Yêu Cầu Data
               {pendingCount > 0 && <span className="bg-rose-500 text-white text-[10px] px-2 py-0.5 rounded-md shadow-sm animate-pulse">{pendingCount}</span>}
             </button>
          </div>
@@ -351,7 +363,7 @@ export default function InsightsPage() {
         )}
 
         {/* ========================================================= */}
-        {/* TAB 2: TRẠM XỬ LÝ YÊU CẦU DATA (TICKETING DESK) */}
+        {/* TAB 2: TRẠM XỬ LÝ YÊU CẦU DATA (TICKETING DESK / CRM) */}
         {/* ========================================================= */}
         {activeTab === 'requests' && (
           <div className="flex-1 flex flex-col lg:flex-row gap-6 min-h-0 animate-in slide-in-from-bottom-4 duration-500">
@@ -360,7 +372,7 @@ export default function InsightsPage() {
             <div className="w-full lg:w-1/3 bg-white border border-slate-200 shadow-sm rounded-[2rem] flex flex-col overflow-hidden shrink-0">
               <div className="p-6 border-b border-slate-100 bg-slate-50/50">
                 <h3 className="text-lg font-black text-[#002D62] flex items-center gap-2"><i className="ph-fill ph-ticket"></i> Hộp thư Đặt hàng ({requests.length})</h3>
-                <p className="text-xs text-slate-500 mt-1 font-medium">Danh sách các yêu cầu khảo sát từ Doanh nghiệp.</p>
+                <p className="text-xs text-slate-500 mt-1 font-medium">CRM quản lý yêu cầu khảo sát từ Doanh nghiệp.</p>
               </div>
               <div className="flex-1 overflow-y-auto p-4 space-y-3 custom-scrollbar">
                 {requests.length === 0 ? <div className="p-10 text-center text-sm text-slate-400 italic">Không có yêu cầu nào đang chờ!</div> : 
@@ -386,13 +398,13 @@ export default function InsightsPage() {
               </div>
             </div>
 
-            {/* CỘT PHẢI: KHUNG XỬ LÝ (DETAIL) */}
+            {/* CỘT PHẢI: KHUNG XỬ LÝ (DETAIL & RESPONSE) */}
             <div className="w-full lg:w-2/3 bg-white border border-slate-200 shadow-sm rounded-[2rem] flex flex-col relative overflow-hidden">
               {!selectedRequest ? (
                 <div className="flex-1 flex flex-col items-center justify-center text-slate-400 p-8 text-center bg-slate-50/50">
                   <i className="ph-duotone ph-hand-pointing text-[80px] mb-4 text-slate-300"></i>
                   <p className="font-bold text-lg text-slate-500">Chọn một ticket bên trái để xử lý</p>
-                  <p className="text-sm mt-2">Hệ thống sẽ hiển thị nội dung và form trả kết quả tại đây.</p>
+                  <p className="text-sm mt-2">Hệ thống sẽ hiển thị nội dung và form liên lạc/trả kết quả tại đây.</p>
                 </div>
               ) : (
                 <>
@@ -408,44 +420,67 @@ export default function InsightsPage() {
                       </p>
                     </div>
                     <button onClick={handleUpdateRequest} disabled={isSavingReq} className="shrink-0 h-12 px-8 bg-[#002D62] hover:bg-blue-900 text-white rounded-xl text-sm font-black shadow-lg transition-all disabled:opacity-70 flex items-center gap-2">
-                      {isSavingReq ? <><i className="ph-bold ph-spinner animate-spin"></i> ĐANG LƯU</> : <><i className="ph-bold ph-check-circle"></i> LƯU KẾT QUẢ</>}
+                      {isSavingReq ? <><i className="ph-bold ph-spinner animate-spin"></i> ĐANG LƯU</> : <><i className="ph-bold ph-check-circle"></i> CẬP NHẬT TRẠNG THÁI</>}
                     </button>
                   </div>
                   
                   {/* Body Detail */}
                   <div className="flex-1 overflow-y-auto p-6 md:p-8 custom-scrollbar flex flex-col gap-8">
                     
-                    {/* Khu vực Nội dung KH yêu cầu */}
+                    {/* Yêu cầu từ khách */}
                     <div>
-                      <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest mb-3 flex items-center gap-2"><i className="ph-fill ph-chat-text text-lg"></i> Nội dung khách hàng yêu cầu</h3>
+                      <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest mb-3 flex items-center gap-2"><i className="ph-fill ph-chat-text text-lg"></i> Nội dung khách hàng gửi</h3>
                       <div className="bg-white border border-slate-200 text-slate-700 p-6 rounded-2xl text-sm font-medium whitespace-pre-line leading-relaxed shadow-sm">
                         {selectedRequest.content}
                       </div>
                     </div>
 
-                    {/* Khu vực Admin Xử lý & Trả file */}
-                    <div className="bg-blue-50/50 border border-blue-100 rounded-3xl p-6 md:p-8 mt-auto">
-                      <h3 className="text-sm font-black text-[#002D62] uppercase tracking-widest flex items-center gap-2 mb-6"><i className="ph-fill ph-wrench text-xl"></i> Khu vực Trả Kết Quả (Dành cho Admin)</h3>
+                    {/* KHU VỰC LIÊN LẠC & TRẢ KẾT QUẢ */}
+                    <div className={`border rounded-3xl p-6 md:p-8 mt-auto transition-colors duration-300 ${selectedRequest.status === 'NEED_MORE_INFO' ? 'bg-purple-50/50 border-purple-200' : 'bg-blue-50/50 border-blue-100'}`}>
+                      <h3 className="text-sm font-black text-[#002D62] uppercase tracking-widest flex items-center gap-2 mb-6"><i className="ph-fill ph-wrench text-xl"></i> Khu vực Xử lý & Phản hồi</h3>
                       
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                      <div className="space-y-6">
                         <div className="space-y-2">
-                          <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Đổi trạng thái xử lý</label>
-                          <select value={selectedRequest.status} onChange={e => setSelectedRequest({...selectedRequest, status: e.target.value})} className="w-full h-12 px-4 bg-white border border-slate-200 rounded-xl text-sm font-bold text-[#002D62] outline-none focus:border-blue-400 cursor-pointer shadow-sm">
-                            <option value="PENDING">Chờ tiếp nhận</option>
-                            <option value="PROCESSING">Đang xử lý thu thập</option>
-                            <option value="COMPLETED">Đã trả kết quả (Hoàn thành)</option>
-                            <option value="REJECTED">Từ chối (Ngoài phạm vi)</option>
+                          <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Tiến trình xử lý (Status)</label>
+                          <select 
+                            value={selectedRequest.status} 
+                            onChange={e => setSelectedRequest({...selectedRequest, status: e.target.value})} 
+                            className="w-full h-12 px-4 bg-white border border-slate-200 rounded-xl text-sm font-bold text-[#002D62] outline-none focus:border-blue-400 cursor-pointer shadow-sm"
+                          >
+                            <option value="PENDING">1. Chờ tiếp nhận (Chưa xử lý)</option>
+                            <option value="PROCESSING">2. Đã tiếp nhận & Đang thu thập dữ liệu</option>
+                            <option value="NEED_MORE_INFO">3. Tạm dừng - Cần Khách hàng làm rõ thêm</option>
+                            <option value="COMPLETED">4. Đã hoàn thành & Bàn giao Kết quả</option>
+                            <option value="REJECTED">5. Từ chối (Yêu cầu ngoài phạm vi)</option>
                           </select>
                         </div>
-                        <div className="space-y-2">
-                          <label className="text-[10px] font-black text-emerald-600 uppercase tracking-widest flex items-center gap-1"><i className="ph-bold ph-link"></i> Link File Kết Quả Trả Khách</label>
-                          <input type="text" value={selectedRequest.result_file_url || ''} onChange={e => setSelectedRequest({...selectedRequest, result_file_url: e.target.value})} className="w-full h-12 px-4 bg-white border border-emerald-200 rounded-xl text-sm font-medium text-blue-600 outline-none focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 placeholder:text-slate-300 shadow-sm" placeholder="Dán link Google Drive, Dropbox..." />
-                        </div>
-                      </div>
 
-                      <div className="space-y-2">
-                        <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Lời nhắn gửi kèm (Admin Note)</label>
-                        <textarea value={selectedRequest.admin_note || ''} onChange={e => setSelectedRequest({...selectedRequest, admin_note: e.target.value})} className="w-full h-32 p-4 bg-white border border-slate-200 rounded-xl text-sm font-medium text-slate-800 outline-none focus:border-blue-400 resize-none shadow-sm" placeholder="VD: Gửi anh chị báo cáo chi tiết như yêu cầu. Cần thêm dữ liệu nào cứ nhắn team nhé..." />
+                        {selectedRequest.status === 'COMPLETED' && (
+                          <div className="space-y-2 animate-in fade-in slide-in-from-top-2">
+                            <label className="text-[10px] font-black text-emerald-600 uppercase tracking-widest flex items-center gap-1"><i className="ph-bold ph-link"></i> Link File Kết Quả (Bắt buộc)</label>
+                            <input 
+                              type="text" 
+                              value={selectedRequest.result_file_url || ''} 
+                              onChange={e => setSelectedRequest({...selectedRequest, result_file_url: e.target.value})} 
+                              className="w-full h-12 px-4 bg-white border border-emerald-200 rounded-xl text-sm font-medium text-emerald-700 outline-none focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 placeholder:text-slate-300 shadow-sm" 
+                              placeholder="Dán link thư mục Google Drive, DropBox, File Excel..." 
+                            />
+                          </div>
+                        )}
+
+                        <div className="space-y-2">
+                          <label className={`text-[10px] font-black uppercase tracking-widest ${selectedRequest.status === 'NEED_MORE_INFO' ? 'text-purple-600' : 'text-slate-500'}`}>
+                            {selectedRequest.status === 'NEED_MORE_INFO' ? 'Nội dung cần khách hàng cung cấp / làm rõ thêm' : 
+                             selectedRequest.status === 'COMPLETED' ? 'Lời nhắn bàn giao dữ liệu' : 
+                             selectedRequest.status === 'REJECTED' ? 'Lý do từ chối (Sẽ gửi cho khách)' : 'Ghi chú / Phản hồi cho khách (Admin Note)'}
+                          </label>
+                          <textarea 
+                            value={selectedRequest.admin_note || ''} 
+                            onChange={e => setSelectedRequest({...selectedRequest, admin_note: e.target.value})} 
+                            className={`w-full h-32 p-4 bg-white border rounded-xl text-sm font-medium outline-none resize-none shadow-sm transition-colors ${selectedRequest.status === 'NEED_MORE_INFO' ? 'border-purple-200 focus:border-purple-500 text-purple-900' : 'border-slate-200 focus:border-blue-400 text-slate-800'}`} 
+                            placeholder="Nhập nội dung tương tác. Phản hồi này sẽ được gửi trực tiếp đến bảng điều khiển của khách hàng..." 
+                          />
+                        </div>
                       </div>
                     </div>
 
