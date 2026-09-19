@@ -27,8 +27,10 @@ export default function EventDetailPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isAddGuestModalOpen, setIsAddGuestModalOpen] = useState(false);
   const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
+  
+  // STATE MỚI: MỞ MODAL MÃ QR LIVE CONNECT
+  const [isQrModalOpen, setIsQrModalOpen] = useState(false);
 
-  // State cho chức năng Sửa
   const [guestToEdit, setGuestToEdit] = useState<any>(null);
   const [isEditGuestModalOpen, setIsEditGuestModalOpen] = useState(false);
 
@@ -56,8 +58,9 @@ export default function EventDetailPage() {
     fetchData();
   }, [fetchData]);
 
-  // Thống kê số liệu thật từ DB
+  // BỔ SUNG: Đếm thêm trạng thái CHECKED_IN
   const totalGuests = guests.length;
+  const checkedInCount = guests.filter(g => g.rsvp_status === 'CHECKED_IN').length;
   const confirmedCount = guests.filter(g => g.rsvp_status === 'CONFIRMED').length;
   const pendingCount = guests.filter(g => g.rsvp_status === 'PENDING').length;
   const declinedCount = guests.filter(g => g.rsvp_status === 'DECLINED').length;
@@ -93,8 +96,13 @@ export default function EventDetailPage() {
     navigator.clipboard.writeText(rsvpLink);
     toast.success(`Đã copy link RSVP của khách mời: ${guest.guest_info?.name}`);
   };
+
+  const handleCopyLiveConnectLink = () => {
+    const link = `${window.location.origin}/e/${eventId}`;
+    navigator.clipboard.writeText(link);
+    toast.success('Đã copy link Giao thương Live!');
+  };
   
-  // 1. Mở modal sửa, truyền dữ liệu khách mời hiện tại vào
   const handleEditClick = (guest: any) => {
     setGuestToEdit(guest);
     setIsEditGuestModalOpen(true);
@@ -149,7 +157,7 @@ export default function EventDetailPage() {
       
       {/* HEADER OVERVIEW */}
       <div className="bg-white p-8 rounded-3xl border border-slate-200 shadow-sm relative overflow-hidden">
-        <div className="flex flex-col md:flex-row justify-between items-start gap-6 relative z-10">
+        <div className="flex flex-col xl:flex-row justify-between items-start gap-6 relative z-10">
           <div>
             <div className="flex items-center gap-3 mb-3">
               <Link href="/events" className="text-slate-400 hover:text-[#002D62] transition-colors">
@@ -170,53 +178,65 @@ export default function EventDetailPage() {
             </p>
           </div>
 
-          <div className="flex items-center gap-3 shrink-0">
+          <div className="flex flex-wrap items-center gap-3 shrink-0">
+            {/* 👉 BỔ SUNG NÚT QR & LIVE BOARD TẠI ĐÂY 👈 */}
+            <button 
+              onClick={() => setIsQrModalOpen(true)}
+              className="px-4 py-2.5 bg-slate-50 border border-slate-200 text-slate-700 text-sm font-bold rounded-xl hover:bg-slate-100 transition-all shadow-sm flex items-center gap-2"
+              title="Lấy mã QR cho khách cập nhật Profile"
+            >
+              <i className="ph-bold ph-qr-code text-lg"></i> QR Giao thương
+            </button>
+
+            <Link 
+              href={`/events/${eventId}/live`}
+              target="_blank"
+              className="px-4 py-2.5 bg-gradient-to-r from-amber-400 to-amber-500 border border-amber-500 text-[#002D62] text-sm font-black rounded-xl hover:shadow-lg hover:scale-105 transition-all shadow-sm flex items-center gap-2"
+              title="Phát Bức tường giao thương lên máy chiếu"
+            >
+              <i className="ph-bold ph-monitor-play text-lg"></i> Mở Màn hình Live
+            </Link>
+
+            <div className="hidden sm:block w-px h-8 bg-slate-200 mx-1"></div>
+
             <Link 
               href={`/events/${eventId}/edit`}
-              className="px-5 py-2.5 bg-white border border-slate-200 text-slate-700 text-sm font-bold rounded-xl hover:bg-slate-50 hover:text-[#002D62] hover:border-[#002D62] transition-all shadow-sm flex items-center gap-2"
+              className="px-4 py-2.5 bg-white border border-slate-200 text-slate-700 text-sm font-bold rounded-xl hover:bg-slate-50 hover:text-[#002D62] hover:border-[#002D62] transition-all shadow-sm flex items-center gap-2"
             >
-              <i className="ph-bold ph-pencil-simple text-lg"></i> Chỉnh sửa n.dung
+              <i className="ph-bold ph-pencil-simple text-lg"></i> Sửa n.dung
             </Link>
 
             <Link 
               href={`/events/${eventId}/checkin`}
               className="px-5 py-2.5 bg-[#002D62] border border-[#002D62] text-white text-sm font-bold rounded-xl hover:bg-blue-900 transition-all shadow-md shadow-blue-900/20 flex items-center gap-2"
             >
-              <i className="ph-bold ph-scan text-lg"></i> Chế độ Lễ tân
+              <i className="ph-bold ph-scan text-lg"></i> Lễ tân
             </Link>
           </div>
         </div>
       </div>
 
-      {/* STATS */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-4">
-          <div className="w-12 h-12 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center text-2xl"><i className="ph-fill ph-users"></i></div>
-          <div>
-            <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Tổng khách</p>
-            <p className="text-2xl font-black text-slate-900">{totalGuests} <span className="text-sm font-medium text-slate-400">/ {event.capacity}</span></p>
-          </div>
+      {/* STATS ĐÃ ĐƯỢC CẬP NHẬT 5 CỘT TRẠNG THÁI */}
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
+        <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-center">
+          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Tổng khách</p>
+          <p className="text-2xl font-black text-slate-900">{totalGuests} <span className="text-sm font-medium text-slate-400">/ {event.capacity}</span></p>
         </div>
-        <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-4">
-          <div className="w-12 h-12 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center text-2xl"><i className="ph-fill ph-check-circle"></i></div>
-          <div>
-            <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Xác nhận</p>
-            <p className="text-2xl font-black text-emerald-600">{confirmedCount}</p>
-          </div>
+        <div className="bg-indigo-50 p-5 rounded-2xl border border-indigo-100 shadow-sm flex flex-col justify-center">
+          <p className="text-[10px] font-black text-indigo-500 uppercase tracking-widest mb-1 flex items-center gap-1"><i className="ph-fill ph-check-circle"></i> Đã Check-in</p>
+          <p className="text-2xl font-black text-indigo-700">{checkedInCount}</p>
         </div>
-        <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-4">
-          <div className="w-12 h-12 rounded-full bg-amber-50 text-amber-500 flex items-center justify-center text-2xl"><i className="ph-fill ph-clock-counter-clockwise"></i></div>
-          <div>
-            <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Chờ phản hồi</p>
-            <p className="text-2xl font-black text-amber-500">{pendingCount}</p>
-          </div>
+        <div className="bg-emerald-50 p-5 rounded-2xl border border-emerald-100 shadow-sm flex flex-col justify-center">
+          <p className="text-[10px] font-black text-emerald-600 uppercase tracking-widest mb-1 flex items-center gap-1"><i className="ph-fill ph-ticket"></i> Sẽ tham dự</p>
+          <p className="text-2xl font-black text-emerald-700">{confirmedCount}</p>
         </div>
-        <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-4">
-          <div className="w-12 h-12 rounded-full bg-rose-50 text-rose-500 flex items-center justify-center text-2xl"><i className="ph-fill ph-x-circle"></i></div>
-          <div>
-            <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Từ chối</p>
-            <p className="text-2xl font-black text-rose-500">{declinedCount}</p>
-          </div>
+        <div className="bg-amber-50 p-5 rounded-2xl border border-amber-100 shadow-sm flex flex-col justify-center">
+          <p className="text-[10px] font-black text-amber-600 uppercase tracking-widest mb-1 flex items-center gap-1"><i className="ph-fill ph-clock-counter-clockwise"></i> Chờ xác nhận</p>
+          <p className="text-2xl font-black text-amber-700">{pendingCount}</p>
+        </div>
+        <div className="bg-rose-50 p-5 rounded-2xl border border-rose-100 shadow-sm flex flex-col justify-center">
+          <p className="text-[10px] font-black text-rose-600 uppercase tracking-widest mb-1 flex items-center gap-1"><i className="ph-fill ph-x-circle"></i> Từ chối</p>
+          <p className="text-2xl font-black text-rose-700">{declinedCount}</p>
         </div>
       </div>
 
@@ -262,7 +282,7 @@ export default function EventDetailPage() {
               </thead>
               <tbody className="divide-y divide-slate-50">
                 {guests.map((guest) => (
-                  <tr key={guest.id} className="hover:bg-slate-50/80 transition-colors relative group">
+                  <tr key={guest.id} className={`hover:bg-slate-50/80 transition-colors relative group ${guest.rsvp_status === 'CHECKED_IN' ? 'bg-indigo-50/30' : ''}`}>
                     <td className="px-6 py-4 font-bold text-slate-900">
                       {guest.salutation ? `${guest.salutation} ` : ''}{guest.guest_info?.name || '---'}
                     </td>
@@ -280,6 +300,8 @@ export default function EventDetailPage() {
                       </span>
                     </td>
                     <td className="px-6 py-4">
+                      {/* BỔ SUNG BADGE CHECKED_IN */}
+                      {guest.rsvp_status === 'CHECKED_IN' && <span className="px-3 py-1 bg-indigo-100 text-indigo-700 text-[11px] font-bold uppercase rounded-full shadow-sm"><i className="ph-bold ph-check"></i> Đã vào cửa</span>}
                       {guest.rsvp_status === 'CONFIRMED' && <span className="px-3 py-1 bg-emerald-50 text-emerald-700 text-[11px] font-bold uppercase rounded-full">Đã xác nhận</span>}
                       {guest.rsvp_status === 'PENDING' && <span className="px-3 py-1 bg-amber-50 text-amber-600 text-[11px] font-bold uppercase rounded-full">Chờ phản hồi</span>}
                       {guest.rsvp_status === 'DECLINED' && <span className="px-3 py-1 bg-rose-50 text-rose-600 text-[11px] font-bold uppercase rounded-full">Từ chối</span>}
@@ -290,7 +312,8 @@ export default function EventDetailPage() {
                           <i className="ph-bold ph-link text-base"></i>
                         </button>
                         
-                        {guest.rsvp_status === 'CONFIRMED' && (
+                        {/* CHO PHÉP XEM MÃ QR CẢ KHI CHECKED_IN HOẶC CONFIRMED */}
+                        {(guest.rsvp_status === 'CONFIRMED' || guest.rsvp_status === 'CHECKED_IN') && (
                           <button title="Xem QR Ticket" onClick={() => { setSelectedGuest(guest); setIsModalOpen(true); }} className="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 hover:bg-emerald-100 flex items-center justify-center transition-colors">
                             <i className="ph-bold ph-qr-code text-base"></i>
                           </button>
@@ -323,43 +346,43 @@ export default function EventDetailPage() {
         </div>
       </div>
 
-      {/* Ticket Modal Pop-up */}
+      {/* 👉 POPUP HIỂN THỊ MÃ QR ĐỂ QUÉT NHANH BẰNG ĐIỆN THOẠI 👈 */}
+      {isQrModalOpen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 animate-in fade-in">
+          <div className="bg-white rounded-3xl p-8 max-w-sm w-full text-center relative shadow-2xl animate-in zoom-in-95">
+            <button onClick={() => setIsQrModalOpen(false)} className="absolute top-4 right-4 text-slate-400 hover:text-rose-500 transition-colors">
+              <i className="ph-bold ph-x text-2xl"></i>
+            </button>
+            <div className="w-16 h-16 bg-blue-50 text-blue-600 rounded-2xl mx-auto flex items-center justify-center mb-4">
+              <i className="ph-fill ph-qr-code text-3xl"></i>
+            </div>
+            <h3 className="text-2xl font-black text-[#002D62] mb-2">QR Giao Thương</h3>
+            <p className="text-sm text-slate-500 mb-6">Mời khách quét mã này để gửi thông điệp và Profile lên màn hình chiếu.</p>
+            
+            <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100 flex justify-center mb-6">
+              {/* Dùng thư viện ngoài tạo QR tức thì dựa trên URL */}
+              <img 
+                src={`https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(typeof window !== 'undefined' ? `${window.location.origin}/e/${eventId}` : `https://admin.nkba.vn/e/${eventId}`)}`} 
+                alt="QR Code" 
+                className="w-48 h-48 mix-blend-multiply" 
+              />
+            </div>
+            
+            <button 
+              onClick={handleCopyLiveConnectLink} 
+              className="w-full py-3.5 bg-slate-100 text-slate-700 font-black text-sm rounded-xl hover:bg-slate-200 transition-colors flex items-center justify-center gap-2"
+            >
+              <i className="ph-bold ph-copy text-lg"></i> COPY LINK URL
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Các Modal hiện tại giữ nguyên */}
       <TicketModal isOpen={isModalOpen} onClose={() => { setIsModalOpen(false); setSelectedGuest(null); }} guest={selectedGuest} event={event} />
-    
-      {/* Modal Thêm Khách Mời */}
-      <AddGuestModal 
-        isOpen={isAddGuestModalOpen} 
-        onClose={() => { 
-          setIsAddGuestModalOpen(false); 
-          fetchData(); 
-        }} 
-        eventId={eventId} 
-      />
-
-      {/* Modal Sửa Khách Mời */}
-      <EditGuestModal
-        isOpen={isEditGuestModalOpen}
-        onClose={() => {
-          setIsEditGuestModalOpen(false);
-          setGuestToEdit(null);
-        }}
-        onSuccess={() => {
-          setIsEditGuestModalOpen(false);
-          setGuestToEdit(null);
-          fetchData(); 
-        }}
-        guest={guestToEdit}
-        eventId={eventId}
-      />
-
-      {/* Modal Xuất Thiệp VIP */}
-      <EInviteModal 
-        isOpen={isInviteModalOpen} 
-        onClose={() => setIsInviteModalOpen(false)} 
-        event={event} 
-        guests={guests} 
-      />
-
+      <AddGuestModal isOpen={isAddGuestModalOpen} onClose={() => { setIsAddGuestModalOpen(false); fetchData(); }} eventId={eventId} />
+      <EditGuestModal isOpen={isEditGuestModalOpen} onClose={() => { setIsEditGuestModalOpen(false); setGuestToEdit(null); }} onSuccess={() => { setIsEditGuestModalOpen(false); setGuestToEdit(null); fetchData(); }} guest={guestToEdit} eventId={eventId} />
+      <EInviteModal isOpen={isInviteModalOpen} onClose={() => setIsInviteModalOpen(false)} event={event} guests={guests} />
     </div> 
   );
 }
