@@ -14,9 +14,6 @@ export default function MemberDirectoryPage() {
   const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
-  // STATE XEM CHI TIẾT HỒ SƠ NĂNG LỰC
-  const [selectedMember, setSelectedMember] = useState<any | null>(null);
-
   const UPGRADE_URL = "/upgrade";
 
   useEffect(() => {
@@ -38,9 +35,7 @@ export default function MemberDirectoryPage() {
           .eq('user_auth_id', user.id)
           .single();
 
-        if (profileError && profileError.code !== 'PGRST116') {
-          throw profileError;
-        }
+        if (profileError && profileError.code !== 'PGRST116') throw profileError;
 
         if (profile) {
           const tierCode = Array.isArray(profile.individual_tiers) 
@@ -51,7 +46,6 @@ export default function MemberDirectoryPage() {
           setCurrentUser({ tier_code: 'VIP', is_admin: true });
         }
 
-        // Tải danh bạ kèm theo thông tin chi tiết của Corporates
         const { data: directoryData, error: dirError } = await supabase
           .from('individuals')
           .select(`
@@ -73,7 +67,6 @@ export default function MemberDirectoryPage() {
           setMembers(sortedData);
         }
       } catch (err: any) {
-        console.error('Lỗi tải trang Danh bạ:', err);
         setErrorMsg('Không thể kết nối đến máy chủ. Vui lòng kiểm tra mạng và tải lại trang.');
       } finally {
         setLoading(false);
@@ -90,29 +83,17 @@ export default function MemberDirectoryPage() {
 
   const canViewContact = (tierCode: string) => ['PREMIUM', 'TITANIUM', 'VIP', 'GOLD'].includes(tierCode);
 
-  if (errorMsg) {
-    return (
-      <div className="flex flex-col h-[60vh] items-center justify-center text-center">
-        <i className="ph-fill ph-warning-circle text-5xl text-rose-500 mb-4"></i>
-        <p className="text-slate-600 font-bold mb-4">{errorMsg}</p>
-        <button onClick={() => window.location.reload()} className="px-6 py-2 bg-[#002D62] text-white rounded-xl font-bold">Tải lại trang</button>
-      </div>
-    );
-  }
+  if (errorMsg) return (
+    <div className="flex flex-col h-[60vh] items-center justify-center text-center"><i className="ph-fill ph-warning-circle text-5xl text-rose-500 mb-4"></i><p className="text-slate-600 font-bold mb-4">{errorMsg}</p><button onClick={() => window.location.reload()} className="px-6 py-2 bg-[#002D62] text-white rounded-xl font-bold">Tải lại trang</button></div>
+  );
 
-  if (loading) {
-    return (
-      <div className="flex h-[60vh] items-center justify-center text-slate-400 font-bold">
-        <i className="ph-bold ph-spinner animate-spin text-3xl mr-3 text-[#002D62]"></i> 
-        Đang tải Mạng lưới...
-      </div>
-    );
-  }
+  if (loading) return (
+    <div className="flex h-[60vh] items-center justify-center text-slate-400 font-bold"><i className="ph-bold ph-spinner animate-spin text-3xl mr-3 text-[#002D62]"></i> Đang tải Mạng lưới...</div>
+  );
 
   return (
     <div className="max-w-7xl mx-auto px-4 md:px-8 py-8 space-y-10 animate-in fade-in duration-500 pb-24">
       
-      {/* HEADER */}
       <div className="bg-gradient-to-r from-[#002D62] to-blue-900 p-8 md:p-12 rounded-[2.5rem] shadow-xl text-white relative overflow-hidden flex flex-col md:flex-row items-center justify-between gap-8">
         <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/4"></div>
         <div className="relative z-10 max-w-2xl text-center md:text-left">
@@ -134,12 +115,9 @@ export default function MemberDirectoryPage() {
         </div>
       </div>
 
-      {/* DANH SÁCH THÀNH VIÊN */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {filteredMembers.length === 0 ? (
-          <div className="col-span-full py-20 text-center text-slate-400 font-medium bg-white rounded-3xl border border-slate-200">
-            Không tìm thấy hội viên nào khớp với từ khóa "{searchQuery}".
-          </div>
+          <div className="col-span-full py-20 text-center text-slate-400 font-medium bg-white rounded-3xl border border-slate-200">Không tìm thấy hội viên nào khớp với từ khóa "{searchQuery}".</div>
         ) : (
           filteredMembers.map(member => {
             const tierName = Array.isArray(member.individual_tiers) ? member.individual_tiers[0]?.name : member.individual_tiers?.name;
@@ -171,13 +149,13 @@ export default function MemberDirectoryPage() {
                   </p>
                 </div>
 
-                {/* NÚT BẤM XEM HỒ SƠ NĂNG LỰC */}
-                <button 
-                  onClick={() => setSelectedMember(member)} 
+                {/* SỬA TẠI ĐÂY: Dùng Link thay cho button gọi Modal */}
+                <Link 
+                  href={`/directory/${member.id}`} 
                   className="mb-5 w-full py-2.5 bg-slate-50 border border-slate-200 text-[#002D62] text-xs font-black rounded-xl hover:bg-[#002D62] hover:text-white transition-colors flex items-center justify-center gap-2"
                 >
-                  <i className="ph-bold ph-eye"></i> XEM HỒ SƠ NĂNG LỰC
-                </button>
+                  <i className="ph-bold ph-arrow-square-out"></i> XEM TRANG DOANH NGHIỆP
+                </Link>
 
                 <div className="mt-auto pt-5 border-t border-slate-100 relative z-10">
                   {canViewContact(currentUser?.tier_code) ? (
@@ -201,114 +179,6 @@ export default function MemberDirectoryPage() {
           })
         )}
       </div>
-
-      {/* ==================================================== */}
-      {/* MODAL CHI TIẾT HỒ SƠ NĂNG LỰC (PORTFOLIO DRAWER)   */}
-      {/* ==================================================== */}
-      {selectedMember && (
-        <div className="fixed inset-0 z-[999] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in">
-          <div className="bg-white w-full max-w-3xl rounded-[2.5rem] shadow-2xl overflow-hidden max-h-[90vh] flex flex-col animate-in zoom-in-95">
-            
-            {/* Header Modal */}
-            <div className="bg-gradient-to-r from-[#002D62] to-blue-900 p-8 text-white relative shrink-0">
-              <button 
-                onClick={() => setSelectedMember(null)} 
-                className="absolute top-6 right-6 w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition-colors"
-              >
-                <i className="ph-bold ph-x text-xl"></i>
-              </button>
-              
-              <p className="text-xs font-black uppercase tracking-widest text-blue-300 mb-2">Hồ sơ năng lực Doanh nghiệp</p>
-              <h2 className="text-2xl md:text-3xl font-black leading-tight mb-2">
-                {selectedMember.corporates?.name || selectedMember.full_name}
-              </h2>
-              <div className="flex flex-wrap items-center gap-4 text-xs font-bold text-blue-200">
-                {selectedMember.corporates?.tax_code && <span><i className="ph-bold ph-tag"></i> MST: {selectedMember.corporates.tax_code}</span>}
-                {selectedMember.corporates?.corporate_domains?.name && <span><i className="ph-bold ph-buildings"></i> Lĩnh vực: {selectedMember.corporates.corporate_domains.name}</span>}
-              </div>
-            </div>
-
-            {/* Content Modal */}
-            <div className="p-8 overflow-y-auto space-y-8 bg-slate-50/50">
-              
-              {/* Giới thiệu */}
-              <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
-                <h4 className="text-sm font-black text-[#002D62] uppercase tracking-widest mb-3 flex items-center gap-2">
-                  <i className="ph-fill ph-book-open-text text-lg"></i> Giới thiệu công ty
-                </h4>
-                <p className="text-sm font-medium text-slate-700 leading-relaxed whitespace-pre-wrap">
-                  {selectedMember.corporates?.details?.about_us || 'Chưa cập nhật thông tin giới thiệu.'}
-                </p>
-                {selectedMember.corporates?.details?.website && (
-                  <a href={selectedMember.corporates.details.website} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 text-xs font-bold text-blue-600 mt-4 hover:underline">
-                    <i className="ph-bold ph-globe"></i> Truy cập Website Doanh nghiệp
-                  </a>
-                )}
-              </div>
-
-              {/* Sản phẩm / Dịch vụ */}
-              {selectedMember.corporates?.details?.products?.length > 0 && (
-                <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
-                  <h4 className="text-sm font-black text-amber-600 uppercase tracking-widest mb-4 flex items-center gap-2">
-                    <i className="ph-fill ph-package text-lg"></i> Sản phẩm & Dịch vụ nổi bật
-                  </h4>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    {selectedMember.corporates.details.products.map((prod: any, idx: number) => (
-                      <div key={idx} className="p-4 bg-slate-50 rounded-xl border border-slate-100 flex gap-3">
-                        {prod.image && <img src={prod.image} alt={prod.name} className="w-16 h-16 object-cover rounded-lg shrink-0 border border-slate-200" />}
-                        <div>
-                          <p className="font-bold text-slate-800 text-sm mb-1">{prod.name}</p>
-                          <p className="text-xs text-slate-500 line-clamp-2">{prod.description}</p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Dự án tiêu biểu */}
-              {selectedMember.corporates?.details?.projects?.length > 0 && (
-                <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
-                  <h4 className="text-sm font-black text-emerald-600 uppercase tracking-widest mb-4 flex items-center gap-2">
-                    <i className="ph-fill ph-buildings text-lg"></i> Dự án tiêu biểu đã thực hiện
-                  </h4>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    {selectedMember.corporates.details.projects.map((proj: any, idx: number) => (
-                      <div key={idx} className="p-4 bg-slate-50 rounded-xl border border-slate-100 flex gap-3">
-                        {proj.image && <img src={proj.image} alt={proj.name} className="w-16 h-20 object-cover rounded-lg shrink-0 border border-slate-200" />}
-                        <div>
-                          <p className="font-bold text-slate-800 text-sm mb-1">{proj.name}</p>
-                          <p className="text-xs text-slate-500 font-medium">Năm: {proj.year} | Vai trò: {proj.role}</p>
-                          {proj.description && <p className="text-xs text-slate-400 mt-1 line-clamp-2">{proj.description}</p>}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Liên hệ */}
-              <div className="bg-blue-50/50 p-6 rounded-2xl border border-blue-100 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                <div>
-                  <p className="text-xs font-black text-[#002D62] uppercase tracking-widest mb-1">Người đại diện liên hệ</p>
-                  <p className="text-base font-bold text-slate-900">{selectedMember.full_name}</p>
-                  {selectedMember.role_in_company && <p className="text-xs text-slate-500 font-medium">{selectedMember.role_in_company}</p>}
-                </div>
-                {canViewContact(currentUser?.tier_code) ? (
-                  <div className="text-right">
-                    <p className="text-xs font-bold text-slate-700">{selectedMember.phone}</p>
-                    <p className="text-xs font-bold text-slate-700">{selectedMember.email}</p>
-                  </div>
-                ) : (
-                  <Link href={UPGRADE_URL} className="px-4 py-2 bg-amber-500 text-white rounded-xl text-xs font-bold shadow-md hover:bg-amber-600">NÂNG CẤP XEM LIÊN HỆ</Link>
-                )}
-              </div>
-
-            </div>
-          </div>
-        </div>
-      )}
-
     </div>
   );
 }
