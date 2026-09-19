@@ -69,7 +69,7 @@ export default function InsightsPage() {
   };
 
   // ==========================================
-  // LOGIC CRUD BÁO CÁO (THÊM / SỬA / XÓA)
+  // LOGIC CRUD BÁO CÁO
   // ==========================================
   const handleSaveReport = async () => {
     if (!reportForm.title || !reportForm.file_url) return alert('Vui lòng nhập Tên báo cáo và Link File!');
