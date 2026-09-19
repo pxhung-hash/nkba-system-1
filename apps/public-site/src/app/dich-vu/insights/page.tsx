@@ -3,10 +3,40 @@
 import Link from 'next/link';
 import { useLanguage } from '@/i18n/LanguageContext';
 import { dict } from '@/i18n/dictionaries';
+import { createClient } from '@/utils/supabase/client';
+import { useState } from 'react';
 
 export default function InsightsDiscoverPage() {
   const { lang } = useLanguage();
   const t = dict[lang].insightsPage;
+  const supabase = createClient();
+  const [isChecking, setIsChecking] = useState(false);
+
+  // HÀM KIỂM TRA ĐĂNG NHẬP TRƯỚC KHI NÂNG CẤP
+  const handleUpgradeClick = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    if (isChecking) return;
+    
+    setIsChecking(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+
+      if (!user) {
+        alert('Vui lòng Đăng nhập hoặc Đăng ký tài khoản Hội viên trước khi nâng cấp gói dịch vụ!');
+        // Đưa người dùng về trang Login của Portal
+        window.location.href = 'https://portal.nkba.vn/login'; 
+        return;
+      }
+
+      // Đã có tài khoản -> Đưa thẳng vào trang Nâng cấp trong Portal
+      window.location.href = 'https://portal.nkba.vn/upgrade';
+      
+    } catch (error) {
+      console.error("Lỗi xác thực:", error);
+    } finally {
+      setIsChecking(false);
+    }
+  };
 
   return (
     <div className="bg-white min-h-screen pb-24">
@@ -25,9 +55,15 @@ export default function InsightsDiscoverPage() {
               {t.heroDesc}
             </p>
             <div className="pt-4 flex gap-4">
-              <Link href="/upgrade" className="px-8 py-4 bg-indigo-600 text-white font-black rounded-xl shadow-lg shadow-indigo-600/20 hover:bg-indigo-700 transition-colors">
+              {/* SỬA NÚT Ở ĐÂY */}
+              <button 
+                onClick={handleUpgradeClick}
+                disabled={isChecking}
+                className="px-8 py-4 bg-indigo-600 text-white font-black rounded-xl shadow-lg shadow-indigo-600/20 hover:bg-indigo-700 transition-colors disabled:opacity-70 flex items-center gap-2"
+              >
+                {isChecking ? <i className="ph-bold ph-spinner animate-spin text-xl"></i> : null}
                 {t.unlockBtn}
-              </Link>
+              </button>
             </div>
           </div>
           
@@ -74,13 +110,13 @@ export default function InsightsDiscoverPage() {
             <h3 className="text-xl font-black text-slate-900 mb-2">{t.c1Title}</h3>
             <p className="text-sm text-slate-600 font-medium mb-6">{t.c1Desc}</p>
             
-            <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 backdrop-blur-sm relative">
+            <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 backdrop-blur-sm relative cursor-pointer" onClick={handleUpgradeClick}>
               <div className="blur-[4px] select-none opacity-60">
                 <p className="text-xs font-bold font-mono">{t.c1Blur1}</p>
                 <p className="text-xs font-bold font-mono">{t.c1Blur2}</p>
               </div>
               <div className="absolute inset-0 flex items-center justify-center">
-                <span className="bg-slate-900/90 text-white text-[10px] uppercase font-black tracking-widest px-3 py-1.5 rounded-md flex items-center gap-1"><i className="ph-fill ph-lock"></i> {t.c1Lock}</span>
+                <span className="bg-slate-900/90 text-white text-[10px] uppercase font-black tracking-widest px-3 py-1.5 rounded-md flex items-center gap-1 hover:scale-105 transition-transform"><i className="ph-fill ph-lock"></i> {t.c1Lock}</span>
               </div>
             </div>
           </div>
@@ -91,13 +127,13 @@ export default function InsightsDiscoverPage() {
             <h3 className="text-xl font-black text-slate-900 mb-2">{t.c2Title}</h3>
             <p className="text-sm text-slate-600 font-medium mb-6">{t.c2Desc}</p>
             
-            <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 backdrop-blur-sm relative">
+            <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 backdrop-blur-sm relative cursor-pointer" onClick={handleUpgradeClick}>
               <div className="blur-[4px] select-none opacity-60">
                 <p className="text-xs font-bold font-mono">{t.c2Blur1}</p>
                 <p className="text-xs font-bold font-mono">{t.c2Blur2}</p>
               </div>
               <div className="absolute inset-0 flex items-center justify-center">
-                <span className="bg-slate-900/90 text-white text-[10px] uppercase font-black tracking-widest px-3 py-1.5 rounded-md flex items-center gap-1"><i className="ph-fill ph-lock"></i> {t.c2Lock}</span>
+                <span className="bg-slate-900/90 text-white text-[10px] uppercase font-black tracking-widest px-3 py-1.5 rounded-md flex items-center gap-1 hover:scale-105 transition-transform"><i className="ph-fill ph-lock"></i> {t.c2Lock}</span>
               </div>
             </div>
           </div>
@@ -109,9 +145,15 @@ export default function InsightsDiscoverPage() {
       <div className="max-w-4xl mx-auto px-6 mt-24 text-center">
         <h2 className="text-2xl font-black text-slate-900 mb-4">{t.ctaTitle}</h2>
         <p className="text-slate-600 font-medium mb-8">{t.ctaDesc}</p>
-        <Link href="/upgrade" className="inline-flex items-center gap-2 px-10 py-4 bg-slate-900 text-white font-black rounded-xl shadow-lg hover:bg-black transition-colors">
+        {/* SỬA NÚT Ở ĐÂY NỮA */}
+        <button 
+          onClick={handleUpgradeClick}
+          disabled={isChecking}
+          className="inline-flex items-center gap-2 px-10 py-4 bg-slate-900 text-white font-black rounded-xl shadow-lg hover:bg-black transition-colors disabled:opacity-70"
+        >
+          {isChecking ? <i className="ph-bold ph-spinner animate-spin"></i> : null}
           {t.ctaBtn} <i className="ph-bold ph-arrow-right"></i>
-        </Link>
+        </button>
       </div>
 
     </div>
