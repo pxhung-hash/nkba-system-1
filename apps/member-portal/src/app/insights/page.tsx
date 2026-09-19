@@ -110,6 +110,17 @@ export default function MemberInsightsPage() {
 
   const canRequestData = currentUser?.allowedFeatures?.includes('REQUEST_CUSTOM_DATA');
 
+  // HÀM LẤY CONFIG MÀU SẮC CHO TỪNG TRẠNG THÁI YÊU CẦU
+  const getReqStatusConfig = (status: string) => {
+    switch(status) {
+      case 'COMPLETED': return { color: 'text-emerald-700', bg: 'bg-emerald-100', border: 'border-emerald-200', label: 'ĐÃ TRẢ KẾT QUẢ' };
+      case 'PROCESSING': return { color: 'text-blue-700', bg: 'bg-blue-100', border: 'border-blue-200', label: 'ĐANG XỬ LÝ' };
+      case 'NEED_MORE_INFO': return { color: 'text-purple-700', bg: 'bg-purple-100', border: 'border-purple-200', label: 'CẦN BỔ SUNG THÔNG TIN' };
+      case 'REJECTED': return { color: 'text-rose-700', bg: 'bg-rose-100', border: 'border-rose-200', label: 'TỪ CHỐI' };
+      default: return { color: 'text-amber-700', bg: 'bg-amber-100', border: 'border-amber-200', label: 'CHỜ TIẾP NHẬN' };
+    }
+  };
+
   return (
     <div className="max-w-7xl mx-auto px-4 md:px-8 py-8 space-y-10 animate-in fade-in duration-500 pb-24">
       
@@ -235,29 +246,83 @@ export default function MemberInsightsPage() {
                     <p className="text-slate-500 font-bold">Bạn chưa gửi yêu cầu dữ liệu nào.</p>
                   </div>
                 ) : (
-                  myRequests.map(req => (
-                    <div key={req.id} className="bg-white border border-slate-200 rounded-3xl p-6 md:p-8 shadow-sm group hover:border-teal-300 hover:shadow-md transition-all flex flex-col">
-                      <div className="flex justify-between items-start mb-4">
-                        <span className={`text-[9px] font-black px-3 py-1.5 rounded-lg uppercase tracking-widest border ${req.status === 'COMPLETED' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-amber-50 text-amber-700 border-amber-200'}`}>
-                          {req.status === 'COMPLETED' ? 'ĐÃ PHẢN HỒI' : 'ĐANG XỬ LÝ'}
-                        </span>
-                        <p className="text-[10px] font-bold text-slate-400"><i className="ph-bold ph-clock"></i> {new Date(req.created_at).toLocaleDateString('vi-VN')}</p>
+                  myRequests.map(req => {
+                    const statusConf = getReqStatusConfig(req.status);
+                    return (
+                      <div key={req.id} className={`bg-white border rounded-3xl p-6 md:p-8 shadow-sm group transition-all flex flex-col ${statusConf.border}`}>
+                        <div className="flex justify-between items-start mb-4">
+                          <span className={`text-[9px] font-black px-3 py-1.5 rounded-lg uppercase tracking-widest border ${statusConf.bg} ${statusConf.color} ${statusConf.border}`}>
+                            {statusConf.label}
+                          </span>
+                          <p className="text-[10px] font-bold text-slate-400"><i className="ph-bold ph-clock"></i> {new Date(req.created_at).toLocaleDateString('vi-VN')}</p>
+                        </div>
+                        <h4 className="text-lg font-black text-slate-900 mb-2 leading-tight">{req.title}</h4>
+                        <p className="text-sm text-slate-600 mb-6 flex-1 line-clamp-3 bg-slate-50 p-4 rounded-xl border border-slate-100">{req.content}</p>
+                        
+                        {/* KHU VỰC HIỂN THỊ PHẢN HỒI TỪ ADMIN DỰA TRÊN TRẠNG THÁI */}
+                        <div className="mt-auto pt-5 border-t border-slate-100">
+                          
+                          {/* 1. Trạng thái Hoàn thành (Có file tải về) */}
+                          {req.status === 'COMPLETED' && (
+                            <div className="bg-emerald-50 p-5 rounded-2xl border border-emerald-100">
+                              <p className="text-xs text-emerald-800 font-bold leading-relaxed mb-4 border-l-2 border-emerald-400 pl-3">
+                                "{req.admin_note || 'Ban nghiên cứu đã hoàn tất báo cáo cho yêu cầu của bạn.'}"
+                              </p>
+                              <a href={req.result_file_url || '#'} target="_blank" rel="noreferrer" className="h-12 w-full bg-white text-emerald-700 border border-emerald-200 rounded-xl text-xs font-black hover:bg-emerald-600 hover:text-white transition-all uppercase flex items-center justify-center gap-2 shadow-sm">
+                                <i className="ph-bold ph-download-simple text-lg"></i> Tải file Kết quả (PDF/Excel)
+                              </a>
+                            </div>
+                          )}
+
+                          {/* 2. Trạng thái Yêu cầu bổ sung thông tin */}
+                          {req.status === 'NEED_MORE_INFO' && (
+                            <div className="bg-purple-50 p-5 rounded-2xl border border-purple-200 shadow-inner">
+                              <h5 className="text-xs font-black text-purple-700 uppercase tracking-widest mb-2 flex items-center gap-2">
+                                <i className="ph-fill ph-warning-circle text-lg"></i> Cần làm rõ yêu cầu
+                              </h5>
+                              <p className="text-sm text-purple-900 font-medium mb-4 whitespace-pre-wrap">
+                                {req.admin_note || 'Vui lòng cung cấp thêm chi tiết để chúng tôi có thể xử lý chính xác nhất.'}
+                              </p>
+                              <div className="bg-white p-3 rounded-xl border border-purple-100">
+                                <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Liên hệ với Admin để bổ sung:</p>
+                                <p className="text-sm font-bold text-blue-600 flex items-center gap-2"><i className="ph-fill ph-envelope-simple"></i> crm@nkba.vn</p>
+                              </div>
+                            </div>
+                          )}
+
+                          {/* 3. Trạng thái Đang xử lý */}
+                          {req.status === 'PROCESSING' && (
+                            <div className="bg-blue-50 p-4 rounded-xl border border-blue-100">
+                              <p className="text-xs font-bold text-blue-700 flex items-center gap-2 mb-2">
+                                <i className="ph-bold ph-spinner animate-spin text-base"></i> Chuyên viên đang thu thập dữ liệu...
+                              </p>
+                              {req.admin_note && <p className="text-xs text-blue-600 font-medium italic border-l-2 border-blue-300 pl-2">"{req.admin_note}"</p>}
+                            </div>
+                          )}
+
+                          {/* 4. Trạng thái Từ chối */}
+                          {req.status === 'REJECTED' && (
+                            <div className="bg-rose-50 p-5 rounded-2xl border border-rose-100">
+                              <h5 className="text-xs font-black text-rose-700 uppercase tracking-widest mb-2 flex items-center gap-2">
+                                <i className="ph-fill ph-x-circle text-lg"></i> Từ chối xử lý
+                              </h5>
+                              <p className="text-sm text-rose-800 font-medium leading-relaxed">
+                                {req.admin_note || 'Rất tiếc, yêu cầu này không nằm trong phạm vi hỗ trợ của hạng thẻ hiện tại hoặc thiếu tính khả thi.'}
+                              </p>
+                            </div>
+                          )}
+
+                          {/* 5. Trạng thái Chờ tiếp nhận */}
+                          {req.status === 'PENDING' && (
+                            <div className="bg-amber-50 p-4 rounded-xl border border-amber-100 text-amber-700 text-xs font-bold italic flex items-center gap-2">
+                              <i className="ph-bold ph-clock-countdown animate-pulse text-lg"></i> Yêu cầu đã được ghi nhận và đang chờ phân công.
+                            </div>
+                          )}
+
+                        </div>
                       </div>
-                      <h4 className="text-lg font-black text-slate-900 mb-2 leading-tight">{req.title}</h4>
-                      <p className="text-sm text-slate-600 mb-6 flex-1 line-clamp-3 bg-slate-50 p-4 rounded-xl border border-slate-100">{req.content}</p>
-                      
-                      {req.status === 'COMPLETED' ? (
-                        <div className="bg-emerald-50 p-5 rounded-2xl border border-emerald-100 mt-auto">
-                          <p className="text-xs text-emerald-800 font-bold leading-relaxed mb-4 border-l-2 border-emerald-400 pl-3">"{req.admin_note || 'Ban nghiên cứu đã hoàn tất báo cáo cho yêu cầu của bạn.'}"</p>
-                          <a href={req.result_file_url || '#'} target="_blank" className="h-12 w-full bg-white text-emerald-700 border border-emerald-200 rounded-xl text-xs font-black hover:bg-emerald-600 hover:text-white transition-all uppercase flex items-center justify-center gap-2 shadow-sm"><i className="ph-bold ph-download-simple text-lg"></i> Tải file Kết quả (PDF/Excel)</a>
-                        </div>
-                      ) : (
-                        <div className="pt-4 border-t border-slate-100 flex items-center gap-2 text-amber-600 italic text-xs font-bold mt-auto bg-amber-50 p-3 rounded-xl border border-amber-100">
-                          <i className="ph-bold ph-clock-countdown animate-pulse text-lg"></i> Chuyên viên đang thu thập dữ liệu...
-                        </div>
-                      )}
-                    </div>
-                  ))
+                    );
+                  })
                 )}
               </div>
             </>
@@ -332,7 +397,6 @@ export default function MemberInsightsPage() {
                     </p>
                   </div>
                   
-                  {/* Có thể thêm vùng hiển thị mục lục hoặc tác giả ở đây nếu DB hỗ trợ */}
                   <div className="bg-blue-50/50 border border-blue-100 p-6 rounded-2xl">
                     <h4 className="text-xs font-black text-[#002D62] uppercase tracking-widest mb-2"><i className="ph-bold ph-info"></i> Về báo cáo này</h4>
                     <p className="text-xs font-medium text-slate-600 leading-relaxed">
