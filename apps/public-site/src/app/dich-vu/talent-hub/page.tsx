@@ -3,10 +3,37 @@
 import Link from 'next/link';
 import { useLanguage } from '@/i18n/LanguageContext';
 import { dict } from '@/i18n/dictionaries';
+import { createClient } from '@/utils/supabase/client';
+import { useState } from 'react';
 
 export default function TalentHubDiscoverPage() {
   const { lang } = useLanguage();
   const t = dict[lang].talentHubPage;
+  const supabase = createClient();
+  const [isChecking, setIsChecking] = useState(false);
+
+  // HÀM KIỂM TRA ĐĂNG NHẬP TRƯỚC KHI CHUYỂN HƯỚNG NÂNG CẤP
+  const handleUpgradeClick = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    if (isChecking) return;
+    
+    setIsChecking(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+
+      if (!user) {
+        alert('Vui lòng Đăng nhập hoặc Đăng ký tài khoản Hội viên trước khi nâng cấp gói dịch vụ!');
+        window.location.href = 'https://portal.nkba.vn/login'; 
+        return;
+      }
+
+      window.location.href = 'https://portal.nkba.vn/upgrade';
+    } catch (error) {
+      console.error("Lỗi xác thực:", error);
+    } finally {
+      setIsChecking(false);
+    }
+  };
 
   return (
     <div className="bg-slate-50 min-h-screen pb-24">
@@ -54,15 +81,15 @@ export default function TalentHubDiscoverPage() {
                 <span className="inline-block px-3 py-1 bg-white border border-slate-200 text-xs font-bold text-slate-600 rounded-md">{t.c1Skill3}</span>
               </div>
               
-              <div className="bg-white p-4 rounded-xl border border-slate-200 relative">
+              <div className="bg-white p-4 rounded-xl border border-slate-200 relative cursor-pointer" onClick={handleUpgradeClick}>
                 <div className="blur-sm opacity-50 select-none">
                   <p className="text-xs font-bold font-mono">{t.c1Blur1}</p>
                   <p className="text-xs font-bold font-mono">{t.c1Blur2}</p>
                 </div>
                 <div className="absolute inset-0 flex items-center justify-center">
-                  <Link href="/upgrade" className="px-6 py-2 bg-emerald-600 text-white text-xs font-black rounded-lg shadow-lg hover:bg-emerald-700 transition-colors">
-                    <i className="ph-fill ph-lock-key"></i> {t.unlockCV}
-                  </Link>
+                  <button disabled={isChecking} className="px-6 py-2 bg-emerald-600 text-white text-xs font-black rounded-lg shadow-lg hover:bg-emerald-700 transition-colors disabled:opacity-70 flex items-center gap-1.5">
+                    {isChecking ? <i className="ph-bold ph-spinner animate-spin text-sm"></i> : <i className="ph-fill ph-lock-key text-sm"></i>} {t.unlockCV}
+                  </button>
                 </div>
               </div>
             </div>
@@ -82,15 +109,15 @@ export default function TalentHubDiscoverPage() {
                 <span className="inline-block px-3 py-1 bg-white border border-slate-200 text-xs font-bold text-slate-600 rounded-md">{t.c2Skill3}</span>
               </div>
               
-              <div className="bg-white p-4 rounded-xl border border-slate-200 relative">
+              <div className="bg-white p-4 rounded-xl border border-slate-200 relative cursor-pointer" onClick={handleUpgradeClick}>
                 <div className="blur-sm opacity-50 select-none">
                   <p className="text-xs font-bold font-mono">{t.c2Blur1}</p>
                   <p className="text-xs font-bold font-mono">{t.c2Blur2}</p>
                 </div>
                 <div className="absolute inset-0 flex items-center justify-center">
-                  <Link href="/upgrade" className="px-6 py-2 bg-emerald-600 text-white text-xs font-black rounded-lg shadow-lg hover:bg-emerald-700 transition-colors">
-                    <i className="ph-fill ph-lock-key"></i> {t.unlockCV}
-                  </Link>
+                  <button disabled={isChecking} className="px-6 py-2 bg-emerald-600 text-white text-xs font-black rounded-lg shadow-lg hover:bg-emerald-700 transition-colors disabled:opacity-70 flex items-center gap-1.5">
+                    {isChecking ? <i className="ph-bold ph-spinner animate-spin text-sm"></i> : <i className="ph-fill ph-lock-key text-sm"></i>} {t.unlockCV}
+                  </button>
                 </div>
               </div>
             </div>
@@ -99,13 +126,19 @@ export default function TalentHubDiscoverPage() {
         </div>
       </div>
 
+      {/* LỜI KÊU GỌI */}
       <div className="max-w-4xl mx-auto px-6 mt-24 text-center">
         <h2 className="text-2xl font-black text-slate-900 mb-4">{t.ctaTitle}</h2>
         <p className="text-slate-600 font-medium mb-8">{t.ctaDesc}</p>
-        <Link href="/upgrade" className="inline-flex items-center gap-2 px-10 py-4 bg-slate-900 text-white font-black rounded-xl shadow-lg hover:bg-black transition-colors">
-          {t.ctaBtn} <i className="ph-bold ph-arrow-right"></i>
-        </Link>
+        <button 
+          onClick={handleUpgradeClick}
+          disabled={isChecking}
+          className="inline-flex items-center gap-2 px-10 py-4 bg-slate-900 text-white font-black rounded-xl shadow-lg hover:bg-black transition-colors disabled:opacity-70"
+        >
+          {isChecking ? <i className="ph-bold ph-spinner animate-spin"></i> : null} {t.ctaBtn} <i className="ph-bold ph-arrow-right"></i>
+        </button>
       </div>
+
     </div>
   );
 }

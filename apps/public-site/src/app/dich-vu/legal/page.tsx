@@ -1,12 +1,38 @@
 'use client';
 
-import Link from 'next/link';
 import { useLanguage } from '@/i18n/LanguageContext';
 import { dict } from '@/i18n/dictionaries';
+import { createClient } from '@/utils/supabase/client';
+import { useState } from 'react';
 
 export default function LegalDiscoverPage() {
   const { lang } = useLanguage();
   const t = dict[lang].legalPage;
+  const supabase = createClient();
+  const [isChecking, setIsChecking] = useState(false);
+
+  // HÀM KIỂM TRA ĐĂNG NHẬP TRƯỚC KHI CHUYỂN HƯỚNG NÂNG CẤP
+  const handleUpgradeClick = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    if (isChecking) return;
+    
+    setIsChecking(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+
+      if (!user) {
+        alert('Vui lòng Đăng nhập hoặc Đăng ký tài khoản Hội viên trước khi nâng cấp gói dịch vụ!');
+        window.location.href = 'https://portal.nkba.vn/login'; 
+        return;
+      }
+
+      window.location.href = 'https://portal.nkba.vn/upgrade';
+    } catch (error) {
+      console.error("Lỗi xác thực:", error);
+    } finally {
+      setIsChecking(false);
+    }
+  };
 
   return (
     <div className="bg-slate-50 min-h-screen pb-24">
@@ -53,9 +79,9 @@ export default function LegalDiscoverPage() {
                   <i className="ph-bold ph-download-simple"></i>
                 </div>
                 <div className="absolute inset-0 flex items-center justify-center bg-white/40">
-                  <Link href="/upgrade" className="px-4 py-1.5 bg-slate-900 text-white text-[10px] uppercase tracking-widest font-black rounded-lg shadow-md hover:bg-rose-600 transition-colors">
-                    {t.unlockDownload}
-                  </Link>
+                  <button onClick={handleUpgradeClick} disabled={isChecking} className="px-4 py-1.5 bg-slate-900 text-white text-[10px] uppercase tracking-widest font-black rounded-lg shadow-md hover:bg-rose-600 transition-colors disabled:opacity-70 flex items-center gap-1.5">
+                    {isChecking ? <i className="ph-bold ph-spinner animate-spin"></i> : null} {t.unlockDownload}
+                  </button>
                 </div>
               </div>
             </div>
@@ -74,9 +100,9 @@ export default function LegalDiscoverPage() {
                   <i className="ph-bold ph-download-simple"></i>
                 </div>
                 <div className="absolute inset-0 flex items-center justify-center bg-white/40">
-                  <Link href="/upgrade" className="px-4 py-1.5 bg-slate-900 text-white text-[10px] uppercase tracking-widest font-black rounded-lg shadow-md hover:bg-rose-600 transition-colors">
-                    {t.unlockDownload}
-                  </Link>
+                  <button onClick={handleUpgradeClick} disabled={isChecking} className="px-4 py-1.5 bg-slate-900 text-white text-[10px] uppercase tracking-widest font-black rounded-lg shadow-md hover:bg-rose-600 transition-colors disabled:opacity-70 flex items-center gap-1.5">
+                    {isChecking ? <i className="ph-bold ph-spinner animate-spin"></i> : null} {t.unlockDownload}
+                  </button>
                 </div>
               </div>
             </div>
@@ -94,9 +120,9 @@ export default function LegalDiscoverPage() {
                   <span className="text-xs font-bold font-mono text-slate-400">{t.doc3Format}</span>
                 </div>
                 <div className="absolute inset-0 flex items-center justify-center bg-white/40">
-                  <Link href="/upgrade" className="px-4 py-1.5 bg-rose-600 text-white text-[10px] uppercase tracking-widest font-black rounded-lg shadow-md hover:bg-rose-700 transition-colors">
-                    {t.doc3Lock}
-                  </Link>
+                  <button onClick={handleUpgradeClick} disabled={isChecking} className="px-4 py-1.5 bg-rose-600 text-white text-[10px] uppercase tracking-widest font-black rounded-lg shadow-md hover:bg-rose-700 transition-colors disabled:opacity-70 flex items-center gap-1.5">
+                    {isChecking ? <i className="ph-bold ph-spinner animate-spin"></i> : null} {t.doc3Lock}
+                  </button>
                 </div>
               </div>
             </div>
@@ -105,13 +131,19 @@ export default function LegalDiscoverPage() {
         </div>
       </div>
 
+      {/* LỜI KÊU GỌI */}
       <div className="max-w-4xl mx-auto px-6 mt-24 text-center">
         <h2 className="text-2xl font-black text-slate-900 mb-4">{t.ctaTitle}</h2>
         <p className="text-slate-600 font-medium mb-8">{t.ctaDesc}</p>
-        <Link href="/upgrade" className="inline-flex items-center gap-2 px-10 py-4 bg-slate-900 text-white font-black rounded-xl shadow-lg hover:bg-black transition-colors">
-          {t.ctaBtn} <i className="ph-bold ph-arrow-right"></i>
-        </Link>
+        <button 
+          onClick={handleUpgradeClick}
+          disabled={isChecking}
+          className="inline-flex items-center gap-2 px-10 py-4 bg-slate-900 text-white font-black rounded-xl shadow-lg hover:bg-black transition-colors disabled:opacity-70"
+        >
+          {isChecking ? <i className="ph-bold ph-spinner animate-spin"></i> : null} {t.ctaBtn} <i className="ph-bold ph-arrow-right"></i>
+        </button>
       </div>
+
     </div>
   );
 }

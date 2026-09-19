@@ -3,10 +3,37 @@
 import Link from 'next/link';
 import { useLanguage } from '@/i18n/LanguageContext';
 import { dict } from '@/i18n/dictionaries';
+import { createClient } from '@/utils/supabase/client';
+import { useState } from 'react';
 
 export default function BizLinkDiscoverPage() {
   const { lang } = useLanguage();
   const t = dict[lang].bizLinkPage;
+  const supabase = createClient();
+  const [isChecking, setIsChecking] = useState(false);
+
+  // HÀM KIỂM TRA ĐĂNG NHẬP TRƯỚC KHI CHUYỂN HƯỚNG NÂNG CẤP
+  const handleUpgradeClick = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    if (isChecking) return;
+    
+    setIsChecking(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+
+      if (!user) {
+        alert('Vui lòng Đăng nhập hoặc Đăng ký tài khoản Hội viên trước khi nâng cấp gói dịch vụ!');
+        window.location.href = 'https://portal.nkba.vn/login'; 
+        return;
+      }
+
+      window.location.href = 'https://portal.nkba.vn/upgrade';
+    } catch (error) {
+      console.error("Lỗi xác thực:", error);
+    } finally {
+      setIsChecking(false);
+    }
+  };
 
   return (
     <div className="bg-slate-50 min-h-screen pb-24">
@@ -63,9 +90,9 @@ export default function BizLinkDiscoverPage() {
                   <p className="text-xs font-bold text-slate-500">{t.pj1Contact}</p>
                 </div>
                 <div className="absolute inset-0 flex items-center justify-center">
-                  <Link href="/upgrade" className="px-6 py-2 bg-slate-900 text-white text-xs font-black rounded-lg shadow-lg hover:bg-[#002D62] transition-colors whitespace-nowrap">
-                    <i className="ph-fill ph-lock-key"></i> {t.unlockBtn}
-                  </Link>
+                  <button onClick={handleUpgradeClick} disabled={isChecking} className="px-6 py-2 bg-slate-900 text-white text-xs font-black rounded-lg shadow-lg hover:bg-[#002D62] transition-colors whitespace-nowrap disabled:opacity-70 flex items-center gap-1.5">
+                    {isChecking ? <i className="ph-bold ph-spinner animate-spin text-sm"></i> : <i className="ph-fill ph-lock-key text-sm"></i>} {t.unlockBtn}
+                  </button>
                 </div>
               </div>
             </div>
@@ -85,9 +112,9 @@ export default function BizLinkDiscoverPage() {
                   <p className="text-xs font-bold text-slate-500">{t.pj2Client}</p>
                 </div>
                 <div className="absolute inset-0 flex items-center justify-center">
-                  <Link href="/upgrade" className="px-6 py-2 bg-slate-900 text-white text-xs font-black rounded-lg shadow-lg hover:bg-[#002D62] transition-colors whitespace-nowrap">
-                    <i className="ph-fill ph-lock-key"></i> {t.unlockBtn}
-                  </Link>
+                  <button onClick={handleUpgradeClick} disabled={isChecking} className="px-6 py-2 bg-slate-900 text-white text-xs font-black rounded-lg shadow-lg hover:bg-[#002D62] transition-colors whitespace-nowrap disabled:opacity-70 flex items-center gap-1.5">
+                    {isChecking ? <i className="ph-bold ph-spinner animate-spin text-sm"></i> : <i className="ph-fill ph-lock-key text-sm"></i>} {t.unlockBtn}
+                  </button>
                 </div>
               </div>
             </div>
@@ -125,9 +152,14 @@ export default function BizLinkDiscoverPage() {
           <p className="text-blue-200 text-lg font-medium mb-10 max-w-2xl mx-auto">
             {t.ctaDesc}
           </p>
-          <Link href="/upgrade" className="inline-flex items-center gap-3 px-12 py-5 bg-gradient-to-r from-amber-400 to-amber-500 text-amber-950 text-lg font-black rounded-xl shadow-xl shadow-amber-500/20 hover:scale-105 transition-transform">
+          <button 
+            onClick={handleUpgradeClick}
+            disabled={isChecking}
+            className="inline-flex items-center gap-3 px-12 py-5 bg-gradient-to-r from-amber-400 to-amber-500 text-amber-950 text-lg font-black rounded-xl shadow-xl shadow-amber-500/20 hover:scale-105 transition-transform disabled:opacity-70"
+          >
+            {isChecking ? <i className="ph-bold ph-spinner animate-spin"></i> : null}
             {t.ctaBtn} <i className="ph-bold ph-arrow-right"></i>
-          </Link>
+          </button>
           <p className="text-blue-300 text-sm font-medium mt-6 italic">{t.ctaNote}</p>
         </div>
       </div>
