@@ -142,8 +142,8 @@ export default function TalentDetailAdminPage() {
   return (
     <div className="bg-[#F8FAFC] min-h-screen pb-24">
       
-      {/* Top Navigation */}
-      <div className="bg-white border-b border-slate-200 sticky top-0 z-40 shadow-sm">
+      {/* Top Navigation - Đã gỡ bỏ sticky top-0 để thanh cuộn tự nhiên lên trên */}
+      <div className="bg-white border-b border-slate-200 relative z-10 shadow-sm">
         <div className="max-w-[1400px] mx-auto px-6 h-16 flex items-center justify-between">
           <Link href="/talent-hub" className="flex items-center gap-2 text-slate-500 hover:text-[#002D62] font-bold text-sm transition-colors">
             <i className="ph-bold ph-arrow-left text-lg"></i> Trở về Bảng Điều Khiển
