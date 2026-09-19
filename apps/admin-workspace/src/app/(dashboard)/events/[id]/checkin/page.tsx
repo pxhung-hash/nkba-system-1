@@ -2,7 +2,7 @@
 
 import { Suspense, useEffect, useState } from 'react';
 import { useSearchParams, useRouter, useParams } from 'next/navigation';
-import { createClient } from '@/utils/supabase/client'; // Dùng Supabase Client trực tiếp để chia làm 2 bước
+import { createClient } from '@/utils/supabase/client'; 
 import Link from 'next/link';
 import { Html5Qrcode } from 'html5-qrcode';
 
@@ -15,12 +15,12 @@ function CheckinContent() {
   const eventId = params.id as string;
   const supabase = createClient();
 
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<any>(null);
   const [isScanning, setIsScanning] = useState(false);
-  const [isConfirming, setIsConfirming] = useState(false); // Trạng thái nút bấm Xác nhận
+  const [isConfirming, setIsConfirming] = useState(false);
 
-  // 1. Lắng nghe thay đổi Token để KIỂM TRA VÉ (Chưa check-in vội)
+  // 1. Lắng nghe thay đổi Token để KIỂM TRA VÉ
   useEffect(() => {
     if (!token) {
       setResult({ status: 'STANDBY' });
@@ -30,18 +30,28 @@ function CheckinContent() {
 
     const verifyTicket = async () => {
       setLoading(true);
+      const cleanToken = token.trim();
       
-      // ĐÃ FIX: Chỉ select bảng hiện tại để tránh lỗi Join (events), và gài thêm event_id để bảo mật
-      const { data, error } = await supabase
+      // ĐÃ FIX: Kiểm tra xem mã quét được có phải là chuỗi UUID (ID của database) không
+      const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(cleanToken);
+
+      // Xây dựng câu truy vấn thông minh: Nếu là UUID thì tìm cột id, không thì tìm tracking_token
+      let query = supabase
         .from('event_guests')
         .select('*')
-        .eq('tracking_token', token.trim())
-        .eq('event_id', eventId)
-        .single();
+        .eq('event_id', eventId);
+
+      if (isUUID) {
+        query = query.eq('id', cleanToken);
+      } else {
+        query = query.eq('tracking_token', cleanToken);
+      }
+
+      const { data, error } = await query.single();
 
       if (error || !data) {
         console.error("Lỗi tìm vé:", error);
-        setResult({ success: false, message: 'Mã QR không tồn tại, hoặc vé này thuộc về một sự kiện khác!' });
+        setResult({ success: false, message: `Không tìm thấy vé: ${cleanToken}` });
       } else if (data.rsvp_status === 'CHECKED_IN') {
         // Nếu đã check-in từ trước
         setResult({ success: true, code: 'ALREADY_CHECKED_IN', guest: data });
@@ -69,30 +79,36 @@ function CheckinContent() {
         aspectRatio: 1.0,
       },
       (decodedText) => {
-        html5QrCode.stop().then(() => {
-          html5QrCode.clear();
-          setIsScanning(false);
-          setLoading(true);
+        // Tạm dừng quét ngay lập tức để tránh quét đúp
+        if (html5QrCode.isScanning) {
+          html5QrCode.stop().catch(console.error);
+        }
+        
+        setIsScanning(false);
+        setLoading(true);
 
-          // ĐÃ FIX: Cải tiến bộ đọc QR (Chấp nhận cả URL Web lẫn Text mã vé thường)
-          let scannedToken = '';
-          try {
-            const url = new URL(decodedText);
-            scannedToken = url.searchParams.get('token') || '';
-          } catch (e) {
-            // Nếu QR không phải là URL (bị lỗi parse), lấy trực tiếp nội dung text làm Token
-            scannedToken = decodedText.trim();
+        // ĐÃ FIX: Bóc tách mã QR chống lỗi (Chấp nhận mọi loại URL và Text)
+        let scannedToken = decodedText.trim();
+        try {
+          if (scannedToken.startsWith('http')) {
+            const url = new URL(scannedToken);
+            // Lấy từ ?token= XYZ, nếu không có thì lấy phần cuối của URL
+            scannedToken = url.searchParams.get('token') || url.pathname.split('/').pop() || scannedToken;
           }
+        } catch (e) {
+          console.warn("QR không phải dạng URL chuẩn, lấy nguyên text.");
+        }
 
-          if (scannedToken) {
-            router.push(`/events/${eventId}/checkin?token=${scannedToken}`);
-          } else {
-            setResult({ success: false, message: 'Không thể nhận diện mã QR này.' });
-            setLoading(false);
-          }
-        }).catch((err) => console.error("Lỗi khi dừng camera", err));
+        if (scannedToken) {
+          router.push(`/events/${eventId}/checkin?token=${scannedToken}`);
+        } else {
+          setResult({ success: false, message: 'Mã QR rỗng hoặc không hợp lệ.' });
+          setLoading(false);
+        }
       },
-      (error) => {}
+      (error) => {
+        // Bỏ qua lỗi không tìm thấy QR trong khung hình
+      }
     ).catch((err) => {
       console.error("Lỗi khởi động camera:", err);
       alert("Không thể mở Camera. Vui lòng cấp quyền truy cập trình duyệt!");
@@ -101,7 +117,7 @@ function CheckinContent() {
 
     return () => {
       if (html5QrCode.isScanning) {
-        html5QrCode.stop().then(() => html5QrCode.clear()).catch(() => {});
+        html5QrCode.stop().catch(() => {});
       }
     };
   }, [isScanning, router, eventId]);
@@ -237,7 +253,7 @@ function CheckinContent() {
       }`}>
         {result.code === 'READY' && 'XÁC NHẬN THÔNG TIN KHÁCH'}
         {result.code === 'SUCCESS' && 'CHECK-IN THÀNH CÔNG'}
-        {result.code === 'ALREADY_CHECKED_IN' && 'KHÁCH NÀY ĐÃ CHECK-IN TỪ TRƯỚC'}
+        {result.code === 'ALREADY_CHECKED_IN' && 'KHÁCH NÀY ĐÃ VÀO CỬA TỪ TRƯỚC'}
       </h1>
 
       <div className="bg-white p-6 md:p-8 rounded-3xl shadow-sm border border-slate-200 w-full max-w-md text-center mt-6">
