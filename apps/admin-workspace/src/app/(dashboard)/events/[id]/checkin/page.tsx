@@ -30,15 +30,18 @@ function CheckinContent() {
 
     const verifyTicket = async () => {
       setLoading(true);
-      // Chỉ đọc thông tin lên, KHÔNG ghi đè Database ở bước này
+      
+      // ĐÃ FIX: Chỉ select bảng hiện tại để tránh lỗi Join (events), và gài thêm event_id để bảo mật
       const { data, error } = await supabase
         .from('event_guests')
-        .select('*, events(title)')
-        .eq('tracking_token', token)
+        .select('*')
+        .eq('tracking_token', token.trim())
+        .eq('event_id', eventId)
         .single();
 
       if (error || !data) {
-        setResult({ success: false, message: 'Mã QR không thuộc hệ thống NKBA hoặc vé đã bị xóa.' });
+        console.error("Lỗi tìm vé:", error);
+        setResult({ success: false, message: 'Mã QR không tồn tại, hoặc vé này thuộc về một sự kiện khác!' });
       } else if (data.rsvp_status === 'CHECKED_IN') {
         // Nếu đã check-in từ trước
         setResult({ success: true, code: 'ALREADY_CHECKED_IN', guest: data });
@@ -50,9 +53,9 @@ function CheckinContent() {
     };
 
     verifyTicket();
-  }, [token, supabase]);
+  }, [token, eventId, supabase]);
 
-  // 2. Kích hoạt Camera Quét QR khi bật chế độ isScanning
+  // 2. Kích hoạt Camera Quét QR 
   useEffect(() => {
     if (!isScanning) return;
 
@@ -71,18 +74,20 @@ function CheckinContent() {
           setIsScanning(false);
           setLoading(true);
 
+          // ĐÃ FIX: Cải tiến bộ đọc QR (Chấp nhận cả URL Web lẫn Text mã vé thường)
+          let scannedToken = '';
           try {
             const url = new URL(decodedText);
-            const scannedToken = url.searchParams.get('token');
-
-            if (scannedToken) {
-              router.push(`/events/${eventId}/checkin?token=${scannedToken}`);
-            } else {
-              setResult({ success: false, message: 'Mã QR không hợp lệ.' });
-              setLoading(false);
-            }
+            scannedToken = url.searchParams.get('token') || '';
           } catch (e) {
-            setResult({ success: false, message: 'Định dạng mã QR bị sai.' });
+            // Nếu QR không phải là URL (bị lỗi parse), lấy trực tiếp nội dung text làm Token
+            scannedToken = decodedText.trim();
+          }
+
+          if (scannedToken) {
+            router.push(`/events/${eventId}/checkin?token=${scannedToken}`);
+          } else {
+            setResult({ success: false, message: 'Không thể nhận diện mã QR này.' });
             setLoading(false);
           }
         }).catch((err) => console.error("Lỗi khi dừng camera", err));
@@ -90,7 +95,7 @@ function CheckinContent() {
       (error) => {}
     ).catch((err) => {
       console.error("Lỗi khởi động camera:", err);
-      alert("Không thể mở Camera. Vui lòng cấp quyền truy cập!");
+      alert("Không thể mở Camera. Vui lòng cấp quyền truy cập trình duyệt!");
       setIsScanning(false);
     });
 
@@ -101,7 +106,7 @@ function CheckinContent() {
     };
   }, [isScanning, router, eventId]);
 
-  // 3. HÀM GHI NHẬN CHECK-IN VÀO DATABASE (Chỉ chạy khi Lễ tân bấm nút)
+  // 3. HÀM GHI NHẬN CHECK-IN VÀO DATABASE
   const handleConfirmCheckin = async () => {
     if (!result?.guest?.id) return;
     setIsConfirming(true);
@@ -149,7 +154,7 @@ function CheckinContent() {
           </div>
           <div id="nkba-qr-reader" className="w-full rounded-2xl overflow-hidden border-2 border-[#D4AF37]"></div>
           <p className="text-center text-xs text-slate-400 mt-4 font-medium">
-            Hệ thống sẽ tự động nhận diện vé của khách mời.
+            Quét mã trên Thư mời điện tử hoặc Mã Code do NKBA cấp.
           </p>
         </div>
       </div>
@@ -188,7 +193,7 @@ function CheckinContent() {
           <i className="ph-bold ph-x text-5xl"></i>
         </div>
         <h1 className="text-2xl font-black text-rose-600 mb-2">VÉ KHÔNG HỢP LỆ</h1>
-        <p className="text-slate-500 text-center font-medium">{result.message}</p>
+        <p className="text-slate-500 text-center font-medium px-4">{result.message}</p>
         
         <div className="flex gap-4 mt-8">
           <Link href={`/events/${eventId}/checkin`} className="px-5 py-3 bg-white border border-slate-200 text-slate-600 font-bold rounded-xl hover:bg-slate-50">
@@ -204,7 +209,7 @@ function CheckinContent() {
 
   const guest = result.guest;
 
-  // ================= MÀN HÌNH CHI TIẾT VÉ (READY / SUCCESS / ALREADY) =================
+  // ================= MÀN HÌNH CHI TIẾT VÉ =================
   return (
     <div className="flex flex-col items-center justify-center py-10 animate-in zoom-in-95">
       
@@ -234,13 +239,9 @@ function CheckinContent() {
         {result.code === 'SUCCESS' && 'CHECK-IN THÀNH CÔNG'}
         {result.code === 'ALREADY_CHECKED_IN' && 'KHÁCH NÀY ĐÃ CHECK-IN TỪ TRƯỚC'}
       </h1>
-      <p className="text-slate-500 text-xs md:text-sm font-bold uppercase tracking-widest mb-8 text-center">
-        {guest.events?.title || 'Sự kiện NKBA'}
-      </p>
 
-      {/* 3. THÔNG TIN KHÁCH HÀNG TRÍCH XUẤT TỪ JSONB */}
-      <div className="bg-white p-6 md:p-8 rounded-3xl shadow-sm border border-slate-200 w-full max-w-md text-center">
-        <p className="text-xs font-bold text-[#D4AF37] uppercase tracking-widest mb-2">Khách mời VIP</p>
+      <div className="bg-white p-6 md:p-8 rounded-3xl shadow-sm border border-slate-200 w-full max-w-md text-center mt-6">
+        <p className="text-xs font-bold text-[#D4AF37] uppercase tracking-widest mb-2">Thông tin Khách mời</p>
         <h2 className="text-2xl font-black text-[#002D62] mb-1">{guest.salutation} {guest.guest_info?.name}</h2>
         <p className="text-slate-600 font-medium text-sm">
           {guest.guest_info?.position ? `${guest.guest_info.position} - ` : ''}{guest.guest_info?.company}
@@ -257,7 +258,7 @@ function CheckinContent() {
 
         <div className="text-sm text-slate-500 flex justify-between items-center bg-slate-50 p-3 rounded-xl">
           <span>Liên hệ:</span>
-          <span className="font-bold text-slate-800">{guest.guest_info?.phone}</span>
+          <span className="font-bold text-slate-800">{guest.guest_info?.phone || '---'}</span>
         </div>
       </div>
       
