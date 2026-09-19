@@ -11,16 +11,33 @@ export default function EventLiveBoardPage() {
 
   useEffect(() => {
     const fetchLiveBoard = async () => {
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from('event_guests')
         .select('id, guest_info, networking_note, rsvp_status, check_in_time')
         .eq('event_id', params.id)
         .eq('rsvp_status', 'CHECKED_IN')
         .not('networking_note', 'is', null) 
-        .order('check_in_time', { ascending: false }) // Cứ ai mới gửi/checkin lên trước
+        .order('check_in_time', { ascending: false })
         .limit(12);
 
-      if (data) setAttendees(data);
+      if (error) {
+        console.error("Lỗi kéo dữ liệu Live Board:", error);
+        return;
+      }
+
+      if (data) {
+        // ĐÃ FIX: Ép kiểu JSON an toàn cho toàn bộ mảng dữ liệu ngay khi tải về
+        const safeData = data.map(guest => {
+          let parsedInfo = guest.guest_info;
+          if (typeof parsedInfo === 'string') {
+            try { parsedInfo = JSON.parse(parsedInfo); } 
+            catch (e) { parsedInfo = {}; }
+          }
+          return { ...guest, guest_info: parsedInfo };
+        });
+        
+        setAttendees(safeData);
+      }
     };
 
     fetchLiveBoard(); 
@@ -73,17 +90,18 @@ export default function EventLiveBoardPage() {
                 <div key={attendee.id} className="bg-white/10 backdrop-blur-xl border border-white/20 p-8 rounded-[2rem] shadow-2xl flex flex-col animate-in fade-in zoom-in slide-in-from-bottom-10" style={{ animationDelay: `${index * 100}ms` }}>
                   <div className="flex items-center gap-4 mb-6">
                     <div className="w-16 h-16 bg-gradient-to-br from-[#002D62] to-indigo-600 rounded-full flex items-center justify-center text-2xl font-black text-white border-2 border-white/20 shadow-inner shrink-0">
-                      {attendee.guest_info?.name?.charAt(0) || 'G'}
+                      {/* Đảm bảo chữ cái đầu tiên luôn hiển thị an toàn */}
+                      {attendee.guest_info?.name?.charAt(0)?.toUpperCase() || 'G'}
                     </div>
                     <div className="min-w-0">
-                      <h3 className="text-xl font-black text-white truncate">{attendee.guest_info?.name || 'Khách mời'}</h3>
-                      <p className="text-sm font-bold text-amber-400 truncate uppercase tracking-wider">{attendee.guest_info?.company}</p>
+                      <h3 className="text-xl font-black text-white truncate">{attendee.guest_info?.name || 'Khách mời VIP'}</h3>
+                      <p className="text-sm font-bold text-amber-400 truncate uppercase tracking-wider">{attendee.guest_info?.company || 'Doanh nghiệp NKBA'}</p>
                     </div>
                   </div>
                   
                   <div className="flex-1 bg-black/30 p-5 rounded-2xl border border-white/5 relative">
                     <i className="ph-fill ph-quotes text-3xl text-white/10 absolute top-3 left-3"></i>
-                    <p className="text-base text-blue-50 font-medium leading-relaxed italic relative z-10 pl-4">
+                    <p className="text-base text-blue-50 font-medium leading-relaxed italic relative z-10 pl-4 break-words">
                       "{attendee.networking_note}"
                     </p>
                   </div>
