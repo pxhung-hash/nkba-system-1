@@ -2,21 +2,30 @@
 
 import { useEffect, useState } from 'react';
 import { createClient } from '@/utils/supabase/client';
+import Link from 'next/link';
 
 export default function InsightsPage() {
   const supabase = createClient();
   const [isLoading, setIsLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'reports' | 'requests'>('reports');
   
-  // States cho Báo cáo (Reports)
+  // ==========================================
+  // STATES CHO BÁO CÁO (REPORTS)
+  // ==========================================
   const [reports, setReports] = useState<any[]>([]);
   const [showReportForm, setShowReportForm] = useState(false);
   const [isSavingReport, setIsSavingReport] = useState(false);
+  const [editingReportId, setEditingReportId] = useState<string | null>(null);
   const [reportForm, setReportForm] = useState({ 
     title: '', description: '', category: 'MARKET_RESEARCH', access_tier: 'STANDARD', file_url: '', cover_image: '' 
   });
+  
+  // State để Mở Modal Xem trước Báo cáo
+  const [selectedReportView, setSelectedReportView] = useState<any | null>(null);
 
-  // States cho Yêu cầu (Requests)
+  // ==========================================
+  // STATES CHO YÊU CẦU DỮ LIỆU (REQUESTS)
+  // ==========================================
   const [requests, setRequests] = useState<any[]>([]);
   const [members, setMembers] = useState<any[]>([]);
   const [selectedRequest, setSelectedRequest] = useState<any>(null);
@@ -51,7 +60,6 @@ export default function InsightsPage() {
       img.onload = () => {
         const canvas = document.createElement('canvas');
         let width = img.width; let height = img.height;
-        // Giới hạn chiều ngang 800px cho ảnh bìa báo cáo để tối ưu tốc độ
         if (width > 800) { height = Math.round((height * 800) / width); width = 800; }
         canvas.width = width; canvas.height = height;
         canvas.getContext('2d')?.drawImage(img, 0, 0, width, height);
@@ -60,20 +68,60 @@ export default function InsightsPage() {
     };
   };
 
-  // --- LOGIC XỬ LÝ BÁO CÁO (REPORTS) ---
+  // ==========================================
+  // LOGIC CRUD BÁO CÁO (THÊM / SỬA / XÓA)
+  // ==========================================
   const handleSaveReport = async () => {
     if (!reportForm.title || !reportForm.file_url) return alert('Vui lòng nhập Tên báo cáo và Link File!');
     setIsSavingReport(true);
     
-    const { error } = await supabase.from('reports').insert([reportForm]);
-    if (error) alert('Lỗi: ' + error.message);
-    else {
-      alert('✅ Đã phát hành báo cáo thành công!');
+    try {
+      if (editingReportId) {
+        // CẬP NHẬT
+        const { error } = await supabase.from('reports').update(reportForm).eq('id', editingReportId);
+        if (error) throw error;
+        alert('✅ Đã cập nhật báo cáo thành công!');
+      } else {
+        // TẠO MỚI
+        const { error } = await supabase.from('reports').insert([reportForm]);
+        if (error) throw error;
+        alert('✅ Đã phát hành báo cáo mới thành công!');
+      }
+
       setShowReportForm(false);
+      setEditingReportId(null);
       setReportForm({ title: '', description: '', category: 'MARKET_RESEARCH', access_tier: 'STANDARD', file_url: '', cover_image: '' });
       fetchData();
+    } catch (err: any) {
+      alert('Lỗi: ' + err.message);
+    } finally {
+      setIsSavingReport(false);
     }
-    setIsSavingReport(false);
+  };
+
+  const handleEditReport = (rep: any) => {
+    setEditingReportId(rep.id);
+    setReportForm({
+      title: rep.title,
+      description: rep.description || '',
+      category: rep.category,
+      access_tier: rep.access_tier,
+      file_url: rep.file_url || '',
+      cover_image: rep.cover_image || ''
+    });
+    setShowReportForm(true);
+    // Tự động cuộn lên đầu trang để nhập form
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleDeleteReport = async (id: string, title: string) => {
+    if (!confirm(`Bạn có chắc chắn muốn XÓA báo cáo "${title}"? Hành động này không thể hoàn tác.`)) return;
+    const { error } = await supabase.from('reports').delete().eq('id', id);
+    if (error) alert('Lỗi xóa báo cáo: ' + error.message);
+    else {
+      alert('✅ Đã xóa báo cáo thành công!');
+      fetchData();
+    }
   };
 
   // --- LOGIC XỬ LÝ YÊU CẦU TỪ VIP (REQUESTS) ---
@@ -163,15 +211,30 @@ export default function InsightsPage() {
             {/* Thanh công cụ báo cáo */}
             <div className="flex justify-between items-center bg-teal-50/50 border border-teal-100 p-5 rounded-2xl shrink-0">
               <p className="text-sm font-bold text-teal-800 flex items-center gap-2"><i className="ph-fill ph-info"></i> Nơi đăng tải và phân phối dữ liệu thị trường cho Hội viên.</p>
-              <button onClick={() => setShowReportForm(!showReportForm)} className="h-12 px-6 bg-teal-600 text-white rounded-xl text-sm font-black shadow-md shadow-teal-600/20 hover:bg-teal-700 transition-colors flex items-center gap-2">
+              <button 
+                onClick={() => {
+                  if (showReportForm && editingReportId) {
+                    // Nếu đang Edit mà bấm đóng -> Xóa Form
+                    setEditingReportId(null);
+                    setReportForm({ title: '', description: '', category: 'MARKET_RESEARCH', access_tier: 'STANDARD', file_url: '', cover_image: '' });
+                    setShowReportForm(false);
+                  } else {
+                    setShowReportForm(!showReportForm);
+                  }
+                }} 
+                className="h-12 px-6 bg-teal-600 text-white rounded-xl text-sm font-black shadow-md shadow-teal-600/20 hover:bg-teal-700 transition-colors flex items-center gap-2"
+              >
                 <i className={`ph-bold ${showReportForm ? 'ph-x' : 'ph-plus'} text-lg`}></i> {showReportForm ? 'ĐÓNG FORM' : 'TẠO BÁO CÁO MỚI'}
               </button>
             </div>
 
-            {/* Form tạo mới Báo cáo */}
+            {/* Form tạo mới / Chỉnh sửa Báo cáo */}
             {showReportForm && (
               <div className="bg-white border border-slate-200 p-8 rounded-[2rem] shadow-lg shrink-0 animate-in slide-in-from-top-4">
-                <h3 className="text-xl font-black text-slate-900 mb-6 border-b border-slate-100 pb-4 flex items-center gap-2"><i className="ph-fill ph-upload-simple text-teal-600"></i> Đăng tải Báo cáo / Dữ liệu mới</h3>
+                <h3 className={`text-xl font-black mb-6 border-b border-slate-100 pb-4 flex items-center gap-2 ${editingReportId ? 'text-blue-600' : 'text-slate-900'}`}>
+                  <i className={`ph-fill ${editingReportId ? 'ph-pencil-simple text-blue-600' : 'ph-upload-simple text-teal-600'}`}></i> 
+                  {editingReportId ? 'Cập nhật Báo cáo' : 'Đăng tải Báo cáo / Dữ liệu mới'}
+                </h3>
                 <div className="grid grid-cols-1 lg:grid-cols-4 gap-8 mb-8">
                   
                   {/* Cột trái: Thông tin */}
@@ -189,8 +252,8 @@ export default function InsightsPage() {
                         <option value="PUBLIC">PUBLIC (Đại chúng / Mồi SEO)</option><option value="STANDARD">STANDARD (Mọi hội viên)</option><option value="PREMIUM">PREMIUM (Trả phí)</option><option value="VIP">VIP (Bảo mật cao)</option>
                       </select>
                     </div>
-                    <div className="col-span-2 space-y-2"><label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Tóm tắt / Giới thiệu</label><textarea value={reportForm.description} onChange={e => setReportForm({...reportForm, description: e.target.value})} className="w-full h-28 p-4 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium outline-none resize-none focus:bg-white focus:border-teal-400 transition-colors" placeholder="Nhập đoạn tóm tắt hấp dẫn để giới thiệu báo cáo..." /></div>
-                    <div className="col-span-2 space-y-2"><label className="text-xs font-bold text-slate-500 uppercase tracking-widest flex items-center gap-1"><i className="ph-bold ph-link text-blue-500"></i> Link File Gốc (PDF/Excel)</label><input type="text" value={reportForm.file_url} onChange={e => setReportForm({...reportForm, file_url: e.target.value})} className="w-full h-12 px-4 bg-blue-50/50 border border-blue-200 rounded-xl text-sm font-medium outline-none focus:bg-white focus:border-blue-400 text-blue-700 transition-colors" placeholder="https://drive.google.com/..." /></div>
+                    <div className="col-span-2 space-y-2"><label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Tóm tắt (Teaser cho người không có quyền)</label><textarea value={reportForm.description} onChange={e => setReportForm({...reportForm, description: e.target.value})} className="w-full h-28 p-4 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium outline-none resize-none focus:bg-white focus:border-teal-400 transition-colors" placeholder="Nhập đoạn tóm tắt hấp dẫn để giới thiệu báo cáo..." /></div>
+                    <div className="col-span-2 space-y-2"><label className="text-xs font-bold text-slate-500 uppercase tracking-widest flex items-center gap-1"><i className="ph-bold ph-link text-blue-500"></i> Link File Gốc (PDF/Excel) (*)</label><input type="text" value={reportForm.file_url} onChange={e => setReportForm({...reportForm, file_url: e.target.value})} className="w-full h-12 px-4 bg-blue-50/50 border border-blue-200 rounded-xl text-sm font-medium outline-none focus:bg-white focus:border-blue-400 text-blue-700 transition-colors" placeholder="https://drive.google.com/..." /></div>
                   </div>
 
                   {/* Cột phải: Ảnh Cover */}
@@ -216,9 +279,21 @@ export default function InsightsPage() {
                   </div>
                 </div>
 
-                <div className="flex justify-end pt-4 border-t border-slate-100">
-                  <button onClick={handleSaveReport} disabled={isSavingReport} className="h-14 px-12 bg-teal-600 text-white rounded-xl text-sm font-black shadow-lg shadow-teal-600/30 hover:bg-teal-700 transition-colors disabled:opacity-50 flex items-center gap-2">
-                    {isSavingReport ? <><i className="ph-bold ph-spinner animate-spin text-lg"></i> ĐANG XỬ LÝ...</> : <><i className="ph-bold ph-paper-plane-right text-lg"></i> PHÁT HÀNH BÁO CÁO</>}
+                <div className="flex justify-end pt-4 border-t border-slate-100 gap-3">
+                  {editingReportId && (
+                    <button 
+                      onClick={() => {
+                        setEditingReportId(null);
+                        setReportForm({ title: '', description: '', category: 'MARKET_RESEARCH', access_tier: 'STANDARD', file_url: '', cover_image: '' });
+                        setShowReportForm(false);
+                      }} 
+                      className="h-14 px-8 bg-white border border-slate-200 text-slate-600 rounded-xl text-sm font-bold hover:bg-slate-50 transition-colors"
+                    >
+                      HỦY BỎ
+                    </button>
+                  )}
+                  <button onClick={handleSaveReport} disabled={isSavingReport} className={`h-14 px-12 text-white rounded-xl text-sm font-black shadow-lg transition-colors disabled:opacity-50 flex items-center gap-2 ${editingReportId ? 'bg-blue-600 hover:bg-blue-700 shadow-blue-600/30' : 'bg-teal-600 hover:bg-teal-700 shadow-teal-600/30'}`}>
+                    {isSavingReport ? <><i className="ph-bold ph-spinner animate-spin text-lg"></i> ĐANG XỬ LÝ...</> : <><i className="ph-bold ph-paper-plane-right text-lg"></i> {editingReportId ? 'LƯU CẬP NHẬT' : 'PHÁT HÀNH BÁO CÁO'}</>}
                   </button>
                 </div>
               </div>
@@ -228,7 +303,7 @@ export default function InsightsPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 pb-10">
               {reports.length === 0 ? <div className="col-span-full p-16 text-center text-slate-400 font-medium bg-white rounded-3xl border border-slate-200"><i className="ph-fill ph-folder-open text-4xl mb-3 text-slate-300"></i><br/>Kho báo cáo trống. Hãy phát hành bản tin đầu tiên!</div> : 
                 reports.map(report => (
-                  <div key={report.id} className="bg-white border border-slate-200 rounded-[2rem] flex flex-col overflow-hidden hover:shadow-xl hover:border-teal-300 transition-all group relative">
+                  <div key={report.id} className="bg-white border border-slate-200 rounded-[2rem] flex flex-col overflow-hidden hover:shadow-lg hover:border-teal-300 transition-all group relative">
                     <div className="h-40 bg-slate-100 flex items-center justify-center border-b border-slate-100 relative overflow-hidden">
                        {report.cover_image ? (
                          <img src={report.cover_image} alt={report.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
@@ -241,6 +316,7 @@ export default function InsightsPage() {
                          </span>
                        </div>
                     </div>
+                    
                     <div className="p-6 flex-1 flex flex-col">
                       <div className="flex justify-between items-start mb-3">
                         <p className="text-[9px] font-black text-teal-700 uppercase tracking-widest bg-teal-50 px-2 py-1 rounded border border-teal-100">{report.category}</p>
@@ -251,7 +327,11 @@ export default function InsightsPage() {
                       
                       <div className="mt-auto pt-5 border-t border-slate-100 flex justify-between items-center text-xs font-bold text-slate-400">
                         <span className="flex items-center gap-1.5"><i className="ph-fill ph-download-simple text-slate-300"></i> {report.downloads || 0} tải</span>
-                        <span className="text-blue-600 hover:text-blue-800 cursor-pointer bg-blue-50 px-3 py-1.5 rounded-lg transition-colors">Chỉnh sửa</span>
+                        <div className="flex gap-2">
+                          <button onClick={() => setSelectedReportView(report)} className="w-8 h-8 flex items-center justify-center bg-teal-50 text-teal-600 hover:bg-teal-600 hover:text-white rounded-lg transition-colors" title="Xem báo cáo"><i className="ph-bold ph-eye text-base"></i></button>
+                          <button onClick={() => handleEditReport(report)} className="w-8 h-8 flex items-center justify-center bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white rounded-lg transition-colors" title="Sửa báo cáo"><i className="ph-bold ph-pencil-simple text-base"></i></button>
+                          <button onClick={() => handleDeleteReport(report.id, report.title)} className="w-8 h-8 flex items-center justify-center bg-rose-50 text-rose-500 hover:bg-rose-500 hover:text-white rounded-lg transition-colors" title="Xóa báo cáo"><i className="ph-bold ph-trash text-base"></i></button>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -368,6 +448,94 @@ export default function InsightsPage() {
           </div>
         )}
       </div>
+
+      {/* ==================================================== */}
+      {/* MODAL CHI TIẾT BÁO CÁO (CHẾ ĐỘ XEM TRƯỚC CỦA ADMIN) */}
+      {/* ==================================================== */}
+      {selectedReportView && (
+        <div className="fixed inset-0 z-[999] flex items-center justify-center p-4 md:p-6 bg-slate-900/70 backdrop-blur-sm animate-in fade-in">
+          <div className="bg-white w-full max-w-4xl rounded-[2.5rem] shadow-2xl overflow-hidden flex flex-col max-h-[90vh] animate-in zoom-in-95">
+            
+            {/* Modal Header & Cover */}
+            <div className="relative h-64 md:h-80 shrink-0 bg-slate-100 group">
+              {selectedReportView.cover_image ? (
+                <img src={selectedReportView.cover_image} alt={selectedReportView.title} className="w-full h-full object-cover" />
+              ) : (
+                <div className="absolute inset-0 bg-gradient-to-br from-teal-700 to-[#002D62] flex items-center justify-center">
+                  <i className="ph-duotone ph-chart-polar text-[100px] text-white/20"></i>
+                </div>
+              )}
+              <div className="absolute inset-0 bg-gradient-to-t from-slate-900 via-slate-900/60 to-transparent"></div>
+              
+              <button 
+                onClick={() => setSelectedReportView(null)} 
+                className="absolute top-6 right-6 w-10 h-10 rounded-full bg-white/10 backdrop-blur-md hover:bg-rose-500 hover:border-rose-500 flex items-center justify-center text-white transition-colors border border-white/20 z-10"
+              >
+                <i className="ph-bold ph-x text-xl"></i>
+              </button>
+
+              <div className="absolute bottom-6 left-6 right-6 text-white">
+                <div className="flex items-center gap-3 mb-3">
+                  <span className="text-[10px] font-black px-3 py-1.5 bg-teal-500/20 border border-teal-400/30 text-teal-300 rounded-lg uppercase tracking-widest backdrop-blur-md">
+                    {selectedReportView.category}
+                  </span>
+                  <span className="text-xs font-medium text-slate-300 flex items-center gap-1">
+                    <i className="ph-bold ph-calendar-blank"></i> {new Date(selectedReportView.created_at).toLocaleDateString('vi-VN')}
+                  </span>
+                </div>
+                <h2 className="text-2xl md:text-4xl font-black leading-tight drop-shadow-lg">{selectedReportView.title}</h2>
+              </div>
+            </div>
+
+            {/* Modal Body */}
+            <div className="p-6 md:p-10 overflow-y-auto bg-slate-50/50 flex-1">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                
+                {/* Cột Nội dung chính */}
+                <div className="md:col-span-2 space-y-6">
+                  <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+                    <h3 className="text-lg font-black text-slate-900 mb-4 flex items-center gap-2 border-b border-slate-100 pb-3">
+                      <i className="ph-fill ph-text-align-left text-teal-500"></i> Executive Summary
+                    </h3>
+                    <p className="text-sm font-medium text-slate-600 leading-loose whitespace-pre-wrap">
+                      {selectedReportView.description || 'Chưa có nội dung tóm tắt cho báo cáo này.'}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Cột Hành động (Sidebar) */}
+                <div className="space-y-6">
+                  <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm text-center">
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Cấp độ truy cập</p>
+                    <div className="inline-flex items-center gap-2 bg-amber-50 border border-amber-200 px-4 py-2 rounded-xl mt-1 mb-6">
+                      <i className={`ph-fill ${selectedReportView.access_tier === 'VIP' ? 'ph-crown text-amber-500' : 'ph-shield-check text-slate-500'} text-lg`}></i>
+                      <p className={`text-sm font-black ${selectedReportView.access_tier === 'VIP' ? 'text-amber-700' : 'text-slate-700'}`}>{selectedReportView.access_tier}</p>
+                    </div>
+
+                    <a 
+                      href={selectedReportView.file_url || '#'} 
+                      target={selectedReportView.file_url ? "_blank" : "_self"}
+                      rel="noopener noreferrer"
+                      className={`w-full h-14 rounded-xl text-sm font-black flex items-center justify-center gap-2 shadow-lg transition-all ${selectedReportView.file_url ? 'bg-[#002D62] text-white hover:bg-blue-900 hover:-translate-y-1' : 'bg-slate-100 text-slate-400 cursor-not-allowed border border-slate-200'}`}
+                      onClick={(e) => {
+                        if (!selectedReportView.file_url) {
+                          e.preventDefault();
+                          alert('Báo cáo này chưa đính kèm file PDF.');
+                        }
+                      }}
+                    >
+                      <i className="ph-bold ph-download-simple text-xl"></i> {selectedReportView.file_url ? 'XEM FILE BÁO CÁO (PDF)' : 'CHƯA CÓ FILE'}
+                    </a>
+                  </div>
+                </div>
+
+              </div>
+            </div>
+
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }
