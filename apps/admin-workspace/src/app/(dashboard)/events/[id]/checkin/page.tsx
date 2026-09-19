@@ -146,6 +146,18 @@ function CheckinContent() {
     setIsConfirming(false);
   };
 
+  // 👉 CÁC HÀM XỬ LÝ NÚT BẤM MƯỢT MÀ KHÔNG LÀM RELOAD TRANG
+  const resetAndScanAgain = () => {
+    window.history.replaceState(null, '', `/events/${eventId}/checkin`);
+    setResult({ status: 'STANDBY' });
+    setTimeout(() => setIsScanning(true), 50); // Delay nhẹ để DOM kịp dọn dẹp
+  };
+
+  const cancelToStandby = () => {
+    window.history.replaceState(null, '', `/events/${eventId}/checkin`);
+    setResult({ status: 'STANDBY' });
+    setIsScanning(false);
+  };
 
   // ================= MÀN HÌNH ĐANG XỬ LÝ =================
   if (loading) {
@@ -212,10 +224,10 @@ function CheckinContent() {
         <p className="text-slate-500 text-center font-medium px-4">{result.message}</p>
         
         <div className="flex gap-4 mt-8">
-          <Link href={`/events/${eventId}/checkin`} className="px-5 py-3 bg-white border border-slate-200 text-slate-600 font-bold rounded-xl hover:bg-slate-50">
+          <button onClick={cancelToStandby} className="px-5 py-3 bg-white border border-slate-200 text-slate-600 font-bold rounded-xl hover:bg-slate-50">
             Hủy bỏ
-          </Link>
-          <button onClick={() => { router.push(`/events/${eventId}/checkin`); setIsScanning(true); }} className="px-5 py-3 bg-[#002D62] text-white font-bold rounded-xl flex items-center gap-2">
+          </button>
+          <button onClick={resetAndScanAgain} className="px-5 py-3 bg-[#002D62] text-white font-bold rounded-xl flex items-center gap-2">
             <i className="ph-bold ph-camera"></i> Quét lại
           </button>
         </div>
@@ -282,9 +294,9 @@ function CheckinContent() {
       <div className="flex gap-4 mt-8">
         {result.code === 'READY' ? (
           <>
-            <Link href={`/events/${eventId}/checkin`} className="px-5 py-3 bg-white border border-slate-200 text-slate-600 font-bold rounded-xl hover:bg-slate-50 transition-colors">
+            <button onClick={resetAndScanAgain} className="px-5 py-3 bg-white border border-slate-200 text-slate-600 font-bold rounded-xl hover:bg-slate-50 transition-colors">
               Hủy bỏ (Quét lại)
-            </Link>
+            </button>
             <button 
               onClick={handleConfirmCheckin}
               disabled={isConfirming}
@@ -295,11 +307,11 @@ function CheckinContent() {
           </>
         ) : (
           <>
-            <Link href={`/events/${eventId}/checkin`} className="px-5 py-3 bg-white border border-slate-200 text-slate-600 font-bold rounded-xl hover:bg-slate-50 transition-colors">
+            <button onClick={cancelToStandby} className="px-5 py-3 bg-white border border-slate-200 text-slate-600 font-bold rounded-xl hover:bg-slate-50 transition-colors">
               Đóng lại
-            </Link>
+            </button>
             <button 
-              onClick={() => { router.push(`/events/${eventId}/checkin`); setIsScanning(true); }}
+              onClick={resetAndScanAgain}
               className="px-8 py-3 bg-[#002D62] text-white font-black rounded-xl shadow-lg hover:bg-blue-900 transition-all flex items-center gap-2"
             >
               <i className="ph-bold ph-camera text-xl"></i> QUÉT KHÁCH TIẾP THEO
