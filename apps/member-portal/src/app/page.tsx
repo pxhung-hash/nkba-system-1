@@ -96,12 +96,15 @@ export default function MemberDashboard() {
         fetchSafe(supabase.from('individuals').select('id, full_name, corporates(name), individual_tiers!individuals_tier_id_fkey(name, code)'))
       ]);
 
-      // Map tên công ty cho Job
-      const mappedJobs = jobsData.map((j: any) => {
+      // Xử lý dữ liệu Việc làm (J-Job) - Có fallback mồi
+      const mappedJobs = jobsData.length > 0 ? jobsData.map((j: any) => {
          const ind = allIndividuals.find((i: any) => i.id === j.member_id);
          const cName = Array.isArray(ind?.corporates) ? ind.corporates[0]?.name : (ind?.corporates as any)?.name;
          return { ...j, company_name: cName || ind?.full_name || 'Hội viên NKBA' };
-      });
+      }) : [
+        { id: 'mockj1', title: 'Kỹ sư Cầu nối (BrSE) Xây dựng', company_name: 'Shimizu Corp Vietnam', salary_range: '$1,500 - $2,500', isMock: true },
+        { id: 'mockj2', title: 'Phiên dịch viên Tiếng Nhật (N2)', company_name: 'Toda Corporation', salary_range: 'Lên đến 35 Triệu', isMock: true }
+      ];
 
       // Lọc Đối tác tiêu biểu một cách an toàn tại Client thay vì ép Database Inner Join
       const highTierPartners = allIndividuals.filter((p: any) => {
@@ -117,6 +120,7 @@ export default function MemberDashboard() {
       // Đảo ngẫu nhiên danh sách đối tác VIP để ai cũng được lên top
       setRealPartners(highTierPartners.sort(() => 0.5 - Math.random()).slice(0, 3));
       
+      // Xử lý dữ liệu Dự án (Biz-Link) - Có fallback mồi
       setRealProjects(projectsData.length > 0 ? projectsData : [
         { id: 'mock1', title: 'Thi công MEP Nhà máy Điện tử Koha', budget: '12 Tỷ VNĐ', location: 'Bắc Ninh', contact_info: 'Mr. Tanaka (098xxxxxxx)', isMock: true },
         { id: 'mock2', title: 'Tìm thầu phụ Xưởng cơ khí GĐ2', budget: '5 Tỷ VNĐ', location: 'Đồng Nai', contact_info: 'Ms. Haruno (090xxxxxxx)', isMock: true }
