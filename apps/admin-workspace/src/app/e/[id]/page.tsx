@@ -18,38 +18,51 @@ export default function GuestConnectPage() {
     if (!phone) return alert('Vui lòng nhập Số điện thoại!');
     setIsProcessing(true);
     
-    // 1. CHUẨN HÓA SĐT NGƯỜI NHẬP: Lọc bỏ mọi khoảng trắng, dấu +, chữ cái... chỉ giữ lại số
+    // 1. Chuẩn hóa SĐT người nhập: Giữ lại 9 số cuối cùng để so sánh bao chuẩn
     const phoneClean = phone.replace(/\D/g, '');
-    // Lấy 9 số cuối cùng để so sánh (Bỏ qua 0 ở đầu hoặc +84)
     const searchStr = phoneClean.length > 9 ? phoneClean.slice(-9) : phoneClean;
 
-    // 2. KÉO DỮ LIỆU SỰ KIỆN: Kéo toàn bộ khách của sự kiện này (rất nhẹ, an toàn)
+    // 2. Kéo toàn bộ khách của sự kiện
     const { data, error } = await supabase
       .from('event_guests')
       .select('id, guest_info, networking_note')
       .eq('event_id', params.id);
 
-    if (error || !data) {
+    if (error) {
       console.error("Lỗi lấy dữ liệu:", error);
-      alert('Lỗi kết nối cơ sở dữ liệu. Vui lòng kiểm tra lại!');
+      alert(`Lỗi CSDL: ${error.message}`);
       setIsProcessing(false);
       return;
     }
 
-    // 3. TÌM KIẾM THÔNG MINH BẰNG JAVASCRIPT
+    // ĐÃ FIX: Chặn ngay nếu DB trả về mảng rỗng (99% do quên tắt RLS trong Supabase)
+    if (!data || data.length === 0) {
+      alert('Không lấy được dữ liệu khách mời. Sếp vui lòng vào Supabase tắt RLS (Disable RLS) cho bảng event_guests nhé!');
+      setIsProcessing(false);
+      return;
+    }
+
+    // 3. Tìm kiếm bằng JavaScript (Ép kiểu an toàn)
     const matchedGuest = data.find((g) => {
-      // Chuẩn hóa SĐT trong Database y hệt như SĐT người nhập
-      const dbPhone = (g.guest_info?.phone || '').replace(/\D/g, '');
+      // Đảm bảo parse JSON an toàn phòng trường hợp DB trả về dạng chuỗi văn bản
+      let info = g.guest_info;
+      if (typeof info === 'string') {
+        try { info = JSON.parse(info); } catch (e) { info = {}; }
+      }
+
+      // Xóa khoảng trắng, dấu +, dấu chấm của SĐT trong Database
+      const dbPhone = (info?.phone || '').toString().replace(/\D/g, '');
       return dbPhone.includes(searchStr);
     });
 
     if (!matchedGuest) {
-      alert('Không tìm thấy vé khớp với SĐT này. Vui lòng kiểm tra lại!');
+      alert(`Không tìm thấy dữ liệu khớp với số đuôi "${searchStr}". Vui lòng kiểm tra lại!`);
     } else {
       setGuest(matchedGuest);
       setNote(matchedGuest.networking_note || '');
       setStep(2);
     }
+    
     setIsProcessing(false);
   };
 
@@ -101,8 +114,14 @@ export default function GuestConnectPage() {
             <div className="space-y-6 animate-in slide-in-from-right">
               <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 text-center">
                 <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Xin chào</p>
-                <h2 className="text-xl font-black text-[#002D62]">{guest.guest_info?.name || 'Khách mời'}</h2>
-                <p className="text-sm font-bold text-slate-600">{guest.guest_info?.company}</p>
+                
+                {/* Đảm bảo render an toàn kể cả khi JSONB parse ra bị lệch cấu trúc */}
+                <h2 className="text-xl font-black text-[#002D62]">
+                  {typeof guest.guest_info === 'string' ? JSON.parse(guest.guest_info).name : guest.guest_info?.name || 'Khách mời'}
+                </h2>
+                <p className="text-sm font-bold text-slate-600">
+                  {typeof guest.guest_info === 'string' ? JSON.parse(guest.guest_info).company : guest.guest_info?.company}
+                </p>
               </div>
               <div>
                 <label className="text-xs font-black text-slate-500 uppercase tracking-widest mb-2 block">Cập nhật lời chào / Nhu cầu giao thương</label>
