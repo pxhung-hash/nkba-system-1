@@ -1,8 +1,7 @@
-// admin-workspace/src/app/(dashboard)/events/checkin/page.tsx
 'use client';
 
 import { Suspense, useEffect, useState } from 'react';
-import { useSearchParams, useRouter } from 'next/navigation';
+import { useSearchParams, useRouter, useParams } from 'next/navigation';
 import { processCheckinAction } from '@/actions/checkin.actions';
 import Link from 'next/link';
 import { Html5Qrcode } from 'html5-qrcode';
@@ -10,7 +9,10 @@ import { Html5Qrcode } from 'html5-qrcode';
 function CheckinContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
+  const params = useParams(); // Lấy ID sự kiện trên thanh URL
+  
   const token = searchParams.get('token');
+  const eventId = params.id as string;
 
   const [loading, setLoading] = useState(true);
   const [result, setResult] = useState<any>(null);
@@ -58,7 +60,8 @@ function CheckinContent() {
             const scannedToken = url.searchParams.get('token');
 
             if (scannedToken) {
-              router.push(`/events/checkin?token=${scannedToken}`);
+              // 👉 SỬA LỖI TẠI ĐÂY: Dẫn đúng vào Trạm Lễ tân của Sự kiện hiện tại
+              router.push(`/events/${eventId}/checkin?token=${scannedToken}`);
             } else {
               setResult({ success: false, message: 'Mã QR không thuộc hệ thống NKBA.' });
               setLoading(false);
@@ -86,7 +89,7 @@ function CheckinContent() {
         }).catch((error) => console.error("Lỗi khi tắt Camera", error));
       }
     };
-  }, [isScanning, router]);
+  }, [isScanning, router, eventId]);
 
   // ================= MÀN HÌNH ĐANG XỬ LÝ =================
   if (loading) {
@@ -140,8 +143,8 @@ function CheckinContent() {
           <i className="ph-bold ph-camera"></i> BẤM ĐỂ MỞ CAMERA
         </button>
         
-        <Link href="/events" className="mt-6 text-slate-400 hover:text-slate-600 font-bold underline">
-          Quay lại danh sách
+        <Link href={`/events/${eventId}`} className="mt-6 text-slate-400 hover:text-slate-600 font-bold underline">
+          Quay lại quản lý sự kiện
         </Link>
       </div>
     );
@@ -158,10 +161,11 @@ function CheckinContent() {
         <p className="text-slate-500 text-center font-medium">{result.message}</p>
         
         <div className="flex gap-4 mt-8">
-          <Link href="/events" className="px-5 py-3 bg-white border border-slate-200 text-slate-600 font-bold rounded-xl hover:bg-slate-50">
+          {/* 👉 SỬA LỖI TẠI ĐÂY: Dẫn đúng URL xóa Token */}
+          <Link href={`/events/${eventId}/checkin`} className="px-5 py-3 bg-white border border-slate-200 text-slate-600 font-bold rounded-xl hover:bg-slate-50">
             Hủy bỏ
           </Link>
-          <button onClick={() => { router.push('/events/checkin'); setIsScanning(true); }} className="px-5 py-3 bg-[#002D62] text-white font-bold rounded-xl flex items-center gap-2">
+          <button onClick={() => { router.push(`/events/${eventId}/checkin`); setIsScanning(true); }} className="px-5 py-3 bg-[#002D62] text-white font-bold rounded-xl flex items-center gap-2">
             <i className="ph-bold ph-camera"></i> Quét lại
           </button>
         </div>
@@ -206,11 +210,11 @@ function CheckinContent() {
       </div>
       
       <div className="flex gap-4 mt-8">
-        <Link href="/events" className="px-5 py-3 bg-white border border-slate-200 text-slate-600 font-bold rounded-xl hover:bg-slate-50 flex items-center gap-2">
+        <Link href={`/events/${eventId}/checkin`} className="px-5 py-3 bg-white border border-slate-200 text-slate-600 font-bold rounded-xl hover:bg-slate-50 flex items-center gap-2">
           Đóng
         </Link>
         <button 
-          onClick={() => { router.push('/events/checkin'); setIsScanning(true); }}
+          onClick={() => { router.push(`/events/${eventId}/checkin`); setIsScanning(true); }}
           className="px-5 py-3 bg-[#002D62] text-white font-bold rounded-xl shadow-md hover:bg-blue-900 flex items-center gap-2"
         >
           <i className="ph-bold ph-camera"></i> Quét khách tiếp
