@@ -10,9 +10,14 @@ export default function CorporateLandingPage() {
   const router = useRouter();
   const supabase = createClient();
   const [loading, setLoading] = useState(true);
-  const [currentUser, setCurrentUser] = useState<any>(null);
-  const [profile, setProfile] = useState<any>(null);
+  
+  const [currentUser, setCurrentUser] = useState<any>(null); // Người ĐANG XEM
+  const [profile, setProfile] = useState<any>(null); // Người ĐƯỢC XEM
   const [corporate, setCorporate] = useState<any>(null);
+
+  // States cho tính năng Kết nối (Networking)
+  const [connectionStatus, setConnectionStatus] = useState<'NONE' | 'PENDING' | 'CONNECTED'>('NONE');
+  const [isSendingRequest, setIsSendingRequest] = useState(false);
 
   const UPGRADE_URL = "/upgrade";
 
@@ -22,18 +27,20 @@ export default function CorporateLandingPage() {
         setLoading(true);
         const { data: { user } } = await supabase.auth.getUser();
 
-        // 1. Lấy quyền của người đang xem
+        // 1. Lấy thông tin người ĐANG XEM trang này
+        let viewerId = null;
         if (user) {
-          const { data: myProfile } = await supabase.from('individuals').select('individual_tiers!individuals_tier_id_fkey(code)').eq('user_auth_id', user.id).single();
+          const { data: myProfile } = await supabase.from('individuals').select('id, full_name, individual_tiers!individuals_tier_id_fkey(code)').eq('user_auth_id', user.id).single();
           if (myProfile) {
+            viewerId = myProfile.id;
             const tierCode = Array.isArray(myProfile.individual_tiers) ? myProfile.individual_tiers[0]?.code : (myProfile.individual_tiers as any)?.code;
-            setCurrentUser({ tier_code: tierCode });
+            setCurrentUser({ id: viewerId, full_name: myProfile.full_name, tier_code: tierCode });
           } else {
-            setCurrentUser({ tier_code: 'VIP' }); // Admin fallback
+            setCurrentUser({ id: 'admin', tier_code: 'VIP' }); // Admin fallback
           }
         }
 
-        // 2. Lấy thông tin Doanh nghiệp/Hội viên được bấm vào
+        // 2. Lấy thông tin Doanh nghiệp/Hội viên ĐƯỢC BẤM VÀO
         const memberId = params.id as string;
         if (!memberId) return;
 
@@ -51,6 +58,23 @@ export default function CorporateLandingPage() {
         
         setProfile(memberData);
         setCorporate(memberData.corporates);
+
+        // 3. KIỂM TRA TRẠNG THÁI KẾT NỐI (Nếu người xem không phải là chủ trang)
+        if (viewerId && viewerId !== memberId) {
+          const { data: connData } = await supabase
+            .from('connections')
+            .select('status')
+            .or(`and(requester_id.eq.${viewerId},receiver_id.eq.${memberId}),and(requester_id.eq.${memberId},receiver_id.eq.${viewerId})`)
+            .maybeSingle();
+
+          if (connData) {
+            setConnectionStatus(connData.status);
+          }
+        } else if (viewerId === memberId) {
+          // Báo cho UI biết đây là trang của chính mình
+          setConnectionStatus('CONNECTED'); 
+        }
+
       } catch (err) {
         console.error('Lỗi tải dữ liệu doanh nghiệp:', err);
       } finally {
@@ -60,6 +84,54 @@ export default function CorporateLandingPage() {
 
     fetchProfileDetail();
   }, [params.id, supabase]);
+
+  // ==========================================
+  // HÀM GỬI LỜI MỜI KẾT NỐI (NETWORKING)
+  // ==========================================
+  const handleSendConnection = async () => {
+    if (!currentUser || currentUser.id === 'admin') {
+      return alert('Vui lòng đăng nhập bằng tài khoản Hội viên để sử dụng tính năng này.');
+    }
+    
+    if (currentUser.id === profile.id) {
+      return alert('Sếp đang tự bấm kết nối với chính mình đấy ạ! 😄');
+    }
+
+    setIsSendingRequest(true);
+    try {
+      // 1. Lưu vào bảng connections
+      const { error: connErr } = await supabase.from('connections').insert([{
+        requester_id: currentUser.id,
+        receiver_id: profile.id,
+        status: 'PENDING'
+      }]);
+
+      if (connErr) throw connErr;
+
+      // 2. Bắn Notification cho người nhận
+      const { error: notiErr } = await supabase.from('notifications').insert([{
+        member_id: profile.id,
+        title: '🤝 Lời mời kết nối mới!',
+        content: `Hội viên ${currentUser.full_name} muốn kết nối với bạn trên NKBA.`,
+        link_url: `/network/connections` // Sau này Sếp làm trang quản lý lời mời thì trỏ link vào đây
+      }]);
+
+      if (notiErr) console.warn("Lỗi gửi thông báo:", notiErr);
+
+      setConnectionStatus('PENDING');
+      alert('✅ Đã gửi lời mời kết nối thành công! Vui lòng chờ đối tác xác nhận.');
+
+    } catch (err: any) {
+      if (err.code === '23505') {
+        alert('Lời mời đã được gửi trước đó rồi. Đang chờ phản hồi!');
+        setConnectionStatus('PENDING');
+      } else {
+        alert('Lỗi hệ thống: ' + err.message);
+      }
+    } finally {
+      setIsSendingRequest(false);
+    }
+  };
 
   const canViewContact = (tierCode: string) => ['PREMIUM', 'TITANIUM', 'VIP', 'GOLD'].includes(tierCode);
 
@@ -75,9 +147,10 @@ export default function CorporateLandingPage() {
   const details = corporate?.details || {};
   const products = details.products || [];
   const projects = details.projects || [];
+  const isMe = currentUser?.id === profile.id; // Kiểm tra xem có phải đang tự xem trang mình không
 
   return (
-    <div className="bg-[#F8FAFC] min-h-screen pb-24">
+    <div className="bg-[#F8FAFC] min-h-screen pb-24 animate-in fade-in duration-500">
       
       {/* 1. HERO BANNER COVER */}
       <div className={`w-full h-[250px] md:h-[350px] relative flex items-end ${isHighTier ? 'bg-gradient-to-tr from-amber-600 to-yellow-400' : 'bg-gradient-to-tr from-[#002D62] to-blue-800'}`}>
@@ -184,7 +257,8 @@ export default function CorporateLandingPage() {
             <div className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-slate-100 lg:sticky lg:top-28">
               <h3 className="text-base font-black text-slate-900 border-b border-slate-100 pb-4 mb-6 uppercase tracking-widest">Kênh Liên hệ</h3>
               
-              <div className="flex items-center gap-4 mb-8 bg-blue-50/50 p-4 rounded-2xl border border-blue-100">
+              <div className="flex items-center gap-4 mb-8 bg-blue-50/50 p-4 rounded-2xl border border-blue-100 relative overflow-hidden">
+                {isMe && <div className="absolute top-0 right-0 bg-blue-500 text-white text-[8px] font-black px-2 py-1 rounded-bl-lg uppercase tracking-widest">Hồ sơ của bạn</div>}
                 <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center text-[#002D62] text-xl font-black shadow-sm shrink-0 border border-blue-100">
                   {profile.full_name.charAt(0)}
                 </div>
@@ -211,9 +285,28 @@ export default function CorporateLandingPage() {
                       <p className="font-bold text-slate-800 truncate">{profile.email || 'Chưa cập nhật'}</p>
                     </div>
                   </div>
-                  <button className="w-full mt-6 h-14 bg-[#002D62] text-white rounded-xl font-black shadow-lg hover:bg-blue-900 transition-colors flex items-center justify-center gap-2">
-                    <i className="ph-bold ph-paper-plane-tilt text-xl"></i> GỬI LỜI MỜI KẾT NỐI
-                  </button>
+                  
+                  {/* LOGIC NÚT KẾT NỐI (NETWORKING) */}
+                  <div className="mt-6">
+                    {isMe ? (
+                       <Link href="/account" className="w-full h-14 bg-slate-100 text-slate-500 rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-slate-200 transition-colors">
+                         <i className="ph-bold ph-pencil-simple"></i> Sửa hồ sơ của tôi
+                       </Link>
+                    ) : connectionStatus === 'CONNECTED' ? (
+                      <button disabled className="w-full h-14 bg-emerald-50 text-emerald-600 border border-emerald-200 rounded-xl font-black flex items-center justify-center gap-2 cursor-default">
+                        <i className="ph-bold ph-handshake text-xl"></i> ĐÃ KẾT NỐI
+                      </button>
+                    ) : connectionStatus === 'PENDING' ? (
+                      <button disabled className="w-full h-14 bg-amber-50 text-amber-600 border border-amber-200 rounded-xl font-black flex items-center justify-center gap-2 cursor-default">
+                        <i className="ph-bold ph-hourglass text-xl"></i> ĐANG CHỜ PHẢN HỒI...
+                      </button>
+                    ) : (
+                      <button onClick={handleSendConnection} disabled={isSendingRequest} className="w-full h-14 bg-[#002D62] text-white rounded-xl font-black shadow-lg hover:bg-blue-900 transition-all hover:-translate-y-1 flex items-center justify-center gap-2 disabled:opacity-50 disabled:hover:translate-y-0">
+                        {isSendingRequest ? <><i className="ph-bold ph-spinner animate-spin text-xl"></i> ĐANG GỬI...</> : <><i className="ph-bold ph-paper-plane-tilt text-xl"></i> GỬI LỜI MỜI KẾT NỐI</>}
+                      </button>
+                    )}
+                  </div>
+
                 </div>
               ) : (
                 <div className="bg-slate-50 p-6 rounded-3xl text-center border border-slate-100 relative overflow-hidden">
