@@ -18,20 +18,36 @@ export default function GuestConnectPage() {
     if (!phone) return alert('Vui lòng nhập Số điện thoại!');
     setIsProcessing(true);
     
-    const phoneClean = phone.trim().replace(/^0/, '');
+    // 1. CHUẨN HÓA SĐT NGƯỜI NHẬP: Lọc bỏ mọi khoảng trắng, dấu +, chữ cái... chỉ giữ lại số
+    const phoneClean = phone.replace(/\D/g, '');
+    // Lấy 9 số cuối cùng để so sánh (Bỏ qua 0 ở đầu hoặc +84)
+    const searchStr = phoneClean.length > 9 ? phoneClean.slice(-9) : phoneClean;
+
+    // 2. KÉO DỮ LIỆU SỰ KIỆN: Kéo toàn bộ khách của sự kiện này (rất nhẹ, an toàn)
     const { data, error } = await supabase
       .from('event_guests')
       .select('id, guest_info, networking_note')
-      .eq('event_id', params.id)
-      .ilike('guest_info->>phone', `%${phoneClean}%`)
-      .limit(1)
-      .single();
+      .eq('event_id', params.id);
 
     if (error || !data) {
-      alert('Không tìm thấy thông tin đăng ký với SĐT này. Vui lòng thử lại!');
+      console.error("Lỗi lấy dữ liệu:", error);
+      alert('Lỗi kết nối cơ sở dữ liệu. Vui lòng kiểm tra lại!');
+      setIsProcessing(false);
+      return;
+    }
+
+    // 3. TÌM KIẾM THÔNG MINH BẰNG JAVASCRIPT
+    const matchedGuest = data.find((g) => {
+      // Chuẩn hóa SĐT trong Database y hệt như SĐT người nhập
+      const dbPhone = (g.guest_info?.phone || '').replace(/\D/g, '');
+      return dbPhone.includes(searchStr);
+    });
+
+    if (!matchedGuest) {
+      alert('Không tìm thấy vé khớp với SĐT này. Vui lòng kiểm tra lại!');
     } else {
-      setGuest(data);
-      setNote(data.networking_note || '');
+      setGuest(matchedGuest);
+      setNote(matchedGuest.networking_note || '');
       setStep(2);
     }
     setIsProcessing(false);
@@ -44,8 +60,9 @@ export default function GuestConnectPage() {
       .update({ networking_note: note })
       .eq('id', guest.id);
 
-    if (error) alert('Lỗi: ' + error.message);
+    if (error) alert('Lỗi hệ thống: ' + error.message);
     else setStep(3);
+    
     setIsProcessing(false);
   };
 
@@ -63,8 +80,18 @@ export default function GuestConnectPage() {
           {step === 1 && (
             <div className="space-y-4">
               <p className="text-sm font-bold text-slate-600 text-center mb-6">Nhập Số điện thoại bạn đã đăng ký để hiển thị Profile lên màn hình lớn.</p>
-              <input type="tel" value={phone} onChange={e => setPhone(e.target.value)} placeholder="Nhập số điện thoại..." className="w-full h-14 px-4 bg-slate-50 border-2 border-slate-200 rounded-xl text-lg font-bold text-center outline-none focus:border-[#002D62] transition-colors" />
-              <button onClick={handleFindTicket} disabled={isProcessing} className="w-full h-14 bg-[#002D62] text-white font-black rounded-xl shadow-lg hover:bg-blue-900 transition-colors flex justify-center items-center gap-2">
+              <input 
+                type="tel" 
+                value={phone} 
+                onChange={e => setPhone(e.target.value)} 
+                placeholder="VD: 0987 654 321" 
+                className="w-full h-14 px-4 bg-slate-50 border-2 border-slate-200 rounded-xl text-lg font-bold text-center outline-none focus:border-[#002D62] transition-colors" 
+              />
+              <button 
+                onClick={handleFindTicket} 
+                disabled={isProcessing} 
+                className="w-full h-14 bg-[#002D62] text-white font-black rounded-xl shadow-lg hover:bg-blue-900 transition-colors flex justify-center items-center gap-2"
+              >
                 {isProcessing ? <i className="ph-bold ph-spinner animate-spin text-xl"></i> : 'TÌM HỒ SƠ CỦA TÔI'}
               </button>
             </div>
@@ -79,9 +106,18 @@ export default function GuestConnectPage() {
               </div>
               <div>
                 <label className="text-xs font-black text-slate-500 uppercase tracking-widest mb-2 block">Cập nhật lời chào / Nhu cầu giao thương</label>
-                <textarea value={note} onChange={e => setNote(e.target.value)} placeholder="VD: Tôi đang tìm kiếm đối tác cung cấp thép..." className="w-full h-32 p-4 bg-white border-2 border-slate-200 rounded-xl text-sm font-medium outline-none resize-none focus:border-[#002D62] transition-colors shadow-inner" />
+                <textarea 
+                  value={note} 
+                  onChange={e => setNote(e.target.value)} 
+                  placeholder="VD: Tôi đang tìm kiếm đối tác cung cấp thép..." 
+                  className="w-full h-32 p-4 bg-white border-2 border-slate-200 rounded-xl text-sm font-medium outline-none resize-none focus:border-[#002D62] transition-colors shadow-inner" 
+                />
               </div>
-              <button onClick={handleSendNote} disabled={isProcessing} className="w-full h-14 bg-amber-500 text-[#002D62] font-black rounded-xl shadow-lg hover:bg-amber-400 transition-colors flex justify-center items-center gap-2">
+              <button 
+                onClick={handleSendNote} 
+                disabled={isProcessing} 
+                className="w-full h-14 bg-amber-500 text-[#002D62] font-black rounded-xl shadow-lg hover:bg-amber-400 transition-colors flex justify-center items-center gap-2"
+              >
                 {isProcessing ? <i className="ph-bold ph-spinner animate-spin text-xl"></i> : <><i className="ph-bold ph-monitor-play text-xl"></i> PHÁT LÊN MÀN HÌNH</>}
               </button>
             </div>
