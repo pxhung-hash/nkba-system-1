@@ -239,10 +239,13 @@ export default function InsightsPage() {
                   
                   {/* Cột trái: Thông tin */}
                   <div className="lg:col-span-3 grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="col-span-2 space-y-2"><label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Tên báo cáo (*)</label><input type="text" value={reportForm.title} onChange={e => setReportForm({...reportForm, title: e.target.value})} className="w-full h-12 px-4 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold outline-none focus:bg-white focus:border-teal-400 transition-colors" placeholder="VD: Báo cáo thị trường Vật Liệu XD Q1/2026..." /></div>
+                    <div className="col-span-2 space-y-2">
+                      <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Tên báo cáo (*)</label>
+                      <input type="text" value={reportForm.title} onChange={e => setReportForm({...reportForm, title: e.target.value})} className="w-full h-12 px-4 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-900 outline-none focus:bg-white focus:border-teal-400 transition-colors" placeholder="VD: Báo cáo thị trường Vật Liệu XD Q1/2026..." />
+                    </div>
                     <div className="space-y-2">
                       <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Phân loại</label>
-                      <select value={reportForm.category} onChange={e => setReportForm({...reportForm, category: e.target.value})} className="w-full h-12 px-4 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold outline-none cursor-pointer focus:border-teal-400">
+                      <select value={reportForm.category} onChange={e => setReportForm({...reportForm, category: e.target.value})} className="w-full h-12 px-4 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-900 outline-none cursor-pointer focus:border-teal-400">
                         <option value="MARKET_RESEARCH">Nghiên cứu thị trường</option><option value="PRICE_INDEX">Đơn giá Vật tư / Nhân công</option><option value="MACRO">Báo cáo Vĩ mô</option>
                       </select>
                     </div>
@@ -252,8 +255,14 @@ export default function InsightsPage() {
                         <option value="PUBLIC">PUBLIC (Đại chúng / Mồi SEO)</option><option value="STANDARD">STANDARD (Mọi hội viên)</option><option value="PREMIUM">PREMIUM (Trả phí)</option><option value="VIP">VIP (Bảo mật cao)</option>
                       </select>
                     </div>
-                    <div className="col-span-2 space-y-2"><label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Tóm tắt (Teaser cho người không có quyền)</label><textarea value={reportForm.description} onChange={e => setReportForm({...reportForm, description: e.target.value})} className="w-full h-28 p-4 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium outline-none resize-none focus:bg-white focus:border-teal-400 transition-colors" placeholder="Nhập đoạn tóm tắt hấp dẫn để giới thiệu báo cáo..." /></div>
-                    <div className="col-span-2 space-y-2"><label className="text-xs font-bold text-slate-500 uppercase tracking-widest flex items-center gap-1"><i className="ph-bold ph-link text-blue-500"></i> Link File Gốc (PDF/Excel) (*)</label><input type="text" value={reportForm.file_url} onChange={e => setReportForm({...reportForm, file_url: e.target.value})} className="w-full h-12 px-4 bg-blue-50/50 border border-blue-200 rounded-xl text-sm font-medium outline-none focus:bg-white focus:border-blue-400 text-blue-700 transition-colors" placeholder="https://drive.google.com/..." /></div>
+                    <div className="col-span-2 space-y-2">
+                      <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Tóm tắt (Teaser cho người không có quyền)</label>
+                      <textarea value={reportForm.description} onChange={e => setReportForm({...reportForm, description: e.target.value})} className="w-full h-28 p-4 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium text-slate-900 outline-none resize-none focus:bg-white focus:border-teal-400 transition-colors" placeholder="Nhập đoạn tóm tắt hấp dẫn để giới thiệu báo cáo..." />
+                    </div>
+                    <div className="col-span-2 space-y-2">
+                      <label className="text-xs font-bold text-slate-500 uppercase tracking-widest flex items-center gap-1"><i className="ph-bold ph-link text-blue-500"></i> Link File Gốc (PDF/Excel) (*)</label>
+                      <input type="text" value={reportForm.file_url} onChange={e => setReportForm({...reportForm, file_url: e.target.value})} className="w-full h-12 px-4 bg-blue-50/50 border border-blue-200 rounded-xl text-sm font-medium text-blue-700 outline-none focus:bg-white focus:border-blue-400 transition-colors" placeholder="https://drive.google.com/..." />
+                    </div>
                   </div>
 
                   {/* Cột phải: Ảnh Cover */}
