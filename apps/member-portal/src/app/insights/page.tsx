@@ -11,6 +11,7 @@ export default function MemberInsightsPage() {
   
   const [reports, setReports] = useState<any[]>([]);
   const [myRequests, setMyRequests] = useState<any[]>([]);
+  
   const [tierLevels, setTierLevels] = useState<Record<string, number>>({});
   
   const [showForm, setShowForm] = useState(false);
@@ -51,7 +52,7 @@ export default function MemberInsightsPage() {
         const { data: reps } = await supabase.from('reports').select('*').eq('is_active', true).order('created_at', { ascending: false });
         if (reps) setReports(reps);
 
-        const { data: reqs } = await supabase.from('data_requests').select('*').eq('member_id', profile.id).order('created_at', { ascending: false });
+        const { data: reqs } = await supabase.from('data_requests').select('*').eq('member_id', profile.id).order('updated_at', { ascending: false });
         if (reqs) setMyRequests(reqs);
       }
     };
@@ -61,7 +62,6 @@ export default function MemberInsightsPage() {
   const handleSubmitRequest = async () => {
     if (!reqForm.title || !reqForm.content) return alert('Vui lòng nhập đủ thông tin yêu cầu!');
     setIsSubmitting(true);
-    
     const payload = { member_id: currentUser.id, title: reqForm.title, content: reqForm.content, status: 'PENDING' };
     const { error } = await supabase.from('data_requests').insert([payload]);
     if (error) alert('Lỗi: ' + error.message);
@@ -69,7 +69,7 @@ export default function MemberInsightsPage() {
       alert('✅ Yêu cầu đã được gửi đến Ban quản trị NKBA!');
       setShowForm(false);
       setReqForm({ title: '', content: '' });
-      const { data } = await supabase.from('data_requests').select('*').eq('member_id', currentUser.id).order('created_at', { ascending: false });
+      const { data } = await supabase.from('data_requests').select('*').eq('member_id', currentUser.id).order('updated_at', { ascending: false });
       if (data) setMyRequests(data);
     }
     setIsSubmitting(false);
@@ -92,16 +92,20 @@ export default function MemberInsightsPage() {
   };
 
   if (!currentUser) return <div className="flex h-[60vh] items-center justify-center text-slate-400 font-bold"><i className="ph-bold ph-spinner animate-spin text-3xl mr-3 text-teal-600"></i> Đang nạp Insights...</div>;
+
   const canRequestData = currentUser?.allowedFeatures?.includes('REQUEST_CUSTOM_DATA');
 
   return (
     <div className="max-w-7xl mx-auto px-4 md:px-8 py-8 space-y-10 animate-in fade-in duration-500 pb-24">
       
+      {/* HEADER & TABS */}
       <div className="bg-white p-6 md:px-8 rounded-3xl border border-slate-200 shadow-sm relative overflow-hidden">
         <div className="absolute top-0 left-0 w-2 h-full bg-teal-500"></div>
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 relative z-10">
           <div>
-            <h1 className="text-3xl font-black text-slate-900 tracking-tight flex items-center gap-3"><i className="ph-fill ph-chart-polar text-teal-500"></i> Insights & Dữ liệu</h1>
+            <h1 className="text-3xl font-black text-slate-900 tracking-tight flex items-center gap-3">
+              <i className="ph-fill ph-chart-polar text-teal-500"></i> Insights & Dữ liệu
+            </h1>
             <p className="text-sm font-medium text-slate-500 mt-2 ml-10">Đặc quyền thông tin chiến lược, báo cáo ngành dành riêng cho Hội viên.</p>
           </div>
           <div className="flex gap-1 bg-slate-100 p-1.5 rounded-2xl border border-slate-200 shrink-0 w-full md:w-auto">
@@ -139,7 +143,6 @@ export default function MemberInsightsPage() {
                     <p className="text-xs font-medium text-slate-500 line-clamp-3 leading-relaxed mb-6">{rep.description}</p>
                     
                     <div className="mt-auto pt-4 border-t border-slate-100">
-                      {/* SỬA TẠI ĐÂY: Biến nút thành thẻ Link trỏ tới trang [id] */}
                       {hasAccess ? (
                         <Link href={`/insights/${rep.id}`} className="w-full h-12 bg-teal-50 border border-teal-200 text-teal-700 rounded-xl text-xs font-black hover:bg-teal-600 hover:text-white transition-all flex items-center justify-center gap-2">
                           <i className="ph-bold ph-book-open-text text-lg"></i> ĐỌC BÁO CÁO
@@ -158,7 +161,6 @@ export default function MemberInsightsPage() {
         </div>
       )}
 
-      {/* TAB REQUESTS (GIỮ NGUYÊN) */}
       {activeTab === 'requests' && (
         <div className="space-y-8 animate-in slide-in-from-bottom-4 duration-500">
           {canRequestData ? (
@@ -173,8 +175,8 @@ export default function MemberInsightsPage() {
                 <div className="bg-white border border-slate-200 p-8 rounded-3xl shadow-sm animate-in zoom-in-95">
                   <h4 className="text-xl font-black text-slate-900 mb-6 flex items-center gap-2"><i className="ph-fill ph-pencil-line text-teal-600"></i> Viết yêu cầu thu thập dữ liệu</h4>
                   <div className="space-y-6">
-                    <div className="space-y-2"><label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Tiêu đề yêu cầu (*)</label><input type="text" value={reqForm.title} onChange={e => setReqForm({...reqForm, title: e.target.value})} className="w-full h-12 px-4 bg-slate-50 border border-slate-200 rounded-xl font-bold outline-none focus:bg-white focus:border-teal-400" placeholder="VD: Khảo sát đơn giá vật liệu xây dựng..." /></div>
-                    <div className="space-y-2"><label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Nội dung chi tiết (*)</label><textarea value={reqForm.content} onChange={e => setReqForm({...reqForm, content: e.target.value})} className="w-full h-40 p-4 bg-slate-50 border border-slate-200 rounded-xl font-medium outline-none resize-none focus:bg-white focus:border-teal-400" placeholder="Nêu rõ quy mô, mục đích..." /></div>
+                    <div className="space-y-2"><label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Tiêu đề yêu cầu (*)</label><input type="text" value={reqForm.title} onChange={e => setReqForm({...reqForm, title: e.target.value})} className="w-full h-12 px-4 bg-slate-50 border border-slate-200 rounded-xl font-bold outline-none focus:bg-white focus:border-teal-400 text-slate-900" placeholder="VD: Khảo sát đơn giá vật liệu xây dựng..." /></div>
+                    <div className="space-y-2"><label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Nội dung chi tiết (*)</label><textarea value={reqForm.content} onChange={e => setReqForm({...reqForm, content: e.target.value})} className="w-full h-40 p-4 bg-slate-50 border border-slate-200 rounded-xl font-medium outline-none resize-none focus:bg-white focus:border-teal-400 text-slate-900" placeholder="Nêu rõ quy mô, mục đích..." /></div>
                     <div className="flex justify-end pt-2 border-t border-slate-100"><button onClick={handleSubmitRequest} disabled={isSubmitting} className="h-14 px-10 bg-teal-600 text-white rounded-2xl text-sm font-black shadow-lg hover:bg-teal-700 transition-all flex items-center gap-2">{isSubmitting ? 'ĐANG GỬI...' : 'GỬI YÊU CẦU ĐẾN BAN NGHIÊN CỨU'}</button></div>
                   </div>
                 </div>
@@ -184,10 +186,20 @@ export default function MemberInsightsPage() {
                 {myRequests.map(req => {
                   const statusConf = getReqStatusConfig(req.status);
                   return (
-                    <div key={req.id} className={`bg-white border rounded-3xl p-6 md:p-8 shadow-sm flex flex-col ${statusConf.border}`}>
-                      <div className="flex justify-between items-start mb-4"><span className={`text-[9px] font-black px-3 py-1.5 rounded-lg uppercase tracking-widest border ${statusConf.bg} ${statusConf.color} ${statusConf.border}`}>{statusConf.label}</span></div>
-                      <h4 className="text-lg font-black text-slate-900 mb-2">{req.title}</h4>
-                      <p className="text-sm text-slate-600 mb-6 bg-slate-50 p-4 rounded-xl border border-slate-100">{req.content}</p>
+                    <div key={req.id} className={`bg-white border rounded-[2rem] p-6 md:p-8 shadow-sm group hover:shadow-md transition-all flex flex-col ${statusConf.border}`}>
+                      <div className="flex justify-between items-start mb-4">
+                        <span className={`text-[9px] font-black px-3 py-1.5 rounded-lg uppercase tracking-widest border ${statusConf.bg} ${statusConf.color} ${statusConf.border}`}>{statusConf.label}</span>
+                        <p className="text-[10px] font-bold text-slate-400"><i className="ph-bold ph-clock"></i> {new Date(req.updated_at || req.created_at).toLocaleDateString('vi-VN')}</p>
+                      </div>
+                      <h4 className="text-lg font-black text-slate-900 mb-3 leading-tight line-clamp-2">{req.title}</h4>
+                      <p className="text-sm text-slate-600 mb-6 flex-1 line-clamp-3 bg-slate-50 p-4 rounded-xl border border-slate-100">{req.content}</p>
+                      
+                      <div className="mt-auto pt-4 border-t border-slate-100">
+                        {/* THAY ĐỔI ĐẮT GIÁ: Nút xem chi tiết trỏ tới trang Quản lý Yêu cầu */}
+                        <Link href={`/insights/requests/${req.id}`} className="w-full h-12 bg-slate-50 text-[#002D62] border border-slate-200 rounded-xl text-xs font-black hover:bg-[#002D62] hover:text-white transition-colors flex items-center justify-center gap-2">
+                          XEM CHI TIẾT & PHẢN HỒI <i className="ph-bold ph-arrow-right text-base"></i>
+                        </Link>
+                      </div>
                     </div>
                   );
                 })}
