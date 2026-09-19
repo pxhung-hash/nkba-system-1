@@ -1,6 +1,6 @@
 'use client';
 
-import { Suspense, useEffect, useState } from 'react';
+import { Suspense, useEffect, useState, useRef } from 'react';
 import { useSearchParams, useRouter, useParams } from 'next/navigation';
 import { createClient } from '@/utils/supabase/client'; 
 import Link from 'next/link';
@@ -19,6 +19,9 @@ function CheckinContent() {
   const [result, setResult] = useState<any>(null);
   const [isScanning, setIsScanning] = useState(false);
   const [isConfirming, setIsConfirming] = useState(false);
+  
+  // Dùng Ref để theo dõi phiên bản Camera, tránh lỗi "kẹt" bộ nhớ
+  const scannerRef = useRef<Html5Qrcode | null>(null);
 
   // 1. Lắng nghe thay đổi Token để KIỂM TRA VÉ
   useEffect(() => {
@@ -67,57 +70,67 @@ function CheckinContent() {
 
   // 2. Kích hoạt Camera Quét QR 
   useEffect(() => {
-    if (!isScanning) return;
-
-    const html5QrCode = new Html5Qrcode("nkba-qr-reader");
-
-    html5QrCode.start(
-      { facingMode: "environment" }, 
-      {
-        fps: 10,
-        qrbox: { width: 250, height: 250 },
-        aspectRatio: 1.0,
-      },
-      (decodedText) => {
-        // Tạm dừng quét ngay lập tức để tránh quét đúp
-        if (html5QrCode.isScanning) {
-          html5QrCode.stop().catch(console.error);
-        }
-        
-        setIsScanning(false);
-        setLoading(true);
-
-        // ĐÃ FIX: Bóc tách mã QR chống lỗi (Chấp nhận mọi loại URL và Text)
-        let scannedToken = decodedText.trim();
-        try {
-          if (scannedToken.startsWith('http')) {
-            const url = new URL(scannedToken);
-            // Lấy từ ?token= XYZ, nếu không có thì lấy phần cuối của URL
-            scannedToken = url.searchParams.get('token') || url.pathname.split('/').pop() || scannedToken;
-          }
-        } catch (e) {
-          console.warn("QR không phải dạng URL chuẩn, lấy nguyên text.");
-        }
-
-        if (scannedToken) {
-          router.push(`/events/${eventId}/checkin?token=${scannedToken}`);
-        } else {
-          setResult({ success: false, message: 'Mã QR rỗng hoặc không hợp lệ.' });
-          setLoading(false);
-        }
-      },
-      (error) => {
-        // Bỏ qua lỗi không tìm thấy QR trong khung hình
+    if (!isScanning) {
+      // Dọn dẹp an toàn khi tắt
+      if (scannerRef.current?.isScanning) {
+        scannerRef.current.stop().then(() => scannerRef.current?.clear()).catch(() => {});
       }
-    ).catch((err) => {
-      console.error("Lỗi khởi động camera:", err);
-      alert("Không thể mở Camera. Vui lòng cấp quyền truy cập trình duyệt!");
-      setIsScanning(false);
-    });
+      return;
+    }
+
+    const startScanner = async () => {
+      try {
+        const html5QrCode = new Html5Qrcode("nkba-qr-reader");
+        scannerRef.current = html5QrCode;
+
+        await html5QrCode.start(
+          { facingMode: "environment" }, 
+          {
+            fps: 10,
+            qrbox: { width: 250, height: 250 },
+            aspectRatio: 1.0,
+          },
+          (decodedText) => {
+            // Khi quét thành công: TẮT SCANNER NGAY LẬP TỨC
+            if (scannerRef.current?.isScanning) {
+              scannerRef.current.stop().then(() => scannerRef.current?.clear()).catch(() => {});
+            }
+            
+            setIsScanning(false);
+            setLoading(true);
+
+            let scannedToken = decodedText.trim();
+            try {
+              if (scannedToken.startsWith('http')) {
+                const url = new URL(scannedToken);
+                scannedToken = url.searchParams.get('token') || url.pathname.split('/').pop() || scannedToken;
+              }
+            } catch (e) {
+              console.warn("QR không phải dạng URL chuẩn, lấy nguyên text.");
+            }
+
+            if (scannedToken) {
+              router.push(`/events/${eventId}/checkin?token=${scannedToken}`);
+            } else {
+              setResult({ success: false, message: 'Mã QR rỗng hoặc không hợp lệ.' });
+              setLoading(false);
+            }
+          },
+          (error) => {}
+        );
+      } catch (err) {
+        console.error("Lỗi khởi động camera:", err);
+        alert("Không thể mở Camera. Vui lòng cấp quyền truy cập trình duyệt!");
+        setIsScanning(false);
+      }
+    };
+
+    // Khởi động Camera (sau 1 khoảng delay cực nhỏ để render UI kịp)
+    setTimeout(startScanner, 50);
 
     return () => {
-      if (html5QrCode.isScanning) {
-        html5QrCode.stop().catch(() => {});
+      if (scannerRef.current?.isScanning) {
+        scannerRef.current.stop().then(() => scannerRef.current?.clear()).catch(() => {});
       }
     };
   }, [isScanning, router, eventId]);
@@ -146,15 +159,20 @@ function CheckinContent() {
     setIsConfirming(false);
   };
 
-  // 👉 CÁC HÀM XỬ LÝ NÚT BẤM MƯỢT MÀ KHÔNG LÀM RELOAD TRANG
+  // 👉 ĐÃ FIX: CHUẨN HÓA LOGIC 2 NÚT NÀY
   const resetAndScanAgain = () => {
-    window.history.replaceState(null, '', `/events/${eventId}/checkin`);
+    // Ép Next.js xóa query ?token= trên URL (Không làm reload nguyên trang)
+    router.replace(`/events/${eventId}/checkin`, { scroll: false }); 
     setResult({ status: 'STANDBY' });
-    setTimeout(() => setIsScanning(true), 50); // Delay nhẹ để DOM kịp dọn dẹp
+    
+    // Đảm bảo UI Standby render xong xuôi thì mới kích hoạt camera lên
+    setTimeout(() => {
+      setIsScanning(true);
+    }, 150); 
   };
 
   const cancelToStandby = () => {
-    window.history.replaceState(null, '', `/events/${eventId}/checkin`);
+    router.replace(`/events/${eventId}/checkin`, { scroll: false }); 
     setResult({ status: 'STANDBY' });
     setIsScanning(false);
   };
@@ -214,7 +232,7 @@ function CheckinContent() {
   }
 
   // ================= MÀN HÌNH LỖI (VÉ SAI) =================
-  if (!result.success) {
+  if (!result?.success) {
     return (
       <div className="flex flex-col items-center justify-center py-16">
         <div className="w-24 h-24 bg-rose-100 rounded-full flex items-center justify-center text-rose-600 mb-6 border-4 border-rose-200">
@@ -224,7 +242,7 @@ function CheckinContent() {
         <p className="text-slate-500 text-center font-medium px-4">{result.message}</p>
         
         <div className="flex gap-4 mt-8">
-          <button onClick={cancelToStandby} className="px-5 py-3 bg-white border border-slate-200 text-slate-600 font-bold rounded-xl hover:bg-slate-50">
+          <button onClick={cancelToStandby} className="px-5 py-3 bg-white border border-slate-200 text-slate-600 font-bold rounded-xl hover:bg-slate-50 transition-colors">
             Hủy bỏ
           </button>
           <button onClick={resetAndScanAgain} className="px-5 py-3 bg-[#002D62] text-white font-bold rounded-xl flex items-center gap-2">
@@ -270,9 +288,13 @@ function CheckinContent() {
 
       <div className="bg-white p-6 md:p-8 rounded-3xl shadow-sm border border-slate-200 w-full max-w-md text-center mt-6">
         <p className="text-xs font-bold text-[#D4AF37] uppercase tracking-widest mb-2">Thông tin Khách mời</p>
-        <h2 className="text-2xl font-black text-[#002D62] mb-1">{guest.salutation} {guest.guest_info?.name}</h2>
+        
+        {/* Đảm bảo render an toàn kể cả khi JSONB chưa bung */}
+        <h2 className="text-2xl font-black text-[#002D62] mb-1">
+          {guest.salutation} {typeof guest.guest_info === 'string' ? JSON.parse(guest.guest_info).name : guest.guest_info?.name}
+        </h2>
         <p className="text-slate-600 font-medium text-sm">
-          {guest.guest_info?.position ? `${guest.guest_info.position} - ` : ''}{guest.guest_info?.company}
+          {typeof guest.guest_info === 'string' ? JSON.parse(guest.guest_info).company : guest.guest_info?.company}
         </p>
         
         <div className="w-full border-t border-slate-100 my-5"></div>
@@ -286,11 +308,13 @@ function CheckinContent() {
 
         <div className="text-sm text-slate-500 flex justify-between items-center bg-slate-50 p-3 rounded-xl">
           <span>Liên hệ:</span>
-          <span className="font-bold text-slate-800">{guest.guest_info?.phone || '---'}</span>
+          <span className="font-bold text-slate-800">
+             {typeof guest.guest_info === 'string' ? JSON.parse(guest.guest_info).phone : guest.guest_info?.phone || '---'}
+          </span>
         </div>
       </div>
       
-      {/* 4. HIỂN THỊ NÚT BẤM THEO TỪNG TRẠNG THÁI */}
+      {/* NÚT BẤM DƯỚI CÙNG */}
       <div className="flex gap-4 mt-8">
         {result.code === 'READY' ? (
           <>
